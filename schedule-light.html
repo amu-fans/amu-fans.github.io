@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>あむちゃんスケジュール</title>
+<style>
+  /* ==================================================
+     ベース設定（全体版と同じカラー・フォント）
+  ================================================== */
+  :root {
+    --main-pink: #ff2a7a;
+    --text-black: #111111;
+    --bg-white: #ffffff;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    color: var(--text-black);
+    background-color: var(--bg-white);
+  }
+
+  .no-scroll {
+    overflow: hidden;
+  }
+
+  /* ==================================================
+     ヘッダー＆メニュー周り（全体版と共通化）
+  ================================================== */
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 1100;
+    background-color: var(--main-pink);
+  }
+
+  .site-logo {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--bg-white);
+    text-decoration: none;
+    z-index: 1001;
+    line-height: 1.3;
+    max-width: calc(100% - 50px);
+  }
+
+  .hamburger {
+    width: 30px;
+    height: 20px;
+    position: relative;
+    cursor: pointer;
+    z-index: 1001;
+  }
+
+  .hamburger span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--bg-white);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .hamburger span:nth-child(1) { top: 0; }
+  .hamburger span:nth-child(2) { top: 50%; transform: translateY(-50%); }
+  .hamburger span:nth-child(3) { bottom: 0; }
+
+  .hamburger.active span:nth-child(1) {
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+    background-color: var(--bg-white); /* ピンクに変わる余計な処理を削除し、白のままにする */
+  }
+  .hamburger.active span:nth-child(2) { opacity: 0; }
+  .hamburger.active span:nth-child(3) {
+    bottom: 50%;
+    transform: translateY(50%) rotate(-45deg);
+    background-color: var(--bg-white); /* ピンクに変わる余計な処理を削除し、白のままにする */
+  }
+
+  /* 通信・処理軽量化のため、メニュー表示のアニメーションは最低限に */
+  .global-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--bg-white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+
+  .global-nav.active {
+    transform: translateX(0);
+  }
+
+  .nav-list {
+    list-style: none;
+    text-align: center;
+  }
+
+  .nav-list li {
+    margin: 25px 0;
+  }
+
+  .nav-list a {
+    color: var(--text-black);
+    text-decoration: none;
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    display: block;
+  }
+
+  .nav-list span {
+    display: block;
+    font-size: 12px;
+    font-weight: normal;
+    margin-top: 5px;
+    opacity: 0.8;
+  }
+
+  /* ページ全体のラッパー（ヘッダー分の余白を確保） */
+  .page-wrapper {
+    padding: 90px 10px 40px;
+    min-height: 100vh;
+  }
+
+  .page-title {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--text-black);
+    text-shadow: 1px 1px 0 var(--bg-white), 2px 2px 0 var(--bg-white), 3px 3px 0 var(--bg-white);
+    margin-bottom: 25px;
+    display: inline-block;
+    padding: 0 10px;
+    background: linear-gradient(transparent 50%, var(--main-pink) 50%);
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    letter-spacing: 2px;
+  }
+
+  /* ==================================================
+     月切り替えナビゲーション
+  ================================================== */
+  .month-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 15px;
+  }
+
+  .month-nav button {
+    background: none;
+    border: none;
+    font-size: 25px;
+    color: var(--main-pink);
+    cursor: pointer;
+    font-weight: bold;
+    padding: 5px 15px;
+    transition: opacity 0.2s;
+  }
+
+  .month-nav button:active {
+    opacity: 0.5;
+  }
+
+  .month-nav h2 {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--text-black);
+    letter-spacing: 2px;
+    min-width: 140px;
+    text-align: center;
+  }
+
+  /* ==================================================
+     スケジュールテーブル
+  ================================================== */
+  .schedule-wrapper {
+    background-color: var(--bg-white);
+    overflow: hidden;
+  }
+
+  .schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px; /* 文字サイズ拡大 */
+    table-layout: fixed;
+  }
+
+  .schedule-table th, 
+  .schedule-table td {
+    padding: 18px 5px;
+    border-bottom: 1px solid #cccccc;
+    vertical-align: middle;
+  }
+
+  .schedule-table th {
+    font-weight: 900;
+    color: var(--bg-white);
+    background-color: var(--text-black);
+    padding: 14px 0;
+    text-align: center;
+  }
+
+  .col-date { width: 18%; }
+  .col-time { width: 20%; }
+  .col-venue { width: 62%; }
+
+  .schedule-table td:nth-child(1) { text-align: center; white-space: nowrap; }
+  .schedule-table td:nth-child(2) { text-align: center; white-space: nowrap; }
+  .schedule-table td:nth-child(3) { 
+    text-align: left; 
+    padding-left: 10px; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; /* はみ出しを「...」にする */
+  }
+
+  /* 行のスタイル */
+  .schedule-table tbody tr {
+    cursor: pointer;
+    background-color: var(--bg-white);
+    transition: filter 0.2s;
+  }
+
+  .schedule-table tbody tr:active {
+    filter: brightness(0.95);
+  }
+
+  /* 特殊行による背景色の色分け（土日は白のまま） */
+  .schedule-table tr.tiktok { background-color: #e6d4ff; }   /* TikTok：薄い紫 */
+  .schedule-table tr.anniv { background-color: #ffe6f0; }    /* 記念日：薄いピンク */
+
+  /* 曜日による文字色の色分け（日付のみ） */
+  .schedule-table tr.saturday td:first-child { color: #0044ff; }
+  .schedule-table tr.sunday td:first-child { color: #ff0000; }
+
+  .empty-msg {
+    padding: 40px !important;
+    text-align: center !important;
+    color: var(--text-black);
+    font-weight: bold;
+    background-color: var(--bg-white);
+  }
+
+  /* ==================================================
+     モーダル（ポップアップ）のデザイン
+  ================================================== */
+  .modal-overlay {
+    display: none; 
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); 
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.active {
+    display: flex; 
+  }
+
+  .modal-content {
+    background-color: var(--bg-white);
+    border: 3px solid var(--text-black);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 360px;
+    padding: 25px 20px;
+    box-shadow: 6px 6px 0 var(--text-black);
+    position: relative;
+  }
+
+  .modal-close-btn {
+    position: absolute;
+    top: 10px; right: 15px;
+    font-size: 28px;
+    color: #999;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .modal-title {
+    font-size: 20px;
+    font-weight: 900;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--main-pink); 
+    padding-bottom: 5px;
+    text-align: center;
+    color: var(--text-black);
+  }
+
+  .modal-info-group {
+    margin-bottom: 12px;
+  }
+
+  .modal-label {
+    display: block;
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--main-pink);
+    margin-bottom: 2px;
+  }
+
+  .modal-text {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text-black);
+    line-height: 1.4;
+  }
+
+  .modal-text a {
+    color: var(--main-pink);
+    text-decoration: underline;
+    word-break: break-all;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 全ページ共通ヘッダー＆ナビゲーション（index版完全同期・アニメーション軽量化） -->
+  <header class="header" id="header">
+    <a href="index.html" class="site-logo" id="siteLogo">【非公式】勝手にあむちゃん応援ファンサイト</a>
+    <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+  </header>
+
+  <nav class="global-nav" id="globalNav">
+    <ul class="nav-list">
+      <li><a href="index.html#schedule" class="nav-link">SCHEDULE<span>スケジュール</span></a></li>
+      <li><a href="index.html#sns" class="nav-link">LINK<span>リンク</span></a></li>
+      <li><a href="index.html#others" class="nav-link">OTHERS<span>その他</span></a></li>
+    </ul>
+  </nav>
+
+  <!-- メインコンテンツ -->
+  <main class="page-wrapper">
+    <h1 class="page-title">SCHEDULE</h1>
+    
+    <div class="month-nav">
+      <!-- 前月ボタンにIDを追加 -->
+      <button id="prevMonthBtn" onclick="prevMonth()">＜</button>
+      <h2 id="currentMonthDisplay">2026.05</h2>
+      <button onclick="nextMonth()">＞</button>
+    </div>
+
+    <div class="schedule-wrapper">
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th class="col-date">日程</th>
+            <th class="col-time">時間</th>
+            <th class="col-venue">会場 / タイトル</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleBody">
+          <!-- JSで予定が生成されます -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- 全体版と同じポップアップ（モーダル） -->
+  <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-content">
+      <button class="modal-close-btn" onclick="forceCloseModal()">×</button>
+      <div id="modalTitle" class="modal-title">イベント詳細</div>
+      <div class="modal-info-group" id="groupVenue">
+        <span class="modal-label">開催場所 / 会場</span>
+        <div id="modalVenue" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupOpenStart">
+        <span class="modal-label">開場 / 開演時間</span>
+        <div id="modalOpenStart" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupLive">
+        <span class="modal-label">出演時間</span>
+        <div id="modalLive" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupTokuten">
+        <span class="modal-label">物販 / 特典会</span>
+        <div id="modalTokuten" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupBonus">
+        <span class="modal-label">入場特典</span>
+        <div id="modalBonus" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupTicket">
+        <span class="modal-label" id="ticketLabel">チケットURL</span>
+        <div id="modalTicketArea" class="modal-text">-</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================================================
+    // 動的データ読み込み＆表示ロジック
+    // ==================================================
+    let currentDate = new Date(2026, 4, 1); // デフォルト: 2026年5月
+    let scheduleEvents = [];
+
+    function addDynamicEvents() {
+      // 2026年から数年分のイベントを生成
+      for (let y = 2026; y <= 2030; y++) {
+        // 誕生日
+        const bdayStr = `${y}/12/17`;
+        if (!scheduleEvents.some(ev => ev.date === bdayStr && ev.title.includes('誕生日'))) {
+          scheduleEvents.push({ date: bdayStr, title: "誕生日", venue: "ONLINE", openStart: "---", live: "---", tokuten: "---", nyujoTokuten: "---", link: "" });
+        }
+        // TikTok
+        for (let m = 1; m <= 12; m++) {
+          // 2026年4月以前のデータは生成しない
+          if (y === 2026 && m < 5) continue;
+
+          let d = new Date(y, m - 1, 1);
+          while (d.getMonth() === m - 1) {
+            if (d.getDay() === 4) {
+              let dateStr = `${y}/${String(m).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+              if (!scheduleEvents.some(ev => ev.date === dateStr && ev.title.includes('TikTok'))) {
+                scheduleEvents.push({ date: dateStr, title: "TikTok個人配信", venue: "ONLINE", openStart: "---", live: "木曜定期配信。時間はX等で告知", tokuten: "---", nyujoTokuten: "---", link: "https://www.tiktok.com/@amunyan__" });
+              }
+            }
+            d.setDate(d.getDate() + 1);
+          }
+        }
+      }
+    }
+
+    async function loadSchedule() {
+      try {
+        const response = await fetch('schedule.csv');
+        if (!response.ok) throw new Error();
+        const csvText = await response.text();
+        scheduleEvents = parseCSV(csvText);
+      } catch (error) {
+        // CSV読み込み失敗時は何も追加しない（動的イベントのみ表示）
+        console.warn('スケジュールデータの読み込みに失敗しました。');
+      }
+      addDynamicEvents();
+      renderTable();
+    }
+
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+      if (lines.length <= 1) return [];
+      const headers = lines[0].split(',').map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const cols = line.split(',').map(c => c.trim());
+        if (cols.length < headers.length) return null;
+        return { date: cols[0], title: cols[1], venue: cols[2], openStart: cols[3], live: cols[4], tokuten: cols[5], nyujoTokuten: cols[6], link: cols[8] };
+      }).filter(item => item !== null);
+    }
+
+    function renderTable() {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      document.getElementById('currentMonthDisplay').textContent = `${year}.${String(month + 1).padStart(2, '0')}`;
+
+      // 2026年5月 (year:2026, month:4) 以前に戻れないよう「＜」ボタンを非表示にする
+      const prevBtn = document.getElementById('prevMonthBtn');
+      if (year <= 2026 && month <= 4) {
+        prevBtn.style.visibility = 'hidden';
+      } else {
+        prevBtn.style.visibility = 'visible';
+      }
+
+      const tbody = document.getElementById('scheduleBody');
+      tbody.innerHTML = '';
+
+      let monthlyEvents = scheduleEvents.filter(ev => {
+        const evDate = new Date(ev.date);
+        return evDate.getFullYear() === year && evDate.getMonth() === month;
+      });
+
+      monthlyEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (monthlyEvents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-msg">予定がありません</td></tr>';
+        return;
+      }
+
+      const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+
+      monthlyEvents.forEach(ev => {
+        const evDate = new Date(ev.date);
+        const dayOfWeek = evDate.getDay();
+        const dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}<span style="font-size:12px; margin-left:2px;">(${weekdays[dayOfWeek]})</span>`;
+        
+        let trClass = '';
+        if (dayOfWeek === 0) trClass = 'sunday';
+        if (dayOfWeek === 6) trClass = 'saturday';
+        if (ev.title.includes('TikTok')) trClass = 'tiktok';
+        if (ev.title === '誕生日') trClass = 'anniv';
+
+        let displayTime = '未定';
+        if (ev.live && ev.live !== '---' && ev.live !== '終日') {
+          displayTime = ev.live.split('～')[0] + '～'; 
+        } else if (ev.live === '終日') {
+          displayTime = '終日';
+        }
+        if (ev.title.includes('TikTok')) displayTime = '夜';
+        if (ev.title === '誕生日') displayTime = '🎂';
+
+        let isLive = !ev.title.includes('TikTok') && ev.title !== '誕生日';
+        let displayTitle = isLive ? `『${ev.title}』` : ev.title;
+        let displayVenue = ev.venue && ev.venue !== 'ONLINE' && ev.venue !== '---' ? ev.venue : '';
+        let combinedText = displayVenue ? `${displayVenue} ${displayTitle}` : displayTitle;
+
+        const encodedData = encodeURIComponent(JSON.stringify(ev));
+        const tr = document.createElement('tr');
+        if (trClass) tr.className = trClass;
+        tr.onclick = () => openEventDetails(encodedData);
+        
+        tr.innerHTML = `
+          <td style="font-weight: bold;">${dateStr}</td>
+          <td style="font-weight: bold; color: #444;">${displayTime}</td>
+          <td style="font-weight: bold;">${combinedText}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function prevMonth() { 
+      // 2026年5月より前には戻らない
+      if (currentDate.getFullYear() <= 2026 && currentDate.getMonth() <= 4) return;
+      currentDate.setMonth(currentDate.getMonth() - 1); 
+      renderTable(); 
+    }
+    function nextMonth() { currentDate.setMonth(currentDate.getMonth() + 1); renderTable(); }
+
+    function openEventDetails(encodedData) {
+      const ev = JSON.parse(decodeURIComponent(encodedData));
+
+      const dateParts = ev.date.split('/');
+      const isBirthday = (parseInt(dateParts[1], 10) === 12 && parseInt(dateParts[2], 10) === 17);
+      const isTikTok = ev.title.includes('TikTok');
+
+      const groupVenue = document.getElementById('groupVenue');
+      const groupOpenStart = document.getElementById('groupOpenStart');
+      const groupLive = document.getElementById('groupLive');
+      const groupTokuten = document.getElementById('groupTokuten');
+      const groupBonus = document.getElementById('groupBonus');
+      const groupTicket = document.getElementById('groupTicket');
+      const ticketLabel = document.getElementById('ticketLabel');
+      const titleEl = document.getElementById('modalTitle');
+
+      groupVenue.style.display = 'block';
+      groupOpenStart.style.display = 'block';
+      groupLive.style.display = 'block';
+      groupTokuten.style.display = 'block';
+      groupBonus.style.display = 'block';
+      groupTicket.style.display = 'block';
+      ticketLabel.textContent = "チケットURL";
+
+      if (isBirthday) {
+        titleEl.innerHTML = `<span style="color: var(--main-pink); font-size: 16px; display: block; margin-bottom: 5px;">🎂 Happy Birthday 🎂<br>お誕生日おめでとう🎉</span>`;
+        groupVenue.style.display = 'none';
+        groupOpenStart.style.display = 'none';
+        groupLive.style.display = 'none';
+        groupTokuten.style.display = 'none';
+        groupBonus.style.display = 'none';
+        groupTicket.style.display = 'none';
+      } else if (isTikTok) {
+        titleEl.textContent = ev.title;
+        groupVenue.style.display = 'none';
+        groupOpenStart.style.display = 'none';
+        groupTokuten.style.display = 'none';
+        groupBonus.style.display = 'none';
+        document.getElementById('modalLive').textContent = ev.live || "木曜定期配信。時間はX等で告知";
+        ticketLabel.textContent = "配信URL";
+        const ticketArea = document.getElementById('modalTicketArea');
+        ticketArea.innerHTML = `<a href="https://www.tiktok.com/@amunyan__" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">https://www.tiktok.com/@amunyan__</a>`;
+      } else {
+        titleEl.textContent = ev.title;
+        document.getElementById('modalVenue').textContent = ev.venue || '-';
+        document.getElementById('modalOpenStart').textContent = ev.openStart || '-';
+        document.getElementById('modalLive').textContent = ev.live || '-';
+        document.getElementById('modalTokuten').textContent = ev.tokuten || '-';
+        document.getElementById('modalBonus').textContent = ev.nyujoTokuten || 'なし';
+
+        const ticketArea = document.getElementById('modalTicketArea');
+        const hasLink = ev.link && ev.link.trim() !== '' && ev.link.trim() !== '#' && ev.link.trim() !== 'undefined';
+        if (hasLink) {
+          const cleanLink = ev.link.trim();
+          ticketArea.innerHTML = `<a href="${cleanLink}" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">${cleanLink}</a>`;
+          groupTicket.style.display = 'block';
+        } else {
+          groupTicket.style.display = 'none';
+        }
+      }
+
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal(event) {
+      if (event.target === document.getElementById('modalOverlay')) {
+        document.getElementById('modalOverlay').classList.remove('active');
+      }
+    }
+
+    function forceCloseModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    // ヘッダーのハンバーガーメニュー開閉処理
+    const hamburger = document.getElementById('hamburger');
+    const globalNav = document.getElementById('globalNav');
+    const siteLogo = document.getElementById('siteLogo');
+    
+    function toggleMenu() {
+      hamburger.classList.toggle('active');
+      globalNav.classList.toggle('active');
+      // ロゴの文字色を勝手にピンクに変えてしまう余計なJS処理を削除しました
+      document.body.classList.toggle('no-scroll');
+    }
+
+    hamburger.addEventListener('click', toggleMenu);
+
+    // メニュー内のリンクをクリックしたときにメニューを閉じる
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        if(globalNav.classList.contains('active')) {
+          toggleMenu();
+        }
+      });
+    });
+
+    window.addEventListener('load', loadSchedule);
+  </script>
+
+</body>
+</html>
