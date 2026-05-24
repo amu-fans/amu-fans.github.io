@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ライブスケジュールCSV更新ツール</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700&family=Noto+Sans+JP:wght=400;500;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- ヘッダー -->
+        <header class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-5">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="calendar-range" class="text-indigo-600"></i>
+                    ライブスケジュール CSV更新システム
+                </h1>
+                <p class="text-slate-500 text-sm mt-1">
+                    CSVをドラッグ＆ドロップして読み込み、スケジュールを編集・追加・GitHubコピペ用出力が可能です。
+                </p>
+            </div>
+            <div class="mt-4 md:mt-0 flex flex-wrap gap-2">
+                <!-- CSV読み込みボタン -->
+                <label class="cursor-pointer px-4 py-2 border border-slate-300 hover:border-slate-400 text-slate-700 bg-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
+                    <i data-lucide="upload" class="w-4 h-4 text-slate-500"></i>
+                    <span>スケジュールCSVを読み込む</span>
+                    <input type="file" id="csvFileInput" accept=".csv" class="hidden">
+                </label>
+                <button id="btnLoadDefault" class="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-500 bg-white rounded-lg text-sm font-medium transition flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    デモデータ
+                </button>
+            </div>
+        </header>
+
+        <!-- CSVドラッグ＆ドロップエリア -->
+        <div id="dropZone" class="mb-6 border-2 border-dashed border-slate-300 hover:border-indigo-400 bg-white rounded-xl p-6 text-center cursor-pointer transition">
+            <i data-lucide="file-spreadsheet" class="mx-auto w-10 h-10 text-slate-400 mb-2"></i>
+            <p class="text-sm font-semibold text-slate-700">お手持ちの「schedule.csv」をここにドラッグ＆ドロップ</p>
+            <p class="text-xs text-slate-400 mt-1">またはクリックしてファイルを選択（何件でも一括で読み込めます）</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- 左カラム：入力・フォームエリア (5 cols) -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                <!-- 1. テキスト解析・追加セクション -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <h2 class="text-md font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">1</span>
+                        イベント情報の簡易入力 / 編集
+                    </h2>
+                    <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+                        告知文を貼り付けると自動解析します。日付とイベント名から、「新規追加」か「既存の更新」かを自動で判定します。
+                    </p>
+                    
+                    <div class="mb-4">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">【自動解析用】告知テキスト貼り付け</label>
+                        <textarea id="rawText" rows="4" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-400" placeholder="例：
+2026/05/30 渋谷O-EASTにてGIRLS MIX開催！
+開場15:00 開演15:30 出番 18:30〜
+特典会 19:00〜 チケット¥3000 特典は指名写メ"></textarea>
+                        <button id="btnParse" class="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2 px-4 rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                            テキストから情報を抽出する
+                        </button>
+                    </div>
+
+                    <div class="relative flex py-2 items-center">
+                        <div class="flex-grow border-t border-slate-200"></div>
+                        <span class="flex-shrink mx-4 text-slate-400 text-xs">または直接入力</span>
+                        <div class="flex-grow border-t border-slate-200"></div>
+                    </div>
+
+                    <!-- スケジュール直接編集フォーム -->
+                    <form id="scheduleForm" class="space-y-3 mt-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">日付 (date) <span class="text-rose-500">*</span></label>
+                            <input type="text" id="formDate" required class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="YYYY/MM/DD">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">イベント名 (title) <span class="text-rose-500">*</span></label>
+                            <input type="text" id="formTitle" required class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="イベントタイトル">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">会場 (venue)</label>
+                                <input type="text" id="formVenue" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500" placeholder="会場名">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">開場/開演 (open_start)</label>
+                                <input type="text" id="formOpenStart" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500" placeholder="18:00 / 18:30">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">ライブ時間 (live)</label>
+                                <input type="text" id="formLive" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500" placeholder="19:30～19:50">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">特典会時間 (tokuten)</label>
+                                <input type="text" id="formTokuten" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500" placeholder="20:00～21:00">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">入場特典 (nyujo_tokuten)</label>
+                            <input type="text" id="formNyujoTokuten" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500" placeholder="指名写メ、なし等">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">料金 (price) ※カンマ自動除去</label>
+                                <input type="text" id="formPrice" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500" placeholder="例: ¥3000">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">予約URL (link)</label>
+                                <input type="text" id="formLink" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500" placeholder="https://...">
+                            </div>
+                        </div>
+                        <button type="button" id="btnApply" class="w-full mt-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
+                            <i data-lucide="check-square" class="w-4 h-4"></i>
+                            <span id="applyButtonText">データを追加/修正する</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 右カラム：生成データ＆CSV全体プレビュー (7 cols) -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                <!-- 2. 最新の処理結果（視認用テーブル & コピペ用） -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-md font-bold text-slate-800 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">2</span>
+                            更新・追加された行（視認用テーブル）
+                        </h2>
+                        <span id="updateTypeBadge" class="hidden text-[10px] font-bold px-2.5 py-0.5 rounded-full"></span>
+                    </div>
+
+                    <!-- 視認用Markdown / HTMLプレビュー -->
+                    <div id="resultTableContainer" class="overflow-x-auto border border-slate-200 rounded-lg mb-4 hidden bg-slate-50 p-2">
+                        <table class="w-full text-xs text-left text-slate-700 min-w-[600px] border-collapse bg-white">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 uppercase text-[10px] border-b border-slate-200 font-semibold">
+                                    <th class="p-2 border">日付</th>
+                                    <th class="p-2 border">タイトル</th>
+                                    <th class="p-2 border">会場</th>
+                                    <th class="p-2 border">開場/開演</th>
+                                    <th class="p-2 border">ライブ</th>
+                                    <th class="p-2 border">特典会</th>
+                                    <th class="p-2 border">入場特典</th>
+                                    <th class="p-2 border">料金</th>
+                                    <th class="p-2 border">予約先</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultTableBody">
+                                <!-- 最新追加/修正レコードがここに入る -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="noResultPlaceholder" class="text-center py-8 text-slate-400 text-xs border border-dashed border-slate-200 rounded-lg bg-slate-50">
+                        <i data-lucide="alert-circle" class="mx-auto w-8 h-8 mb-2 text-slate-300"></i>
+                        追加または修正されたデータがここに表示されます。
+                    </div>
+
+                    <!-- 3. コピペ用CSV・Markdown出力 -->
+                    <div class="mt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-xs font-semibold text-slate-600">【コピペ用】GitHub貼付用 CSVテキスト（今回更新分）</label>
+                            <button id="btnCopySingleCsv" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                コピーする
+                            </button>
+                        </div>
+                        <pre id="outputSingleCsv" class="bg-slate-900 text-slate-100 p-3 rounded-lg text-[11px] font-mono overflow-x-auto whitespace-pre leading-relaxed min-h-[60px]">更新データがありません。</pre>
+                    </div>
+                </div>
+
+                <!-- 4. 全体CSVプレビュー/管理 -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                        <h2 class="text-md font-bold text-slate-800 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs">3</span>
+                            全体スケジュール（全 <span id="totalCount">0</span> 件）
+                        </h2>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="btnCopyAllCsv" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-1.5 rounded-md flex items-center gap-1 border border-slate-300">
+                                <i data-lucide="copy" class="w-3 h-3"></i>
+                                全体CSVコピー
+                            </button>
+                            <button id="btnDownload" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded-md flex items-center gap-1 border border-indigo-200">
+                                <i data-lucide="download" class="w-3 h-3"></i>
+                                CSV保存
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 簡易検索・並び替え -->
+                    <div class="flex gap-2 mb-3">
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400"></i>
+                            <input type="text" id="tableFilter" class="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-1 focus:ring-indigo-500" placeholder="タイトルや会場で検索...">
+                        </div>
+                    </div>
+
+                    <!-- 全データテーブル -->
+                    <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-[400px]">
+                        <table class="w-full text-xs text-left text-slate-700 min-w-[700px] border-collapse bg-white">
+                            <thead class="bg-slate-100 text-slate-600 uppercase text-[10px] sticky top-0 shadow-sm font-semibold">
+                                <tr>
+                                    <th class="p-2.5 border-b">日付</th>
+                                    <th class="p-2.5 border-b">タイトル</th>
+                                    <th class="p-2.5 border-b">会場</th>
+                                    <th class="p-2.5 border-b">時間情報</th>
+                                    <th class="p-2.5 border-b">入場特典</th>
+                                    <th class="p-2.5 border-b">料金</th>
+                                    <th class="p-2.5 border-b text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fullScheduleTableBody">
+                                <!-- 全データがここにレンダリングされる -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast通知 -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-2 transform translate-y-10 opacity-0 transition duration-300 pointer-events-none z-50">
+        <i data-lucide="info" class="text-indigo-400 w-4 h-4"></i>
+        <span id="toastMessage">コピーしました！</span>
+    </div>
+
+    <script>
+        // デモ用デフォルトデータ
+        const initialCsvData = `date,title,venue,open_start,live,tokuten,nyujo_tokuten,price,link
+2026/05/09,GIRLS☆DELIGHT#398,シティホール五反田,12:15 / 12:40,14:50～15:10,15:20～16:20,ランダム写メ,,https://livepocket.jp/e/girlsdelight398
+2026/05/10,ッスッゴイライブ,品川グランドホール,11:00 / 11:30,14:30～14:55,15:05～16:05,指名写メ,,https://t-dv.com/ssuggoiLive0510
+2026/05/12,HIGH SPIRITS定期公演,SHIBUYA DIVE,19:00 / 19:30,19:30～20:30,,,,
+2026/05/15,Hi！Hi！Fes. vol.8 -新体制お披露目SP-,新宿ReNY,16:30 / 16:50,20:15～20:45,20:55～21:55,,,https://livepocket.jp/e/hihifes_vol8
+2026/05/16,UP-T FESTIVAL NEXT Vol.7,東京キネマ倶楽部,10:00 / 10:20,18:00～18:20,18:30～19:30,,,,
+2026/05/17,GIRLS☆DELIGHT#400,日比谷公園大音楽堂,13:30 / 14:00,17:30～17:50,18:00～19:00,,,https://livepocket.jp/e/girls_delight400
+2026/05/22,GIRLS☆DELIGHT#401,キネマ倶楽部,14:30 / 15:00,20:30～20:50,21:00～22:00,ランダム写メ,,https://livepocket.jp/e/girls_delight401
+2026/05/23,MARQUEE祭 mini Vol.320,渋谷 Spotify O-nest,10:30 / 11:00,13:50～14:10,14:45～15:45,指名写メ＋10秒動画,,http://eplus.jp/marquee-matsuri/
+2026/05/24,GIRLS GIRLS FESTIVAL 2026,さがみ湖MORI MORI,09:30 / 10:00,①11:25～11:40 ②16:10～16:30,①12:00～13:00 ②16:50～18:00,指名写メ,,https://tiget.net/events/483124
+2026/05/28,KAWAII PARTY,渋谷duo MUSIC EXCHANGE,11:00 / 11:15,20:50～21:15,21:25～22:25,,,https://tiget.net/events/502123`;
+
+        // 状態保持
+        let schedules = [];
+        let originalSchedules = [];
+        let lastUpdatedItem = null;
+        let lastUpdateType = '';
+
+        // DOM Elements
+        const formDate = document.getElementById('formDate');
+        const formTitle = document.getElementById('formTitle');
+        const formVenue = document.getElementById('formVenue');
+        const formOpenStart = document.getElementById('formOpenStart');
+        const formLive = document.getElementById('formLive');
+        const formTokuten = document.getElementById('formTokuten');
+        const formNyujoTokuten = document.getElementById('formNyujoTokuten');
+        const formPrice = document.getElementById('formPrice');
+        const formLink = document.getElementById('formLink');
+
+        const rawText = document.getElementById('rawText');
+        const btnParse = document.getElementById('btnParse');
+        const btnApply = document.getElementById('btnApply');
+        const btnLoadDefault = document.getElementById('btnLoadDefault');
+        const btnCopySingleCsv = document.getElementById('btnCopySingleCsv');
+        const btnCopyAllCsv = document.getElementById('btnCopyAllCsv');
+        const btnDownload = document.getElementById('btnDownload');
+        const tableFilter = document.getElementById('tableFilter');
+
+        const resultTableContainer = document.getElementById('resultTableContainer');
+        const noResultPlaceholder = document.getElementById('noResultPlaceholder');
+        const resultTableBody = document.getElementById('resultTableBody');
+        const fullScheduleTableBody = document.getElementById('fullScheduleTableBody');
+        const outputSingleCsv = document.getElementById('outputSingleCsv');
+        const totalCount = document.getElementById('totalCount');
+        const updateTypeBadge = document.getElementById('updateTypeBadge');
+        const applyButtonText = document.getElementById('applyButtonText');
+
+        // ファイル入力・ドラッグ＆ドロップ用
+        const csvFileInput = document.getElementById('csvFileInput');
+        const dropZone = document.getElementById('dropZone');
+
+        // アプリ起動時
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            // 初回はデモ用データをロードしておく
+            resetToDefault(false);
+            
+            // イベントリスナー登録
+            btnParse.addEventListener('click', parseRawText);
+            btnApply.addEventListener('click', applyFormData);
+            btnLoadDefault.addEventListener('click', () => resetToDefault(true));
+            btnCopySingleCsv.addEventListener('click', copySingleCsvText);
+            btnCopyAllCsv.addEventListener('click', copyAllCsvText);
+            btnDownload.addEventListener('click', downloadCsvFile);
+            tableFilter.addEventListener('input', renderFullTable);
+
+            // ファイルインポート設定
+            csvFileInput.addEventListener('change', handleFileSelect);
+            setupDragAndDrop();
+
+            [formDate, formTitle].forEach(elem => {
+                elem.addEventListener('input', checkDuplicateAndUpdateButton);
+            });
+        });
+
+        // ドラッグ＆ドロップハンドラー
+        function setupDragAndDrop() {
+            dropZone.addEventListener('click', () => csvFileInput.click());
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('border-indigo-500', 'bg-indigo-50/30');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/30');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length) {
+                    processFile(files[0]);
+                }
+            });
+        }
+
+        // ファイル選択イベントハンドラ
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length) {
+                processFile(files[0]);
+            }
+        }
+
+        // CSVファイルの読み込み処理
+        function processFile(file) {
+            if (!file.name.endsWith('.csv')) {
+                showNotification("CSVファイルを選択してください", "warning");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                try {
+                    parseCsvToState(text);
+                    showNotification(`${file.name} から ${schedules.length} 件のスケジュールを読み込みました！`);
+                } catch (err) {
+                    console.error(err);
+                    showNotification("CSVの読み込み中にエラーが発生しました。フォーマットを確認してください。", "warning");
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // CSVデータをパース
+        function parseCsvToState(csvText) {
+            schedules = [];
+            const lines = csvText.split(/\r?\n/);
+            if (lines.length < 2) return;
+
+            // ヘッダーを無視して読み込み
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                // カンマ区切りのパース (ダブルクォーテーション対応)
+                const row = parseCsvLine(line);
+                if (row.length >= 2) { 
+                    schedules.push({
+                        date: row[0] || '',
+                        title: row[1] || '',
+                        venue: row[2] || '',
+                        open_start: row[3] || '',
+                        live: row[4] || '',
+                        tokuten: row[5] || '',
+                        nyujo_tokuten: row[6] || '',
+                        price: (row[7] || '').replace(/,/g, ''), // カンマ排除
+                        link: row[8] || ''
+                    });
+                }
+            }
+            originalSchedules = JSON.parse(JSON.stringify(schedules));
+            sortSchedules();
+            renderFullTable();
+        }
+
+        // CSVの1行を配列に安全に分割
+        function parseCsvLine(text) {
+            let p = '', c = '', r = [];
+            let q = false;
+            for (let i = 0; i < text.length; i++) {
+                c = text.charAt(i);
+                if (c === '"') {
+                    q = !q;
+                } else if (c === ',' && !q) {
+                    r.push(p.trim());
+                    p = '';
+                } else {
+                    p += c;
+                }
+            }
+            r.push(p.trim());
+            return r;
+        }
+
+        // デフォルトデータに戻す
+        function resetToDefault(showToast) {
+            parseCsvToState(initialCsvData);
+            if (showToast) showNotification("デモ用のサンプルスケジュールを読み込みました");
+        }
+
+        // 告知テキスト自動解析
+        function parseRawText() {
+            const text = rawText.value.trim();
+            if (!text) {
+                showNotification("解析するテキストが空です", "warning");
+                return;
+            }
+
+            // 日付の抽出 (YYYY/MM/DD)
+            let dateMatch = text.match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+            if (dateMatch) {
+                const y = dateMatch[1];
+                const m = String(dateMatch[2]).padStart(2, '0');
+                const d = String(dateMatch[3]).padStart(2, '0');
+                formDate.value = `${y}/${m}/${d}`;
+            } else {
+                let dateShortMatch = text.match(/(\d{1,2})[\/\-月](\d{1,2})/);
+                if (dateShortMatch) {
+                    const currentYear = new Date().getFullYear();
+                    const m = String(dateShortMatch[1]).padStart(2, '0');
+                    const d = String(dateShortMatch[2]).padStart(2, '0');
+                    formDate.value = `${currentYear}/${m}/${d}`;
+                }
+            }
+
+            // タイトルの抽出
+            let titleMatch = text.match(/[「『](.*?)[」』]/) || text.match(/"(.*?)"/);
+            if (titleMatch) {
+                formTitle.value = titleMatch[1];
+            } else {
+                const firstLine = text.split('\n')[0];
+                formTitle.value = firstLine.substring(0, 30);
+            }
+
+            // 会場名の抽出
+            let venueMatch = text.match(/[@＠at会場場所]\s*([^\s\n]+)/i);
+            if (venueMatch) {
+                formVenue.value = venueMatch[1].replace(/[：:]/, '');
+            }
+
+            // 開場・開演時間の抽出
+            let openMatch = text.match(/開場\s*(\d{1,2}:\d{2})/);
+            let startMatch = text.match(/開演\s*(\d{1,2}:\d{2})/);
+            if (openMatch && startMatch) {
+                formOpenStart.value = `${openMatch[1]} / ${startMatch[1]}`;
+            } else if (text.match(/(\d{1,2}:\d{2})\s*[\/／]\s*(\d{1,2}:\d{2})/)) {
+                formOpenStart.value = text.match(/(\d{1,2}:\d{2})\s*[\/／]\s*(\d{1,2}:\d{2})/)[0];
+            }
+
+            // ライブ時間の抽出
+            let liveMatch = text.match(/出番\s*([^\s\n]+)|ライブ\s*([^\s\n]+)|出演\s*([^\s\n]+)/);
+            if (liveMatch) {
+                formLive.value = (liveMatch[1] || liveMatch[2] || liveMatch[3]).replace(/[：:]/, '');
+            }
+
+            // 特典会時間の抽出
+            let tokutenMatch = text.match(/特典会\s*([^\s\n]+)|並行物販\s*([^\s\n]+)|終演後物販\s*([^\s\n]+)/);
+            if (tokutenMatch) {
+                formTokuten.value = (tokutenMatch[1] || tokutenMatch[2] || tokutenMatch[3]).replace(/[：:]/, '');
+            }
+
+            // 料金の抽出
+            let priceMatch = text.match(/[¥￥]\s*(\d+)|(\d+)円/);
+            if (priceMatch) {
+                const amt = priceMatch[1] || priceMatch[2];
+                formPrice.value = `¥${amt}`;
+            }
+
+            // 特典の抽出
+            let benefitMatch = text.match(/特典\s*([^\s\n]+)/);
+            if (benefitMatch) {
+                formNyujoTokuten.value = benefitMatch[1].replace(/[：:]/, '');
+            }
+
+            // URLの抽出
+            let urlMatch = text.match(/(https?:\/\/[^\s\n]+)/);
+            if (urlMatch) {
+                formLink.value = urlMatch[1];
+            }
+
+            showNotification("テキストから情報を抽出しました。");
+            checkDuplicateAndUpdateButton();
+        }
+
+        // 新規登録か編集かによるUI変化
+        function checkDuplicateAndUpdateButton() {
+            const dateVal = formDate.value.trim();
+            const titleVal = formTitle.value.trim();
+            
+            if (!dateVal || !titleVal) {
+                applyButtonText.innerText = "データを追加/修正する";
+                btnApply.className = "w-full mt-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-1 shadow-sm";
+                return;
+            }
+
+            const exists = schedules.some(s => s.date === dateVal && s.title === titleVal);
+            if (exists) {
+                applyButtonText.innerText = "既存イベントを上書き修正する";
+                btnApply.className = "w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-1 shadow-sm";
+            } else {
+                applyButtonText.innerText = "新規イベントとして追加する";
+                btnApply.className = "w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-1 shadow-sm";
+            }
+        }
+
+        // スケジュールの保存（追加 or 修正）
+        function applyFormData() {
+            const dateVal = formDate.value.trim();
+            const titleVal = formTitle.value.trim();
+
+            if (!dateVal || !titleVal) {
+                showNotification("日付とイベント名は必須項目です。", "warning");
+                return;
+            }
+
+            const datePattern = /^\d{4}\/\d{2}\/\d{2}$/;
+            if (!datePattern.test(dateVal)) {
+                showNotification("日付は YYYY/MM/DD の形式で入力してください。(例: 2026/05/20)", "warning");
+                return;
+            }
+
+            let priceVal = formPrice.value.trim();
+            priceVal = priceVal.replace(/,/g, '');
+
+            const newEvent = {
+                date: dateVal,
+                title: titleVal,
+                venue: formVenue.value.trim(),
+                open_start: formOpenStart.value.trim(),
+                live: formLive.value.trim(),
+                tokuten: formTokuten.value.trim(),
+                nyujo_tokuten: formNyujoTokuten.value.trim(),
+                price: priceVal,
+                link: formLink.value.trim()
+            };
+
+            const existingIndex = schedules.findIndex(s => s.date === dateVal && s.title === titleVal);
+            
+            if (existingIndex !== -1) {
+                schedules[existingIndex] = newEvent;
+                lastUpdateType = 'edit';
+                showNotification("スケジュールを修正・更新しました！");
+            } else {
+                schedules.push(newEvent);
+                lastUpdateType = 'add';
+                showNotification("新規スケジュールを追加しました！");
+            }
+
+            lastUpdatedItem = newEvent;
+
+            sortSchedules();
+            renderFullTable();
+            renderResultSection();
+
+            // フォームのリセット
+            formTitle.value = '';
+            formVenue.value = '';
+            formOpenStart.value = '';
+            formLive.value = '';
+            formTokuten.value = '';
+            formNyujoTokuten.value = '';
+            formPrice.value = '';
+            formLink.value = '';
+            rawText.value = '';
+            checkDuplicateAndUpdateButton();
+        }
+
+        // 日付順ソート
+        function sortSchedules() {
+            schedules.sort((a, b) => {
+                return a.date.localeCompare(b.date);
+            });
+        }
+
+        // 最新変更データのレンダリング
+        function renderResultSection() {
+            if (!lastUpdatedItem) {
+                resultTableContainer.classList.add('hidden');
+                noResultPlaceholder.classList.remove('hidden');
+                outputSingleCsv.innerText = "更新データがありません。";
+                updateTypeBadge.classList.add('hidden');
+                return;
+            }
+
+            resultTableContainer.classList.remove('hidden');
+            noResultPlaceholder.classList.add('hidden');
+
+            updateTypeBadge.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'bg-amber-100', 'text-amber-800');
+            if (lastUpdateType === 'add') {
+                updateTypeBadge.innerText = "新規追加";
+                updateTypeBadge.classList.add('bg-emerald-100', 'text-emerald-800');
+            } else {
+                updateTypeBadge.innerText = "既存修正";
+                updateTypeBadge.classList.add('bg-amber-100', 'text-amber-800');
+            }
+
+            resultTableBody.innerHTML = `
+                <tr class="hover:bg-slate-50 border-b transition">
+                    <td class="p-2 border font-medium">${escapeHtml(lastUpdatedItem.date)}</td>
+                    <td class="p-2 border font-bold text-slate-900">${escapeHtml(lastUpdatedItem.title)}</td>
+                    <td class="p-2 border">${escapeHtml(lastUpdatedItem.venue || '-')}</td>
+                    <td class="p-2 border">${escapeHtml(lastUpdatedItem.open_start || '-')}</td>
+                    <td class="p-2 border">${escapeHtml(lastUpdatedItem.live || '-')}</td>
+                    <td class="p-2 border">${escapeHtml(lastUpdatedItem.tokuten || '-')}</td>
+                    <td class="p-2 border">${escapeHtml(lastUpdatedItem.nyujo_tokuten || '-')}</td>
+                    <td class="p-2 border text-slate-900 font-semibold">${escapeHtml(lastUpdatedItem.price || '-')}</td>
+                    <td class="p-2 border truncate max-w-[120px] text-indigo-600">
+                        ${lastUpdatedItem.link ? `<a href="${escapeHtml(lastUpdatedItem.link)}" target="_blank" class="underline">予約リンク</a>` : '-'}
+                    </td>
+                </tr>
+            `;
+
+            const csvRow = convertToCsvRow(lastUpdatedItem);
+            outputSingleCsv.innerText = `${csvRow}`;
+        }
+
+        // 単一レコードをCSV行に変換
+        function convertToCsvRow(item) {
+            const cols = [
+                item.date,
+                item.title,
+                item.venue,
+                item.open_start,
+                item.live,
+                item.tokuten,
+                item.nyujo_tokuten,
+                item.price,
+                item.link
+            ];
+
+            const formattedCols = cols.map(col => {
+                if (!col) return '';
+                if (col.includes(',') || col.includes('"') || col.includes('\n')) {
+                    return `"${col.replace(/"/g, '""')}"`;
+                }
+                return col;
+            });
+
+            return formattedCols.join(',');
+        }
+
+        // 全データをCSVに組み立て
+        function generateAllCsvText() {
+            const headers = "date,title,venue,open_start,live,tokuten,nyujo_tokuten,price,link";
+            const rows = schedules.map(item => convertToCsvRow(item));
+            return [headers, ...rows].join('\n');
+        }
+
+        // 全体テーブルの描画
+        function renderFullTable() {
+            const filterText = tableFilter.value.toLowerCase().trim();
+            fullScheduleTableBody.innerHTML = '';
+
+            schedules.forEach((item, index) => {
+                if (filterText) {
+                    const searchableText = `${item.date} ${item.title} ${item.venue} ${item.price}`.toLowerCase();
+                    if (!searchableText.includes(filterText)) {
+                        return;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b transition";
+                
+                const isLatest = lastUpdatedItem && lastUpdatedItem.date === item.date && lastUpdatedItem.title === item.title;
+                if (isLatest) {
+                    tr.className += " bg-indigo-50/50 font-medium";
+                }
+
+                tr.innerHTML = `
+                    <td class="p-2 border-b whitespace-nowrap">${escapeHtml(item.date)}</td>
+                    <td class="p-2 border-b font-medium text-slate-950">${escapeHtml(item.title)}</td>
+                    <td class="p-2 border-b text-slate-600">${escapeHtml(item.venue || '-')}</td>
+                    <td class="p-2 border-b text-[11px] text-slate-500">
+                        <div>開場演: ${escapeHtml(item.open_start || '-')}</div>
+                        <div>ライブ: ${escapeHtml(item.live || '-')}</div>
+                        <div>特典会: ${escapeHtml(item.tokuten || '-')}</div>
+                    </td>
+                    <td class="p-2 border-b text-slate-600">${escapeHtml(item.nyujo_tokuten || '-')}</td>
+                    <td class="p-2 border-b font-semibold text-slate-900">${escapeHtml(item.price || '-')}</td>
+                    <td class="p-2 border-b text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="editScheduleByIndex(${index})" class="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-slate-100" title="編集">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="deleteScheduleByIndex(${index})" class="text-rose-600 hover:text-rose-900 p-1 rounded hover:bg-slate-100" title="削除">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                fullScheduleTableBody.appendChild(tr);
+            });
+
+            totalCount.innerText = schedules.length;
+            lucide.createIcons();
+        }
+
+        // フォームへロード
+        window.editScheduleByIndex = function(index) {
+            const item = schedules[index];
+            formDate.value = item.date;
+            formTitle.value = item.title;
+            formVenue.value = item.venue;
+            formOpenStart.value = item.open_start;
+            formLive.value = item.live;
+            formTokuten.value = item.tokuten;
+            formNyujoTokuten.value = item.nyujo_tokuten;
+            formPrice.value = item.price;
+            formLink.value = item.link;
+
+            formDate.focus();
+            showNotification(`「${item.title}」を編集フォームへロードしました。`);
+            checkDuplicateAndUpdateButton();
+        };
+
+        window.deleteScheduleByIndex = function(index) {
+            const item = schedules[index];
+            if (confirm(`「${item.date} : ${item.title}」を一覧から削除してもよろしいですか？`)) {
+                if (lastUpdatedItem && lastUpdatedItem.date === item.date && lastUpdatedItem.title === item.title) {
+                    lastUpdatedItem = null;
+                    renderResultSection();
+                }
+                schedules.splice(index, 1);
+                renderFullTable();
+                showNotification("スケジュールを削除しました。");
+            }
+        };
+
+        function copySingleCsvText() {
+            if (!lastUpdatedItem) {
+                showNotification("コピーする更新データがありません", "warning");
+                return;
+            }
+            const csvText = outputSingleCsv.innerText;
+            copyToClipboard(csvText);
+            showNotification("更新行のCSVテキストをコピーしました！");
+        }
+
+        function copyAllCsvText() {
+            const csvText = generateAllCsvText();
+            copyToClipboard(csvText);
+            showNotification("全件のCSVデータをコピーしました！");
+        }
+
+        function downloadCsvFile() {
+            const csvText = generateAllCsvText();
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvText], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'schedule_updated.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification("CSVファイルをダウンロードしました。");
+        }
+
+        function copyToClipboard(text) {
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                textArea.style.width = "2em";
+                textArea.style.height = "2em";
+                textArea.style.padding = "0";
+                textArea.style.border = "none";
+                textArea.style.outline = "none";
+                textArea.style.boxShadow = "none";
+                textArea.style.background = "transparent";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            } catch (err) {
+                console.error('コピー失敗:', err);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+
+        function showNotification(message, type = "info") {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            toastMessage.innerText = message;
+            
+            toast.className = "fixed bottom-5 right-5 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-2 transform translate-y-0 opacity-100 transition duration-300 z-50 bg-slate-900";
+            
+            setTimeout(() => {
+                toast.className = "fixed bottom-5 right-5 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-2 transform translate-y-10 opacity-0 transition duration-300 pointer-events-none z-50 bg-slate-900";
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
