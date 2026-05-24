@@ -39,12 +39,13 @@
   #loading {
     position: fixed;
     top: 0;
+    bottom: 0; /* 下も0にして確実に画面に収める */
     left: 0;
     right: 0;
     margin: 0 auto;
     width: 100%;
     max-width: 768px;
-    height: 100vh;
+    height: 100%; /* スマホのアドレスバーの影響を受けないように%に変更 */
     background-color: var(--main-pink);
     display: flex;
     justify-content: center;
@@ -221,17 +222,18 @@
   ================================================== */
   .hero {
     width: 100%;
+    height: calc(85vh - 60px); /* 画面の85%ほどの高さ（スケジュールは無理に見せない） */
     margin-top: 60px; /* ヘッダーの高さ分下げる */
     position: relative;
     background-color: var(--bg-white);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    overflow: hidden;
   }
 
   .hero-image {
     width: 100%;
-    height: auto; /* 画像の比率を維持して全て表示 */
+    height: 100%;
+    object-fit: cover; /* 画面幅いっぱいに広げる */
+    object-position: top; /* ★画像の上端を基準にする（下だけが見切れるようになる） */
     display: block;
     pointer-events: none;
     -webkit-user-select: none;
