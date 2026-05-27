@@ -782,7 +782,20 @@
     try {
       const response = await fetch('schedule.csv');
       if (!response.ok) throw new Error('CSVロード失敗');
-      const csvText = await response.text();
+      
+      const arrayBuffer = await response.arrayBuffer();
+      let csvText = '';
+      
+      try {
+        // UTF-8判定
+        const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+        csvText = utf8Decoder.decode(arrayBuffer);
+      } catch (e) {
+        // Shift-JIS判定
+        const sjisDecoder = new TextDecoder('shift_jis');
+        csvText = sjisDecoder.decode(arrayBuffer);
+      }
+      
       scheduleEvents = parseCSV(csvText);
     } catch (error) {
       // CSV読み込み失敗時は何も追加しない（動的イベントのみ表示）
