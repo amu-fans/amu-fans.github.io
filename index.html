@@ -168,7 +168,8 @@
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start; /* ★上寄せに変更 */
+    padding-top: 100px; /* ★上から少し下げる（ヘッダーに被らないように） */
     align-items: center;
     transform: translateX(100vw);
     transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1);
@@ -288,6 +289,7 @@
     align-items: center;
     gap: 20px;
     margin-bottom: 15px;
+    position: relative; /* 今日ボタンを右端に配置するために追加 */
   }
 
   .calendar-year-month {
@@ -309,6 +311,25 @@
   }
   .calendar-nav-btn:active {
     opacity: 0.5;
+  }
+
+  /* 今日ボタンのスタイル */
+  .calendar-today-btn {
+    position: absolute;
+    right: 0;
+    background-color: var(--bg-white);
+    color: var(--text-black);
+    border: 1px solid var(--text-black);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .calendar-today-btn:active {
+    background-color: var(--text-black);
+    color: var(--bg-white);
   }
 
   .calendar-container {
@@ -483,63 +504,6 @@
   }
 
   /* ==================================================
-     OTHERS（その他・情報まとめ）セクション設定
-  ================================================== */
-  .others-image-link {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  .others-image-link a {
-    display: block;
-    text-decoration: none;
-  }
-
-  .attention-screenshot {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-    border: 2px solid var(--text-black);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.1); 
-    transition: transform 0.2s;
-    background-color: #f5f5f5;
-    min-height: 150px;
-    object-fit: cover;
-  }
-
-  .others-image-link a:active .attention-screenshot {
-    transform: scale(0.98);
-  }
-
-  /* 加工数値用のテキストボックススタイル */
-  .others-text-box {
-    background-color: #ffe6f0;
-    border: 2px solid var(--text-black);
-    border-radius: 8px;
-    padding: 15px;
-    margin: -10px auto 30px; /* 画像との余白を調整 */
-    max-width: 90%;
-    font-weight: bold;
-    font-size: 14px;
-    text-align: center;
-    line-height: 1.6;
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
-  }
-
-  .others-text-box p {
-    margin-bottom: 2px;
-  }
-
-  .others-text-box .highlight {
-    color: var(--main-pink);
-    font-size: 15px;
-    margin-bottom: 10px;
-    display: block;
-    border-bottom: 2px dashed var(--main-pink);
-    padding-bottom: 5px;
-  }
-
-  /* ==================================================
      予定詳細確認用 モーダル画面
   ================================================== */
   .modal-overlay {
@@ -626,24 +590,8 @@
     </div>
   </div>
 
-  <!-- 2. ヘッダー -->
-  <header class="header" id="header">
-    <a href="index.html" class="site-logo" id="siteLogo">【非公式】勝手にあむちゃん応援ファンサイト</a>
-    <div class="hamburger" id="hamburger">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-  </header>
-
-  <!-- 3. 全画面ナビゲーション -->
-  <nav class="global-nav" id="globalNav">
-    <ul class="nav-list">
-      <li><a href="index.html#schedule">SCHEDULE<span>スケジュール</span></a></li>
-      <li><a href="index.html#sns">LINK<span>リンク</span></a></li>
-      <li><a href="index.html#others">OTHERS<span>その他</span></a></li>
-    </ul>
-  </nav>
+  <!-- ★ここに共通のメニュー部品（header.html）が自動で読み込まれます -->
+  <div id="common-header-container"></div>
 
   <!-- 4. メインコンテンツ -->
   <main>
@@ -661,6 +609,7 @@
         <button class="calendar-nav-btn" onclick="prevMonth()">＜</button>
         <div class="calendar-year-month" id="calendarYearMonth">2026.05</div>
         <button class="calendar-nav-btn" onclick="nextMonth()">＞</button>
+        <button class="calendar-today-btn" onclick="goToToday()">今日</button>
       </div>
       
       <!-- カレンダー枠 -->
@@ -732,34 +681,6 @@
             <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0020 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
           </a>
         </div>
-      </div>
-    </section>
-
-    <!-- OTHERS セクション -->
-    <section id="others" class="section-wrapper">
-      <h2 class="section-title">OTHERS</h2>
-      <span class="section-subtitle">その他、情報まとめ</span>
-
-      <div class="others-image-link">
-        <a href="https://x.com/HiSp_info/status/1214796737761730560?s=20" target="_blank" rel="noopener noreferrer">
-          <img src="hs_others1.PNG" alt="注意事項" class="attention-screenshot" onerror="this.src='https://placehold.co/600x400/f0f0f0/cccccc?text=Rules'">
-        </a>
-      </div>
-
-      <div class="others-image-link">
-        <a href="https://x.com/amu__HS/status/2047999724976996534?s=20" target="_blank" rel="noopener noreferrer">
-          <img src="hs_others2.PNG" alt="写真色味の加工数値" class="attention-screenshot" onerror="this.src='https://placehold.co/600x400/f0f0f0/cccccc?text=Photo+Edit'">
-        </a>
-      </div>
-
-      <!-- ビューティーカム設定数値 -->
-      <div class="others-text-box">
-        <span class="highlight">ビューティーカム (iPhoneモード) 設定</span>
-        <p>彩度：-10</p>
-        <p>温度：-20</p>
-        <p>色相：+5</p>
-        <p>美白＆肌補正：+50</p>
-        <p>フィルター：ピンク肌</p>
       </div>
     </section>
   </main>
@@ -958,7 +879,13 @@
               if (ev.live && ev.live !== '終日' && ev.live !== '---') {
                 label += `${ev.live.split('～')[0]} `;
               }
-              label += ev.venue === 'ONLINE' ? ev.title : ev.venue;
+              
+              let venueText = ev.venue;
+              // 会場がONLINE、または空欄・未定(---)等の場合はイベントタイトルを表示する
+              if (venueText === 'ONLINE' || !venueText || venueText.trim() === '' || venueText === '---' || venueText === '-') {
+                venueText = ev.title;
+              }
+              label += venueText;
             }
 
             eventsHtml += `<a class="event-item ${catClass}" onclick="openEventDetails(event, '${encodeURIComponent(JSON.stringify(ev))}')">${label}</a>`;
@@ -989,6 +916,16 @@
 
   function nextMonth() {
     currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+  }
+
+  // 今日の月へ戻る機能
+  function goToToday() {
+    currentDate = new Date();
+    // もし現在のシステム日付が2026年5月より前の場合は、強制的に2026年5月に合わせる
+    if (currentDate.getFullYear() < 2026 || (currentDate.getFullYear() === 2026 && currentDate.getMonth() < 4)) {
+      currentDate = new Date(2026, 4, 1);
+    }
     renderCalendar();
   }
 
@@ -1073,9 +1010,79 @@
   }
 
   // ==================================================
+  // 共通ヘッダー読み込み
+  // ==================================================
+  async function loadCommonHeader() {
+    try {
+      const response = await fetch('header.html');
+      if (!response.ok) throw new Error('Header load failed');
+      const html = await response.text();
+      document.getElementById('common-header-container').innerHTML = html;
+      initMenu();
+    } catch (error) {
+      console.warn('共通メニューの読み込みに失敗しました。');
+    }
+  }
+
+  function initMenu() {
+    const hamburger = document.getElementById('hamburger');
+    const globalNav = document.getElementById('globalNav');
+    const siteLogo = document.getElementById('siteLogo');
+    const navLinks = document.querySelectorAll('.nav-list a');
+
+    if (!hamburger || !globalNav) return;
+
+    function toggleMenu() {
+      hamburger.classList.toggle('active');
+      globalNav.classList.toggle('active');
+      
+      // ヘッダー背景は常にピンクのため、メニュー開閉に関わらず文字色を「白」に固定
+      if (siteLogo) siteLogo.style.color = 'var(--bg-white)';
+
+      document.body.classList.toggle('no-scroll');
+    }
+
+    hamburger.addEventListener('click', toggleMenu);
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        const targetId = link.getAttribute('href');
+        
+        if (targetId.startsWith('#') || targetId.includes('#')) {
+          const hash = targetId.substring(targetId.indexOf('#'));
+          const targetElement = document.querySelector(hash);
+          
+          if (targetElement) {
+            e.preventDefault(); 
+            if(globalNav.classList.contains('active')) {
+              toggleMenu();
+            }
+            
+            setTimeout(() => {
+              const headerElement = document.getElementById('header');
+              const headerHeight = headerElement ? headerElement.offsetHeight : 60;
+              const targetPos = targetElement.getBoundingClientRect().top + window.scrollY - headerHeight;
+              
+              window.scrollTo({
+                top: targetPos,
+                behavior: 'smooth'
+              });
+            }, 400); 
+          }
+        } else {
+          if(globalNav.classList.contains('active')) {
+            toggleMenu();
+          }
+        }
+      });
+    });
+  }
+
+  // ==================================================
   // アプリケーションライフサイクル
   // ==================================================
   window.addEventListener('load', () => {
+    loadCommonHeader(); // ★共通ヘッダーを読み込む
     loadScheduleFromCSV();
 
     const loading = document.getElementById('loading');
@@ -1086,57 +1093,9 @@
     }, 1000);
   });
 
-  const hamburger = document.getElementById('hamburger');
-  const globalNav = document.getElementById('globalNav');
-  const siteLogo = document.getElementById('siteLogo');
-  const navLinks = document.querySelectorAll('.nav-list a');
-
-  function toggleMenu() {
-    hamburger.classList.toggle('active');
-    globalNav.classList.toggle('active');
-    
-    // ヘッダー背景は常にピンクのため、メニュー開閉に関わらず文字色を「白」に固定
-    siteLogo.style.color = 'var(--bg-white)';
-
-    document.body.classList.toggle('no-scroll');
-  }
-
-  hamburger.addEventListener('click', toggleMenu);
-
-  navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-      const targetId = link.getAttribute('href');
-      
-      if (targetId.startsWith('#') || targetId.includes('#')) {
-        const hash = targetId.substring(targetId.indexOf('#'));
-        const targetElement = document.querySelector(hash);
-        
-        if (targetElement) {
-          e.preventDefault(); 
-          if(globalNav.classList.contains('active')) {
-            toggleMenu();
-          }
-          
-          setTimeout(() => {
-            const headerHeight = document.getElementById('header').offsetHeight;
-            const targetPos = targetElement.getBoundingClientRect().top + window.scrollY - headerHeight;
-            
-            window.scrollTo({
-              top: targetPos,
-              behavior: 'smooth'
-            });
-          }, 400); 
-        }
-      } else {
-        if(globalNav.classList.contains('active')) {
-          toggleMenu();
-        }
-      }
-    });
-  });
-
   window.addEventListener('scroll', () => {
     const header = document.getElementById('header');
+    if (!header) return; // 共通ヘッダー読み込み前対策
     if (window.scrollY > 50) {
       header.classList.add('scrolled');
     } else {

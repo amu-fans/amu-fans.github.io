@@ -20,10 +20,18 @@
     box-sizing: border-box;
   }
 
+  /* ★追加: 全体スクロールを禁止し、アドレスバーの伸縮を封印する */
+  html, body {
+    height: 100%;
+    overflow: hidden; 
+  }
+
   body {
     font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
     color: var(--text-black);
     background-color: var(--bg-white);
+    max-width: 768px; /* ★追加: 横幅を768pxに制限 */
+    margin: 0 auto;   /* ★追加: 中央寄せ */
   }
 
   .no-scroll {
@@ -32,12 +40,16 @@
 
   /* ==================================================
      ヘッダー＆メニュー周り（全体版と共通化）
+     ※HTML本体は外部ファイル化しましたが、CSSはここで設定しておきます
   ================================================== */
   .header {
     position: fixed;
     top: 0;
     left: 0;
+    right: 0;       /* ★追加: 中央寄せのために必要 */
+    margin: 0 auto; /* ★追加: 中央寄せ */
     width: 100%;
+    max-width: 768px; /* ★追加: 横幅固定 */
     height: 60px;
     display: flex;
     justify-content: space-between;
@@ -82,27 +94,30 @@
   .hamburger.active span:nth-child(1) {
     top: 50%;
     transform: translateY(-50%) rotate(45deg);
-    background-color: var(--bg-white); /* ピンクに変わる余計な処理を削除し、白のままにする */
+    background-color: var(--bg-white);
   }
   .hamburger.active span:nth-child(2) { opacity: 0; }
   .hamburger.active span:nth-child(3) {
     bottom: 50%;
     transform: translateY(50%) rotate(-45deg);
-    background-color: var(--bg-white); /* ピンクに変わる余計な処理を削除し、白のままにする */
+    background-color: var(--bg-white);
   }
 
-  /* 通信・処理軽量化のため、メニュー表示のアニメーションは最低限に */
   .global-nav {
     position: fixed;
     top: 0;
     left: 0;
+    right: 0;       /* ★追加: 中央寄せのために必要 */
+    margin: 0 auto; /* ★追加: 中央寄せ */
     width: 100vw;
+    max-width: 768px; /* ★追加: 横幅固定 */
     height: 100vh;
     background-color: var(--bg-white);
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    padding-top: 100px;
     align-items: center;
     transform: translateX(100%);
     transition: transform 0.3s ease;
@@ -140,17 +155,27 @@
 
   /* ページ全体のラッパー（ヘッダー分の余白を確保） */
   .page-wrapper {
-    padding: 90px 10px 40px;
-    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh; /* スマホ画面の高さにピタッと合わせる */
+    padding-top: 60px; /* 共通ヘッダーの高さ分下げる */
+  }
+
+  /* 上部に固定するエリア */
+  .sticky-top-area {
+    flex-shrink: 0; /* 高さを維持して縮ませない */
+    background-color: var(--bg-white);
+    z-index: 100;
+    padding: 10px 10px 0; /* ★上部余白をギリギリの10pxに調整 */
   }
 
   .page-title {
     text-align: center;
-    font-size: 32px;
+    font-size: 32px; /* 文字サイズはそのまま維持 */
     font-weight: 900;
     color: var(--text-black);
     text-shadow: 1px 1px 0 var(--bg-white), 2px 2px 0 var(--bg-white), 3px 3px 0 var(--bg-white);
-    margin-bottom: 25px;
+    margin-bottom: 5px; /* ★下の隙間を限界まで詰める */
     display: inline-block;
     padding: 0 10px;
     background: linear-gradient(transparent 50%, var(--main-pink) 50%);
@@ -168,17 +193,18 @@
     justify-content: center;
     align-items: center;
     gap: 20px;
-    margin-bottom: 15px;
+    margin-bottom: 5px; /* ★下の隙間を限界まで詰める */
+    position: relative;
   }
 
   .month-nav button {
     background: none;
     border: none;
-    font-size: 25px;
+    font-size: 25px; /* ★元に戻す（大きく） */
     color: var(--main-pink);
     cursor: pointer;
     font-weight: bold;
-    padding: 5px 15px;
+    padding: 0 15px; /* ★上下の余白を削って詰める */
     transition: opacity 0.2s;
   }
 
@@ -187,32 +213,53 @@
   }
 
   .month-nav h2 {
-    font-size: 28px;
+    font-size: 28px; /* ★元に戻す（大きく） */
     font-weight: 900;
     color: var(--text-black);
     letter-spacing: 2px;
-    min-width: 140px;
+    min-width: 140px; /* ★元に戻す */
     text-align: center;
+  }
+
+  .month-nav .calendar-today-btn {
+    position: absolute;
+    right: 0;
+    background-color: var(--bg-white);
+    color: var(--text-black);
+    border: 1px solid var(--text-black);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .month-nav .calendar-today-btn:active {
+    background-color: var(--text-black);
+    color: var(--bg-white);
   }
 
   /* ==================================================
      スケジュールテーブル
   ================================================== */
   .schedule-wrapper {
+    flex-grow: 1; /* 残りの画面サイズをすべて埋める */
+    overflow-y: auto; /* ★ここだけを内部スクロールさせる */
+    -webkit-overflow-scrolling: touch; /* iOSでの滑らかなスクロール */
     background-color: var(--bg-white);
-    overflow: hidden;
+    padding: 0 10px 40px; /* 左右と下部の余白 */
   }
 
   .schedule-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 15px; /* 文字サイズ拡大 */
+    font-size: 15px;
     table-layout: fixed;
   }
 
   .schedule-table th, 
   .schedule-table td {
-    padding: 18px 5px;
+    padding: 12px 5px; /* ★tdの上下の余白を少し詰める（元は18px） */
     border-bottom: 1px solid #cccccc;
     vertical-align: middle;
   }
@@ -221,7 +268,7 @@
     font-weight: 900;
     color: var(--bg-white);
     background-color: var(--text-black);
-    padding: 14px 0;
+    padding: 6px 0; /* ★黒い見出し行の上下の隙間を極限まで詰める（元は14px） */
     text-align: center;
   }
 
@@ -236,10 +283,9 @@
     padding-left: 10px; 
     white-space: nowrap; 
     overflow: hidden; 
-    text-overflow: ellipsis; /* はみ出しを「...」にする */
+    text-overflow: ellipsis; 
   }
 
-  /* 行のスタイル */
   .schedule-table tbody tr {
     cursor: pointer;
     background-color: var(--bg-white);
@@ -250,13 +296,24 @@
     filter: brightness(0.95);
   }
 
-  /* 特殊行による背景色の色分け（土日は白のまま） */
-  .schedule-table tr.tiktok { background-color: #e6d4ff; }   /* TikTok：薄い紫 */
-  .schedule-table tr.anniv { background-color: #ffe6f0; }    /* 記念日：薄いピンク */
+  .schedule-table tr.tiktok { background-color: #e6d4ff; }
+  .schedule-table tr.anniv { background-color: #ffe6f0; }
 
-  /* 曜日による文字色の色分け（日付のみ） */
   .schedule-table tr.saturday td:first-child { color: #0044ff; }
   .schedule-table tr.sunday td:first-child { color: #ff0000; }
+
+  .schedule-table tr.row-next td:first-child {
+    position: relative;
+  }
+  .schedule-table tr.row-next td:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background-color: var(--main-pink);
+  }
 
   .empty-msg {
     padding: 40px !important;
@@ -344,40 +401,46 @@
 </head>
 <body>
 
-  <!-- 全ページ共通ヘッダー＆ナビゲーション（index版完全同期・アニメーション軽量化） -->
-  <header class="header" id="header">
-    <a href="index.html" class="site-logo" id="siteLogo">【非公式】勝手にあむちゃん応援ファンサイト</a>
-    <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
-  </header>
-
-  <nav class="global-nav" id="globalNav">
-    <ul class="nav-list">
-      <li><a href="index.html#schedule" class="nav-link">SCHEDULE<span>スケジュール</span></a></li>
-      <li><a href="index.html#sns" class="nav-link">LINK<span>リンク</span></a></li>
-      <li><a href="index.html#others" class="nav-link">OTHERS<span>その他</span></a></li>
-    </ul>
-  </nav>
+  <!-- ★ここに共通のメニュー部品（header.html）が自動で読み込まれます -->
+  <div id="common-header-container"></div>
 
   <!-- メインコンテンツ -->
   <main class="page-wrapper">
-    <h1 class="page-title">SCHEDULE</h1>
-    
-    <div class="month-nav">
-      <!-- 前月ボタンにIDを追加 -->
-      <button id="prevMonthBtn" onclick="prevMonth()">＜</button>
-      <h2 id="currentMonthDisplay">2026.05</h2>
-      <button onclick="nextMonth()">＞</button>
-    </div>
+    <div class="sticky-top-area">
+      <h1 class="page-title">SCHEDULE</h1>
+      
+      <div class="month-nav">
+        <button id="prevMonthBtn" onclick="prevMonth()">＜</button>
+        <h2 id="currentMonthDisplay">2026.05</h2>
+        <button onclick="nextMonth()">＞</button>
+        <button class="calendar-today-btn" onclick="goToToday()">今日</button>
+      </div>
 
-    <div class="schedule-wrapper">
-      <table class="schedule-table">
+      <!-- 固定される見出し部分 -->
+      <table class="schedule-table" style="margin-bottom: 0;">
+        <colgroup>
+          <col class="col-date">
+          <col class="col-time">
+          <col class="col-venue">
+        </colgroup>
         <thead>
           <tr>
-            <th class="col-date">日程</th>
-            <th class="col-time">時間</th>
-            <th class="col-venue">会場 / タイトル</th>
+            <th>日程</th>
+            <th>時間</th>
+            <th>会場 / タイトル</th>
           </tr>
         </thead>
+      </table>
+    </div>
+
+    <!-- スクロールされるリスト部分 -->
+    <div class="schedule-wrapper">
+      <table class="schedule-table">
+        <colgroup>
+          <col class="col-date">
+          <col class="col-time">
+          <col class="col-venue">
+        </colgroup>
         <tbody id="scheduleBody">
           <!-- JSで予定が生成されます -->
         </tbody>
@@ -419,24 +482,62 @@
 
   <script>
     // ==================================================
-    // 動的データ読み込み＆表示ロジック
+    // 共通ヘッダー（メニュー）読み込みロジック
     // ==================================================
-    let currentDate = new Date(2026, 4, 1); // デフォルト: 2026年5月
+    async function loadCommonHeader() {
+      try {
+        const response = await fetch('header.html');
+        if (!response.ok) throw new Error('Header load failed');
+        const html = await response.text();
+        
+        // 空箱にメニューの中身を挿入
+        document.getElementById('common-header-container').innerHTML = html;
+        
+        // メニューが挿入された後に、開閉などのボタン処理（イベント）をくっつける
+        initMenu();
+      } catch (error) {
+        console.warn('共通メニューの読み込みに失敗しました。');
+      }
+    }
+
+    function initMenu() {
+      const hamburger = document.getElementById('hamburger');
+      const globalNav = document.getElementById('globalNav');
+      
+      if (!hamburger || !globalNav) return;
+
+      function toggleMenu() {
+        hamburger.classList.toggle('active');
+        globalNav.classList.toggle('active');
+        document.body.classList.toggle('no-scroll');
+      }
+
+      hamburger.addEventListener('click', toggleMenu);
+
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if(globalNav.classList.contains('active')) {
+            toggleMenu();
+          }
+        });
+      });
+    }
+
+    // ==================================================
+    // 動的データ読み込み＆表示ロジック (スマホ/PC自動判定入り)
+    // ==================================================
+    let currentDate = new Date(2026, 4, 1);
     let scheduleEvents = [];
 
     function addDynamicEvents() {
-      // 2026年から数年分のイベントを生成
       for (let y = 2026; y <= 2030; y++) {
-        // 誕生日
         const bdayStr = `${y}/12/17`;
         if (!scheduleEvents.some(ev => ev.date === bdayStr && ev.title.includes('誕生日'))) {
           scheduleEvents.push({ date: bdayStr, title: "誕生日", venue: "ONLINE", openStart: "---", live: "---", tokuten: "---", nyujoTokuten: "---", link: "" });
         }
-        // TikTok
         for (let m = 1; m <= 12; m++) {
-          // 2026年4月以前のデータは生成しない
           if (y === 2026 && m < 5) continue;
-
           let d = new Date(y, m - 1, 1);
           while (d.getMonth() === m - 1) {
             if (d.getDay() === 4) {
@@ -455,14 +556,27 @@
       try {
         const response = await fetch('schedule.csv');
         if (!response.ok) throw new Error();
-        const csvText = await response.text();
+        
+        const arrayBuffer = await response.arrayBuffer();
+        let csvText = '';
+        
+        try {
+          // スマホ(UTF-8)判定
+          const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+          csvText = utf8Decoder.decode(arrayBuffer);
+        } catch (e) {
+          // PC Excel(Shift-JIS)判定
+          const sjisDecoder = new TextDecoder('shift_jis');
+          csvText = sjisDecoder.decode(arrayBuffer);
+        }
+        
         scheduleEvents = parseCSV(csvText);
       } catch (error) {
-        // CSV読み込み失敗時は何も追加しない（動的イベントのみ表示）
         console.warn('スケジュールデータの読み込みに失敗しました。');
       }
       addDynamicEvents();
       renderTable();
+      scrollToTodayEvent();
     }
 
     function parseCSV(text) {
@@ -481,7 +595,6 @@
       const month = currentDate.getMonth();
       document.getElementById('currentMonthDisplay').textContent = `${year}.${String(month + 1).padStart(2, '0')}`;
 
-      // 2026年5月 (year:2026, month:4) 以前に戻れないよう「＜」ボタンを非表示にする
       const prevBtn = document.getElementById('prevMonthBtn');
       if (year <= 2026 && month <= 4) {
         prevBtn.style.visibility = 'hidden';
@@ -505,6 +618,10 @@
       }
 
       const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+      const today = new Date();
+      const isCurrentMonth = (year === today.getFullYear() && month === today.getMonth());
+      const todayDate = today.getDate();
+      let nextEventMarked = false;
 
       monthlyEvents.forEach(ev => {
         const evDate = new Date(ev.date);
@@ -517,13 +634,21 @@
         if (ev.title.includes('TikTok')) trClass = 'tiktok';
         if (ev.title === '誕生日') trClass = 'anniv';
 
+        // 今日の予定、または一番近い次の予定の行の左端にピンクラインを表示
+        if (isCurrentMonth && !nextEventMarked) {
+          if (evDate.getDate() >= todayDate) {
+            trClass += (trClass ? ' ' : '') + 'row-next';
+            nextEventMarked = true;
+          }
+        }
+
         let displayTime = '未定';
         if (ev.live && ev.live !== '---' && ev.live !== '終日') {
           displayTime = ev.live.split('～')[0] + '～'; 
         } else if (ev.live === '終日') {
           displayTime = '終日';
         }
-        if (ev.title.includes('TikTok')) displayTime = '夜';
+        if (ev.title.includes('TikTok')) displayTime = '';
         if (ev.title === '誕生日') displayTime = '🎂';
 
         let isLive = !ev.title.includes('TikTok') && ev.title !== '誕生日';
@@ -546,16 +671,73 @@
     }
 
     function prevMonth() { 
-      // 2026年5月より前には戻らない
       if (currentDate.getFullYear() <= 2026 && currentDate.getMonth() <= 4) return;
       currentDate.setMonth(currentDate.getMonth() - 1); 
       renderTable(); 
+      
+      const today = new Date();
+      if (currentDate.getFullYear() === today.getFullYear() && currentDate.getMonth() === today.getMonth()) {
+        scrollToTodayEvent(); // ★当月なら今日へ
+      } else {
+        document.querySelector('.schedule-wrapper').scrollTo({ top: 0, behavior: 'smooth' }); // ★他月なら一番上へ
+      }
     }
-    function nextMonth() { currentDate.setMonth(currentDate.getMonth() + 1); renderTable(); }
+    
+    function nextMonth() { 
+      currentDate.setMonth(currentDate.getMonth() + 1); 
+      renderTable(); 
+      
+      const today = new Date();
+      if (currentDate.getFullYear() === today.getFullYear() && currentDate.getMonth() === today.getMonth()) {
+        scrollToTodayEvent(); // ★当月なら今日へ
+      } else {
+        document.querySelector('.schedule-wrapper').scrollTo({ top: 0, behavior: 'smooth' }); // ★他月なら一番上へ
+      }
+    }
+
+    function goToToday() {
+      currentDate = new Date();
+      if (currentDate.getFullYear() < 2026 || (currentDate.getFullYear() === 2026 && currentDate.getMonth() < 4)) {
+        currentDate = new Date(2026, 4, 1);
+      }
+      renderTable();
+      scrollToTodayEvent();
+    }
+
+    function scrollToTodayEvent() {
+      const today = new Date();
+      if (currentDate.getFullYear() !== today.getFullYear() || currentDate.getMonth() !== today.getMonth()) {
+        return; 
+      }
+      const todayDate = today.getDate();
+      const rows = document.querySelectorAll('#scheduleBody tr');
+      let targetRow = null;
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.classList.contains('empty-msg')) continue;
+        const dateCellText = row.cells[0].innerText;
+        const dayMatch = dateCellText.match(/\/(\d+)/);
+        if (dayMatch) {
+          const rowDate = parseInt(dayMatch[1], 10);
+          if (rowDate >= todayDate) {
+            targetRow = row;
+            break;
+          }
+        }
+      }
+      if (targetRow) {
+        setTimeout(() => {
+          const wrapper = document.querySelector('.schedule-wrapper');
+          // ラッパー内部でのスクロール位置を対象行の上端に合わせる
+          const targetPos = targetRow.offsetTop;
+          wrapper.scrollTo({ top: targetPos, behavior: 'smooth' });
+        }, 150);
+      }
+    }
 
     function openEventDetails(encodedData) {
       const ev = JSON.parse(decodeURIComponent(encodedData));
-
       const dateParts = ev.date.split('/');
       const isBirthday = (parseInt(dateParts[1], 10) === 12 && parseInt(dateParts[2], 10) === 17);
       const isTikTok = ev.title.includes('TikTok');
@@ -613,7 +795,6 @@
           groupTicket.style.display = 'none';
         }
       }
-
       document.getElementById('modalOverlay').classList.add('active');
     }
 
@@ -622,36 +803,15 @@
         document.getElementById('modalOverlay').classList.remove('active');
       }
     }
-
     function forceCloseModal() {
       document.getElementById('modalOverlay').classList.remove('active');
     }
 
-    // ヘッダーのハンバーガーメニュー開閉処理
-    const hamburger = document.getElementById('hamburger');
-    const globalNav = document.getElementById('globalNav');
-    const siteLogo = document.getElementById('siteLogo');
-    
-    function toggleMenu() {
-      hamburger.classList.toggle('active');
-      globalNav.classList.toggle('active');
-      // ロゴの文字色を勝手にピンクに変えてしまう余計なJS処理を削除しました
-      document.body.classList.toggle('no-scroll');
-    }
-
-    hamburger.addEventListener('click', toggleMenu);
-
-    // メニュー内のリンクをクリックしたときにメニューを閉じる
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        if(globalNav.classList.contains('active')) {
-          toggleMenu();
-        }
-      });
+    // 画面ロード時に、メニューとスケジュールの両方を読み込む
+    window.addEventListener('load', () => {
+      loadCommonHeader();
+      loadSchedule();
     });
-
-    window.addEventListener('load', loadSchedule);
   </script>
 
 </body>
