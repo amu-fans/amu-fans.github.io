@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>あむちゃんスケジュール</title>
+<!-- ★追加: 画像保存機能のためのライブラリを再度読み込み -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   /* ==================================================
      ベース設定（全体版と同じカラー・フォント）
@@ -272,9 +274,10 @@
     text-align: center;
   }
 
-  .col-date { width: 18%; }
-  .col-time { width: 20%; }
-  .col-venue { width: 62%; }
+  /* ★変更: 日程と時間を少し狭く、会場を広く調整 */
+  .col-date { width: 16%; }
+  .col-time { width: 18%; }
+  .col-venue { width: 66%; }
 
   .schedule-table td:nth-child(1) { text-align: center; white-space: nowrap; }
   .schedule-table td:nth-child(2) { text-align: center; white-space: nowrap; }
@@ -445,6 +448,13 @@
           <!-- JSで予定が生成されます -->
         </tbody>
       </table>
+
+      <!-- ★画像保存ボタンを再度追加 -->
+      <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+        <button id="saveImageBtn" onclick="saveScheduleImage()" style="background-color: var(--main-pink); color: var(--bg-white); border: none; padding: 10px 20px; border-radius: 25px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: opacity 0.2s;">
+          📸 今月の予定を画像で保存
+        </button>
+      </div>
     </div>
   </main>
 
@@ -783,7 +793,9 @@
         document.getElementById('modalOpenStart').textContent = ev.openStart || '-';
         document.getElementById('modalLive').textContent = ev.live || '-';
         document.getElementById('modalTokuten').textContent = ev.tokuten || '-';
-        document.getElementById('modalBonus').textContent = ev.nyujoTokuten || 'なし';
+        
+        // ★修正：空の時に「なし」ではなく「-」を表示するように修正
+        document.getElementById('modalBonus').textContent = ev.nyujoTokuten || '-';
 
         const ticketArea = document.getElementById('modalTicketArea');
         const hasLink = ev.link && ev.link.trim() !== '' && ev.link.trim() !== '#' && ev.link.trim() !== 'undefined';
@@ -805,6 +817,157 @@
     }
     function forceCloseModal() {
       document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    // ==================================================
+    // ★画像保存機能
+    // （バグを回避し、JSで文字自体を切り詰める方式に変更）
+    // ==================================================
+    async function saveScheduleImage() {
+      if (typeof html2canvas === 'undefined') {
+        alert('画像作成プログラムを読み込み中です。数秒後にもう一度お試しください。');
+        return;
+      }
+
+      const btn = document.getElementById('saveImageBtn');
+      const origBtnText = btn.innerHTML;
+      btn.innerHTML = '⏳ 画像を生成中...';
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+
+      const captureContainer = document.createElement('div');
+      captureContainer.style.position = 'absolute';
+      captureContainer.style.left = '-9999px';
+      captureContainer.style.top = '0';
+      captureContainer.style.width = '600px'; 
+      captureContainer.style.backgroundColor = '#ffffff';
+      captureContainer.style.padding = '30px 20px';
+      captureContainer.style.boxSizing = 'border-box';
+      captureContainer.style.fontFamily = "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif";
+
+      const now = new Date();
+      const dateText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} 付`;
+
+      const currentMonth = document.getElementById('currentMonthDisplay').textContent;
+      const titleObj = document.createElement('div');
+      titleObj.style.position = 'relative';
+      titleObj.style.marginBottom = '5px';
+      titleObj.innerHTML = `
+        <div style="text-align: center; margin-bottom: 5px;">
+          <h2 style="display: inline-block; font-size: 32px; font-weight: 900; color: #111; margin: 0; padding: 0 10px; background: linear-gradient(transparent 50%, #ff2a7a 50%); text-shadow: 1px 1px 0 #fff, 2px 2px 0 #fff, 3px 3px 0 #fff; letter-spacing: 2px;">あむちゃん　スケジュール</h2>
+        </div>
+        <div style="text-align: center; font-size: 28px; font-weight: 900; color: #111; letter-spacing: 2px;">${currentMonth}</div>
+        <div style="position: absolute; right: 0; bottom: 0; font-size: 10px; color: #666; font-weight: bold;">${dateText}</div>
+      `;
+      captureContainer.appendChild(titleObj);
+
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.fontSize = '15px';
+      table.style.tableLayout = 'fixed'; 
+
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th style="background-color: #111; color: #fff; padding: 10px 5px; width: 16%; border-bottom: 2px solid #111;">日程</th>
+          <th style="background-color: #111; color: #fff; padding: 10px 5px; width: 18%; border-bottom: 2px solid #111;">時間</th>
+          <th style="background-color: #111; color: #fff; padding: 10px 5px; width: 66%; border-bottom: 2px solid #111;">会場 / タイトル</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      const rows = document.querySelectorAll('#scheduleBody tr');
+      
+      if (rows.length === 1 && rows[0].classList.contains('empty-msg')) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 40px; font-weight: bold; border-bottom: 1px solid #ccc;">予定がありません</td></tr>`;
+      } else {
+        // ★文字幅を測るための見えないCanvasを準備
+        const tempCanvas = document.createElement('canvas');
+        const ctx = tempCanvas.getContext('2d');
+        ctx.font = 'bold 15px "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif';
+        // 余白を除いたタイトルの最大幅 (600pxの約66% = 396pxからpadding等の余裕を引いた値)
+        const maxWidth = 365;
+
+        rows.forEach(row => {
+          const clone = row.cloneNode(true);
+          clone.style.borderBottom = '1px solid #ccc';
+          
+          const cells = clone.querySelectorAll('td');
+          if (cells.length === 3) {
+            cells[0].style.padding = '12px 5px';
+            cells[0].style.textAlign = 'center';
+            cells[0].style.fontWeight = 'bold';
+            
+            cells[1].style.padding = '12px 5px';
+            cells[1].style.textAlign = 'center';
+            cells[1].style.fontWeight = 'bold';
+            cells[1].style.color = '#444';
+            
+            // ★変更: CSSでの省略に頼らず、JSで文字長を計算してカットする
+            cells[2].style.padding = '12px 5px 12px 10px';
+            cells[2].style.textAlign = 'left';
+            cells[2].style.fontWeight = 'bold';
+            cells[2].style.whiteSpace = 'nowrap'; 
+            cells[2].style.overflow = 'hidden';
+            // CSSのバグを避けるため ellipsis は使用しない
+            cells[2].style.textOverflow = 'clip';
+
+            const originalText = cells[2].innerText;
+            if (ctx.measureText(originalText).width > maxWidth) {
+              let truncated = originalText;
+              // 文字幅が収まるまで1文字ずつ削っていく
+              while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 0) {
+                truncated = truncated.slice(0, -1);
+              }
+              cells[2].innerText = truncated + '...';
+            }
+
+            if (row.classList.contains('sunday')) cells[0].style.color = '#ff0000';
+            if (row.classList.contains('saturday')) cells[0].style.color = '#0044ff';
+            if (row.classList.contains('tiktok')) clone.style.backgroundColor = '#e6d4ff';
+            if (row.classList.contains('anniv')) clone.style.backgroundColor = '#ffe6f0';
+          }
+          tbody.appendChild(clone);
+        });
+      }
+      table.appendChild(tbody);
+      captureContainer.appendChild(table);
+
+      const footer = document.createElement('div');
+      footer.style.textAlign = 'right';
+      footer.style.marginTop = '10px';
+      footer.style.fontSize = '9px';
+      footer.style.color = '#999';
+      footer.style.fontWeight = 'bold';
+      footer.innerText = '【非公式】勝手にあむちゃん応援ファンサイト';
+      captureContainer.appendChild(footer);
+
+      document.body.appendChild(captureContainer);
+
+      setTimeout(async () => {
+        try {
+          const canvas = await html2canvas(captureContainer, {
+            scale: 2, 
+            useCORS: true,
+            backgroundColor: '#ffffff'
+          });
+          
+          const link = document.createElement('a');
+          link.download = `あむちゃん　スケジュール_${currentMonth.replace('.', '')}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        } catch (error) {
+          console.error('画像化エラー:', error);
+          alert('画像の保存に失敗しました。');
+        } finally {
+          document.body.removeChild(captureContainer);
+          btn.innerHTML = origBtnText;
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      }, 100);
     }
 
     // 画面ロード時に、メニューとスケジュールの両方を読み込む

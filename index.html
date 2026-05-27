@@ -983,7 +983,8 @@
       document.getElementById('modalOpenStart').textContent = ev.openStart || '-';
       document.getElementById('modalLive').textContent = ev.live || '-';
       document.getElementById('modalTokuten').textContent = ev.tokuten || '-';
-      document.getElementById('modalBonus').textContent = ev.nyujoTokuten || 'なし';
+      // ★修正: 入場特典が空の時「なし」と表示されていたのを「-」に変更
+      document.getElementById('modalBonus').textContent = ev.nyujoTokuten || '-';
 
       const ticketArea = document.getElementById('modalTicketArea');
       const hasLink = ev.link && ev.link.trim() !== '' && ev.link.trim() !== '#' && ev.link.trim() !== 'undefined';
