@@ -449,10 +449,10 @@
         </tbody>
       </table>
 
-      <!-- ★画像保存ボタンを再度追加 -->
+      <!-- ★ボタンのテキストを「直近の予定」に変更 -->
       <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
         <button id="saveImageBtn" onclick="saveScheduleImage()" style="background-color: var(--main-pink); color: var(--bg-white); border: none; padding: 10px 20px; border-radius: 25px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: opacity 0.2s;">
-          📸 今月の予定を画像で保存
+          📸 直近の予定を画像で保存
         </button>
       </div>
     </div>
@@ -820,8 +820,7 @@
     }
 
     // ==================================================
-    // ★画像保存機能
-    // （バグを回避し、JSで文字自体を切り詰める方式に変更）
+    // ★画像保存機能（今日から未来へ最大15件・月またぎ対応）
     // ==================================================
     async function saveScheduleImage() {
       if (typeof html2canvas === 'undefined') {
@@ -834,6 +833,57 @@
       btn.innerHTML = '⏳ 画像を生成中...';
       btn.disabled = true;
       btn.style.opacity = '0.7';
+
+      // 1. 直近15件のイベントを取得
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let upcomingEvents = scheduleEvents.filter(ev => {
+        const evDate = new Date(ev.date);
+        return evDate >= today;
+      });
+
+      upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      // ★追加: TikTok配信が連続して2回続く場合、そこでリスト表示を打ち切る例外処理
+      let tempFilteredEvents = [];
+      let consecutiveTikTokCount = 0;
+      for (let ev of upcomingEvents) {
+        if (ev.title.includes('TikTok')) {
+          consecutiveTikTokCount++;
+        } else {
+          consecutiveTikTokCount = 0;
+        }
+        
+        tempFilteredEvents.push(ev);
+        
+        // TikTokが2連続（間に他のライブが無い）したら、それ以降の予定は追加せずに終了
+        if (consecutiveTikTokCount >= 2) {
+          break; 
+        }
+      }
+      
+      upcomingEvents = tempFilteredEvents.slice(0, 15); // 最大15件に絞る
+
+      // 2. タイトルの月表記を動的に決定（月またぎなら「2026.05 - 06」のようにする）
+      let monthDisplay = document.getElementById('currentMonthDisplay').textContent;
+      if (upcomingEvents.length > 0) {
+        const firstEv = new Date(upcomingEvents[0].date);
+        const lastEv = new Date(upcomingEvents[upcomingEvents.length - 1].date);
+        
+        const firstMonthStr = `${firstEv.getFullYear()}.${String(firstEv.getMonth() + 1).padStart(2, '0')}`;
+        const lastMonthStr = `${lastEv.getFullYear()}.${String(lastEv.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (firstMonthStr !== lastMonthStr) {
+          if (firstEv.getFullYear() === lastEv.getFullYear()) {
+            monthDisplay = `${firstMonthStr} - ${String(lastEv.getMonth() + 1).padStart(2, '0')}`;
+          } else {
+            monthDisplay = `${firstMonthStr} - ${lastMonthStr}`;
+          }
+        } else {
+          monthDisplay = firstMonthStr;
+        }
+      }
 
       const captureContainer = document.createElement('div');
       captureContainer.style.position = 'absolute';
@@ -848,7 +898,6 @@
       const now = new Date();
       const dateText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} 付`;
 
-      const currentMonth = document.getElementById('currentMonthDisplay').textContent;
       const titleObj = document.createElement('div');
       titleObj.style.position = 'relative';
       titleObj.style.marginBottom = '5px';
@@ -856,7 +905,7 @@
         <div style="text-align: center; margin-bottom: 5px;">
           <h2 style="display: inline-block; font-size: 32px; font-weight: 900; color: #111; margin: 0; padding: 0 10px; background: linear-gradient(transparent 50%, #ff2a7a 50%); text-shadow: 1px 1px 0 #fff, 2px 2px 0 #fff, 3px 3px 0 #fff; letter-spacing: 2px;">あむちゃん　スケジュール</h2>
         </div>
-        <div style="text-align: center; font-size: 28px; font-weight: 900; color: #111; letter-spacing: 2px;">${currentMonth}</div>
+        <div style="text-align: center; font-size: 28px; font-weight: 900; color: #111; letter-spacing: 2px;">${monthDisplay}</div>
         <div style="position: absolute; right: 0; bottom: 0; font-size: 10px; color: #666; font-weight: bold;">${dateText}</div>
       `;
       captureContainer.appendChild(titleObj);
@@ -878,58 +927,62 @@
       table.appendChild(thead);
 
       const tbody = document.createElement('tbody');
-      const rows = document.querySelectorAll('#scheduleBody tr');
       
-      if (rows.length === 1 && rows[0].classList.contains('empty-msg')) {
+      if (upcomingEvents.length === 0) {
         tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 40px; font-weight: bold; border-bottom: 1px solid #ccc;">予定がありません</td></tr>`;
       } else {
-        // ★文字幅を測るための見えないCanvasを準備
         const tempCanvas = document.createElement('canvas');
         const ctx = tempCanvas.getContext('2d');
         ctx.font = 'bold 15px "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif';
-        // 余白を除いたタイトルの最大幅 (600pxの約66% = 396pxからpadding等の余裕を引いた値)
         const maxWidth = 365;
+        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
 
-        rows.forEach(row => {
-          const clone = row.cloneNode(true);
-          clone.style.borderBottom = '1px solid #ccc';
+        // 抽出した15件のデータから行を生成
+        upcomingEvents.forEach(ev => {
+          const evDate = new Date(ev.date);
+          const dayOfWeek = evDate.getDay();
+          const dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}<span style="font-size:12px; margin-left:2px;">(${weekdays[dayOfWeek]})</span>`;
+
+          let dateColor = '#111';
+          let bgColor = 'transparent';
           
-          const cells = clone.querySelectorAll('td');
-          if (cells.length === 3) {
-            cells[0].style.padding = '12px 5px';
-            cells[0].style.textAlign = 'center';
-            cells[0].style.fontWeight = 'bold';
-            
-            cells[1].style.padding = '12px 5px';
-            cells[1].style.textAlign = 'center';
-            cells[1].style.fontWeight = 'bold';
-            cells[1].style.color = '#444';
-            
-            // ★変更: CSSでの省略に頼らず、JSで文字長を計算してカットする
-            cells[2].style.padding = '12px 5px 12px 10px';
-            cells[2].style.textAlign = 'left';
-            cells[2].style.fontWeight = 'bold';
-            cells[2].style.whiteSpace = 'nowrap'; 
-            cells[2].style.overflow = 'hidden';
-            // CSSのバグを避けるため ellipsis は使用しない
-            cells[2].style.textOverflow = 'clip';
+          if (dayOfWeek === 0) dateColor = '#ff0000';
+          if (dayOfWeek === 6) dateColor = '#0044ff';
+          if (ev.title.includes('TikTok')) bgColor = '#e6d4ff';
+          if (ev.title === '誕生日') bgColor = '#ffe6f0';
 
-            const originalText = cells[2].innerText;
-            if (ctx.measureText(originalText).width > maxWidth) {
-              let truncated = originalText;
-              // 文字幅が収まるまで1文字ずつ削っていく
-              while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 0) {
-                truncated = truncated.slice(0, -1);
-              }
-              cells[2].innerText = truncated + '...';
-            }
-
-            if (row.classList.contains('sunday')) cells[0].style.color = '#ff0000';
-            if (row.classList.contains('saturday')) cells[0].style.color = '#0044ff';
-            if (row.classList.contains('tiktok')) clone.style.backgroundColor = '#e6d4ff';
-            if (row.classList.contains('anniv')) clone.style.backgroundColor = '#ffe6f0';
+          let displayTime = '未定';
+          if (ev.live && ev.live !== '---' && ev.live !== '終日') {
+            displayTime = ev.live.split('～')[0] + '～'; 
+          } else if (ev.live === '終日') {
+            displayTime = '終日';
           }
-          tbody.appendChild(clone);
+          if (ev.title.includes('TikTok')) displayTime = '';
+          if (ev.title === '誕生日') displayTime = '🎂';
+
+          let isLive = !ev.title.includes('TikTok') && ev.title !== '誕生日';
+          let displayTitle = isLive ? `『${ev.title}』` : ev.title;
+          let displayVenue = ev.venue && ev.venue !== 'ONLINE' && ev.venue !== '---' && ev.venue !== '-' ? ev.venue : '';
+          let combinedText = displayVenue ? `${displayVenue} ${displayTitle}` : displayTitle;
+
+          let truncated = combinedText;
+          if (ctx.measureText(truncated).width > maxWidth) {
+            while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 0) {
+              truncated = truncated.slice(0, -1);
+            }
+            truncated += '...';
+          }
+
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid #ccc';
+          if (bgColor !== 'transparent') tr.style.backgroundColor = bgColor;
+
+          tr.innerHTML = `
+            <td style="padding: 12px 5px; text-align: center; font-weight: bold; color: ${dateColor};">${dateStr}</td>
+            <td style="padding: 12px 5px; text-align: center; font-weight: bold; color: #444;">${displayTime}</td>
+            <td style="padding: 12px 5px 12px 10px; text-align: left; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: clip;">${truncated}</td>
+          `;
+          tbody.appendChild(tr);
         });
       }
       table.appendChild(tbody);
@@ -955,7 +1008,9 @@
           });
           
           const link = document.createElement('a');
-          link.download = `あむちゃん　スケジュール_${currentMonth.replace('.', '')}.png`;
+          // 保存ファイル名も「2026_05_06」のように自動変換されます
+          const fileMonthStr = monthDisplay.replace(/[\s\-\.]/g, '_').replace(/_+/g, '_');
+          link.download = `あむちゃん_スケジュール_${fileMonthStr}.png`;
           link.href = canvas.toDataURL('image/png');
           link.click();
         } catch (error) {
