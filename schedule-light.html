@@ -495,14 +495,14 @@
   <!-- 画像表示用の専用モーダル -->
   <!-- iPhone等の長押しテキスト選択バグを確実に防ぐため、user-select: none を強力に適用 -->
   <div id="imageModalOverlay" class="modal-overlay" onclick="closeImageModal(event)" style="-webkit-user-select: none; user-select: none;">
-    <div class="modal-content" style="max-width: 90%; max-height: 90vh; background: transparent; border: none; box-shadow: none; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none;">
+    <div class="modal-content" style="max-width: 90%; max-height: 90vh; background: transparent; border: none; box-shadow: none; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none;" onclick="event.stopPropagation();">
       <button class="modal-close-btn" style="color: #fff; top: -45px; right: 0; font-size: 38px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);" onclick="forceCloseImageModal()">×</button>
-      <!-- Android/iPhone双方に対応できるよう案内文を親切に調整 -->
+      <!-- iOSでのテキストハイライト範囲選択を防止するために、user-select: noneを適用した案内文 -->
       <div style="text-align: center; color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); -webkit-user-select: none; user-select: none;">
-        👇 画像を長押し、またはタップして保存してね 👇
+        👇 画像を長押しして保存してね 👇
       </div>
-      <!-- touch-calloutを明示的に許可し、user-select: noneでテキスト範囲選択バグを完全に排除した画像要素 -->
-      <img id="generatedImage" src="" alt="生成されたスケジュール画像" style="width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); -webkit-touch-callout: default; -webkit-user-select: none; user-select: none; pointer-events: auto;">
+      <!-- ★対策: draggable="false" を追加し、transformとopacityハックでiPhoneの文字認識(Live Text)を強引に無効化して長押しを安定させる -->
+      <img id="generatedImage" draggable="false" src="" alt="生成されたスケジュール画像" style="width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); -webkit-touch-callout: default !important; -webkit-user-select: none !important; user-select: none !important; pointer-events: auto !important; transform: translateZ(0); opacity: 0.99;" onclick="event.stopPropagation();">
     </div>
   </div>
 
@@ -832,6 +832,48 @@
     }
 
     // ==================================================
+    // ★ボタンで画像を保存するロジック（PCとスマホで挙動を分ける）
+    // ==================================================
+    async function downloadGeneratedImage(event) {
+      event.stopPropagation();
+      const imgEl = document.getElementById('generatedImage');
+      const dataUrl = imgEl.src;
+      if (!dataUrl || dataUrl === '') return;
+
+      const fileName = 'amu_schedule.png';
+      
+      // スマホ（iPhone/Android等）かどうかの判定
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      try {
+        // スマホの場合はShare APIを優先（iOSの「写真に保存」などを出しやすくする）
+        if (isMobile && navigator.canShare) {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          const file = new File([blob], fileName, { type: 'image/png' });
+          
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: 'あむちゃんスケジュール',
+            });
+            return; // 共有メニューが開いたら終了
+          }
+        }
+        
+        // PCの場合、またはShare APIが使えない場合は直接ダウンロード
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error('保存エラー:', error);
+      }
+    }
+
+    // ==================================================
     // ★画像化ロジック (半年分抽出・TikTok除外・バグ完全排除・コントラストストライプ版)
     // ==================================================
     async function saveScheduleImage() {
@@ -1032,10 +1074,14 @@
           
           const imgDataUrl = canvas.toDataURL('image/png');
           const imgEl = document.getElementById('generatedImage');
-          imgEl.src = imgDataUrl;
           
-          // 画像表示用モーダルを起動
-          document.getElementById('imageModalOverlay').classList.add('active');
+          // ★[重要] iPhoneのレンダリング遅延（裏を触ってしまう現象）を解決する確実な「策」
+          // 画像データ(Base64)が完全に読み込み（ロード）完了したことを検知してから初めて、モーダルを起動(active)する
+          imgEl.onload = function() {
+            document.getElementById('imageModalOverlay').classList.add('active');
+          };
+          
+          imgEl.src = imgDataUrl;
 
         } catch (error) {
           console.error('画像化エラー:', error);
