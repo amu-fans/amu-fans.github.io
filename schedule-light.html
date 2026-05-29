@@ -753,68 +753,6 @@
       }
     }
 
-    function openEventDetails(encodedData) {
-      const ev = JSON.parse(decodeURIComponent(encodedData));
-      const dateParts = ev.date.split('/');
-      const isBirthday = (parseInt(dateParts[1], 10) === 12 && parseInt(dateParts[2], 10) === 17);
-      const isTikTok = ev.title.includes('TikTok');
-
-      const groupVenue = document.getElementById('groupVenue');
-      const groupOpenStart = document.getElementById('groupOpenStart');
-      const groupLive = document.getElementById('groupLive');
-      const groupTokuten = document.getElementById('groupTokuten');
-      const groupBonus = document.getElementById('groupBonus');
-      const groupTicket = document.getElementById('groupTicket');
-      const ticketLabel = document.getElementById('ticketLabel');
-      const titleEl = document.getElementById('modalTitle');
-
-      groupVenue.style.display = 'block';
-      groupOpenStart.style.display = 'block';
-      groupLive.style.display = 'block';
-      groupTokuten.style.display = 'block';
-      groupBonus.style.display = 'block';
-      groupTicket.style.display = 'block';
-      ticketLabel.textContent = "チケットURL";
-
-      if (isBirthday) {
-        titleEl.innerHTML = `<span style="color: var(--main-pink); font-size: 16px; display: block; margin-bottom: 5px;">🎂 Happy Birthday 🎂<br>お誕生日おめでとう🎉</span>`;
-        groupVenue.style.display = 'none';
-        groupOpenStart.style.display = 'none';
-        groupLive.style.display = 'none';
-        groupTokuten.style.display = 'none';
-        groupBonus.style.display = 'none';
-        groupTicket.style.display = 'none';
-      } else if (isTikTok) {
-        titleEl.textContent = ev.title;
-        groupVenue.style.display = 'none';
-        groupOpenStart.style.display = 'none';
-        groupTokuten.style.display = 'none';
-        groupBonus.style.display = 'none';
-        document.getElementById('modalLive').textContent = ev.live || "木曜定期配信。時間はX等で告知";
-        ticketLabel.textContent = "配信URL";
-        const ticketArea = document.getElementById('modalTicketArea');
-        ticketArea.innerHTML = `<a href="https://www.tiktok.com/@amunyan__" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">https://www.tiktok.com/@amunyan__</a>`;
-      } else {
-        titleEl.textContent = ev.title;
-        document.getElementById('modalVenue').textContent = ev.venue || '-';
-        document.getElementById('modalOpenStart').textContent = ev.openStart || '-';
-        document.getElementById('modalLive').textContent = ev.live || '-';
-        document.getElementById('modalTokuten').textContent = ev.tokuten || '-';
-        document.getElementById('modalBonus').textContent = ev.nyujoTokuten || '-';
-
-        const ticketArea = document.getElementById('modalTicketArea');
-        const hasLink = ev.link && ev.link.trim() !== '' && ev.link.trim() !== '#' && ev.link.trim() !== 'undefined';
-        if (hasLink) {
-          const cleanLink = ev.link.trim();
-          ticketArea.innerHTML = `<a href="${cleanLink}" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">${cleanLink}</a>`;
-          groupTicket.style.display = 'block';
-        } else {
-          groupTicket.style.display = 'none';
-        }
-      }
-      document.getElementById('modalOverlay').classList.add('active');
-    }
-
     // モーダルを閉じる
     function closeModal(event) {
       if (event.target === document.getElementById('modalOverlay')) {
@@ -925,7 +863,7 @@
       // ヘッダー（タイトル）部分
       const titleObj = document.createElement('div');
       titleObj.style.position = 'relative';
-      titleObj.style.marginBottom = '25px';
+      titleObj.style.marginBottom = '5px'; // ★スペースを詰めてリストを上へ上げるため、25pxから5pxへ変更
       titleObj.innerHTML = `
         <div style="text-align: center; margin-bottom: 5px;">
           <h2 style="display: inline-block; font-size: 40px; font-weight: 900; color: #fff; margin: 0; letter-spacing: 2px; line-height: 1.2; text-shadow: ${blackShadowLarge};">ハイスピLIVEスケジュール</h2>
@@ -943,6 +881,15 @@
       table.style.tableLayout = 'fixed'; 
       table.style.border = '2px solid #fff'; 
       table.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'; // ★アルファ値を0.65から0.5に変更
+
+      // ★表の枠線がガタガタに崩れるのを防ぐための列幅指定を追加
+      const colgroup = document.createElement('colgroup');
+      colgroup.innerHTML = `
+        <col style="width: 17%;">
+        <col style="width: 18%;">
+        <col style="width: 65%;">
+      `;
+      table.appendChild(colgroup);
 
       const thead = document.createElement('thead');
       thead.innerHTML = `
@@ -980,9 +927,9 @@
           
           let combinedHTML = '';
           if (displayVenue) {
-            combinedHTML = `<div>${displayVenue}</div><div style="font-size: 15px; opacity: 0.95;">${displayTitle}</div>`;
+            combinedHTML = `<div style="font-size: 14px;">${displayVenue}</div><div style="font-size: 18px; opacity: 0.95;">${displayTitle}</div>`;
           } else {
-            combinedHTML = `<div>${displayTitle}</div>`;
+            combinedHTML = `<div style="font-size: 18px;">${displayTitle}</div>`;
           }
 
           const tr = document.createElement('tr');
@@ -997,31 +944,33 @@
           }
 
           const td1 = document.createElement('td');
-          td1.style.padding = '12px 5px';
+          td1.style.padding = '11px 5px'; // 文字を大きくした分、上下を1pxずつ削って高さを維持
           td1.style.textAlign = 'center';
           td1.style.fontWeight = 'bold';
           td1.style.border = '2px solid #fff';
           td1.style.color = dateColor;
-          td1.style.textShadow = darkRedShadow; // ★影を追加
+          td1.style.fontSize = '18px'; 
+          td1.style.textShadow = darkRedShadow; 
           td1.innerText = dateStr;
 
           const td2 = document.createElement('td');
-          td2.style.padding = '12px 5px';
+          td2.style.padding = '11px 5px'; // 文字を大きくした分、上下を1pxずつ削って高さを維持
           td2.style.textAlign = 'center';
           td2.style.fontWeight = 'bold';
           td2.style.color = '#fff';
           td2.style.border = '2px solid #fff';
-          td2.style.textShadow = darkRedShadow; // ★影を追加
+          td2.style.fontSize = '18px'; 
+          td2.style.textShadow = darkRedShadow; 
           td2.innerText = displayTime;
 
           const td3 = document.createElement('td');
-          td3.style.padding = '10px 5px 10px 10px';
+          td3.style.padding = '9px 5px 9px 10px'; // 上下を1pxずつ削って高さを維持
           td3.style.textAlign = 'left';
           td3.style.fontWeight = 'bold';
           td3.style.color = '#fff';
           td3.style.border = '2px solid #fff';
           td3.style.lineHeight = '1.3';
-          td3.style.textShadow = darkRedShadow; // ★影を追加
+          td3.style.textShadow = darkRedShadow; 
           td3.innerHTML = combinedHTML;
 
           tr.appendChild(td1);
