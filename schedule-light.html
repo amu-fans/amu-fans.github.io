@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>あむちゃんスケジュール</title>
+<!-- ★追加：iPhoneが日付を勝手にカレンダーリンクにするお節介機能（データ検出）を無効化 -->
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <!-- 画像保存機能のためのライブラリ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -493,16 +495,19 @@
   </div>
 
   <!-- 画像表示用の専用モーダル -->
-  <!-- iPhone等の長押しテキスト選択バグを確実に防ぐため、user-select: none を強力に適用 -->
-  <div id="imageModalOverlay" class="modal-overlay" onclick="closeImageModal(event)" style="-webkit-user-select: none; user-select: none;">
-    <div class="modal-content" style="max-width: 90%; max-height: 90vh; background: transparent; border: none; box-shadow: none; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; -webkit-user-select: none; user-select: none;" onclick="event.stopPropagation();">
-      <button class="modal-close-btn" style="color: #fff; top: -45px; right: 0; font-size: 38px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);" onclick="forceCloseImageModal()">×</button>
-      <!-- iOSでのテキストハイライト範囲選択を防止するために、user-select: noneを適用した案内文 -->
-      <div style="text-align: center; color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); -webkit-user-select: none; user-select: none;">
-        👇 画像を長押しして保存してね 👇
+  <!-- 一旦すべて排除して強制させてる部分をなくし、プレーンな画像表示にする -->
+  <div id="imageModalOverlay" class="modal-overlay" onclick="closeImageModal(event)">
+    <div class="modal-content" style="max-width: 90%; max-height: 90vh; background: transparent; border: none; box-shadow: none; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;" onclick="event.stopPropagation();">
+      <button class="modal-close-btn" style="color: #fff; top: -45px; right: 0; font-size: 38px; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;" onclick="forceCloseImageModal()">×</button>
+      
+      <!-- 余計なCSSハックやdraggable="false"を全て削除し、一番自然なimgタグの状態に戻す -->
+      <img id="generatedImage" src="" alt="スケジュール画像" style="width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+
+      <!-- ★PC・Android・iPhoneすべてに配慮した完璧な案内文 -->
+      <div style="text-align: center; color: #fff; font-size: 13px; font-weight: bold; margin-top: 15px; line-height: 1.5; padding: 0 10px;">
+        画像を長押し（PCは右クリック）で保存できます。<br>
+        <span style="font-size: 11px; color: #ffcccc;">※iPhoneの場合は画像の空きスペースを長押しすると保存メニューが出やすいです。</span>
       </div>
-      <!-- ★対策: draggable="false" を追加し、transformとopacityハックでiPhoneの文字認識(Live Text)を強引に無効化して長押しを安定させる -->
-      <img id="generatedImage" draggable="false" src="" alt="生成されたスケジュール画像" style="width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); -webkit-touch-callout: default !important; -webkit-user-select: none !important; user-select: none !important; pointer-events: auto !important; transform: translateZ(0); opacity: 0.99;" onclick="event.stopPropagation();">
     </div>
   </div>
 
@@ -810,6 +815,7 @@
       document.getElementById('modalOverlay').classList.add('active');
     }
 
+    // モーダルを閉じる
     function closeModal(event) {
       if (event.target === document.getElementById('modalOverlay')) {
         document.getElementById('modalOverlay').classList.remove('active');
@@ -832,49 +838,7 @@
     }
 
     // ==================================================
-    // ★ボタンで画像を保存するロジック（PCとスマホで挙動を分ける）
-    // ==================================================
-    async function downloadGeneratedImage(event) {
-      event.stopPropagation();
-      const imgEl = document.getElementById('generatedImage');
-      const dataUrl = imgEl.src;
-      if (!dataUrl || dataUrl === '') return;
-
-      const fileName = 'amu_schedule.png';
-      
-      // スマホ（iPhone/Android等）かどうかの判定
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-      try {
-        // スマホの場合はShare APIを優先（iOSの「写真に保存」などを出しやすくする）
-        if (isMobile && navigator.canShare) {
-          const res = await fetch(dataUrl);
-          const blob = await res.blob();
-          const file = new File([blob], fileName, { type: 'image/png' });
-          
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: 'あむちゃんスケジュール',
-            });
-            return; // 共有メニューが開いたら終了
-          }
-        }
-        
-        // PCの場合、またはShare APIが使えない場合は直接ダウンロード
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } catch (error) {
-        console.error('保存エラー:', error);
-      }
-    }
-
-    // ==================================================
-    // ★画像化ロジック (半年分抽出・TikTok除外・バグ完全排除・コントラストストライプ版)
+    // 画像化ロジック
     // ==================================================
     async function saveScheduleImage() {
       if (typeof html2canvas === 'undefined') {
@@ -898,29 +862,52 @@
       let futureEvents = scheduleEvents.filter(ev => {
         const evDate = new Date(ev.date);
         evDate.setHours(0, 0, 0, 0);
-        // 今日以降〜半年以内 ＆ TikTok以外の予定を抽出
         return evDate >= today && evDate <= sixMonthsLater && !ev.title.includes('TikTok');
       });
 
-      // 日付順に並び替え
       futureEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
       const targetEvents = futureEvents;
 
-      // 2. 画像化用の見えないコンテナを作成
+      // 背景画像から1枚をランダムに決定する
+      const bgImages = ['screen_00.jpg', 'screen_01.jpg', 'screen_02.jpg', 'screen_03.jpg'];
+      const chosenBg = bgImages[Math.floor(Math.random() * bgImages.length)];
+
+      // 2. 決定したランダム背景画像を確実に読み込むための待機処理
+      await new Promise((resolve) => {
+        const bgImg = new Image();
+        bgImg.onload = resolve;
+        bgImg.onerror = resolve; 
+        bgImg.src = chosenBg;
+      });
+
+      // 3. 画像化用の見えないコンテナを作成
       const captureContainer = document.createElement('div');
       captureContainer.style.position = 'absolute';
       captureContainer.style.left = '-9999px';
       captureContainer.style.top = '0';
-      captureContainer.style.width = '600px'; 
-      captureContainer.style.backgroundColor = '#ffffff';
-      captureContainer.style.padding = '30px 20px';
+      captureContainer.style.width = '640px'; 
+      captureContainer.style.height = 'auto'; 
       captureContainer.style.boxSizing = 'border-box';
       captureContainer.style.fontFamily = "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif";
+      captureContainer.style.padding = '40px 25px';
+      captureContainer.style.display = 'flex';
+      captureContainer.style.flexDirection = 'column';
+      
+      // 背景画像を設定
+      captureContainer.style.backgroundImage = `url('${chosenBg}')`;
+      captureContainer.style.backgroundSize = 'cover';
+      captureContainer.style.backgroundPosition = 'center top';
+
+      // ★リスト内用の「深い黒に近い赤」の影
+      const darkRedShadow = '-1px -1px 0 #4a0000, 1px -1px 0 #4a0000, -1px 1px 0 #4a0000, 1px 1px 0 #4a0000, 0 2px 4px rgba(50, 0, 0, 0.9)';
+      
+      // ★リスト外用の「黒」の影
+      const blackShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)';
+      const blackShadowLarge = '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 10px rgba(0,0,0,0.8)';
 
       const now = new Date();
       const dateText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} 付`;
 
-      // ★抽出された予定の中から一番新しい（直近の）日付を取得して「〇〇/〇/〇～」を作る
       let liveScheduleText = "LIVE SCHEDULE";
       if (targetEvents.length > 0) {
         const firstEvDate = new Date(targetEvents[0].date);
@@ -935,31 +922,34 @@
         liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
       }
 
+      // ヘッダー（タイトル）部分
       const titleObj = document.createElement('div');
       titleObj.style.position = 'relative';
-      titleObj.style.marginBottom = '15px';
+      titleObj.style.marginBottom = '25px';
       titleObj.innerHTML = `
         <div style="text-align: center; margin-bottom: 5px;">
-          <h2 style="display: inline-block; font-size: 32px; font-weight: 900; color: #111; margin: 0; padding: 0 10px 8px; border-bottom: 12px solid #ff2a7a; letter-spacing: 2px; line-height: 1.1;">あむちゃんスケジュール</h2>
+          <h2 style="display: inline-block; font-size: 40px; font-weight: 900; color: #fff; margin: 0; letter-spacing: 2px; line-height: 1.2; text-shadow: ${blackShadowLarge};">ハイスピLIVEスケジュール</h2>
         </div>
-        <div style="text-align: center; font-size: 20px; font-weight: 900; color: #111; letter-spacing: 2px; margin-top: 5px;">${liveScheduleText}</div>
-        <div style="position: absolute; right: 0; bottom: 0; font-size: 10px; color: #666; font-weight: bold;">${dateText}</div>
+        <div style="text-align: center; font-size: 28px; font-weight: 900; color: #fff; letter-spacing: 2px; margin-top: 5px; text-shadow: ${blackShadowLarge};">${liveScheduleText}</div>
+        <div style="position: absolute; right: 0; bottom: 0; font-size: 13px; color: #fff; font-weight: bold; opacity: 0.8; text-shadow: ${blackShadow};">${dateText}</div>
       `;
       captureContainer.appendChild(titleObj);
 
-      // 3. テーブルの構築
+      // 4. テーブルの構築
       const table = document.createElement('table');
       table.style.width = '100%';
       table.style.borderCollapse = 'collapse';
-      table.style.fontSize = '15px';
+      table.style.fontSize = '16px'; 
       table.style.tableLayout = 'fixed'; 
+      table.style.border = '2px solid #fff'; 
+      table.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'; // ★アルファ値を0.65から0.5に変更
 
       const thead = document.createElement('thead');
       thead.innerHTML = `
         <tr>
-          <th style="background-color: #111; color: #fff; padding: 10px 5px; width: 16%; border-bottom: 2px solid #111;">日程</th>
-          <th style="background-color: #111; color: #fff; padding: 10px 5px; width: 18%; border-bottom: 2px solid #111;">時間</th>
-          <th style="background-color: #111; color: #fff; padding: 10px 5px; width: 66%; border-bottom: 2px solid #111;">会場 / タイトル</th>
+          <th style="color: #fff; padding: 12px 5px; width: 17%; border: 2px solid #fff; font-size: 18px; text-shadow: ${darkRedShadow};">日程</th>
+          <th style="color: #fff; padding: 12px 5px; width: 18%; border: 2px solid #fff; font-size: 18px; text-shadow: ${darkRedShadow};">時間</th>
+          <th style="color: #fff; padding: 12px 5px; width: 65%; border: 2px solid #fff; font-size: 18px; text-shadow: ${darkRedShadow};">会場/タイトル</th>
         </tr>
       `;
       table.appendChild(thead);
@@ -967,16 +957,11 @@
       const tbody = document.createElement('tbody');
       
       if (targetEvents.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 40px; font-weight: bold; border-bottom: 1px solid #ccc; background-color: #fafafa;">今後のライブ予定がありません</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 40px; font-weight: bold; border: 2px solid #fff; color: #fff; text-shadow: ${darkRedShadow};">今後のライブ予定がありません</td></tr>`;
       } else {
-        const tempCanvas = document.createElement('canvas');
-        const ctx = tempCanvas.getContext('2d');
-        ctx.font = 'bold 15px "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif';
-        const maxWidth = 365;
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
 
-        // ★ forEachにindexを持たせて、白の同化を防ぐ2色（#fafafa と #f2f2f2）で確実に縞模様をレンダリングする
-        targetEvents.forEach((ev, index) => {
+        targetEvents.forEach((ev) => {
           const evDate = new Date(ev.date);
           const dayOfWeek = evDate.getDay();
           const dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}(${weekdays[dayOfWeek]})`;
@@ -992,56 +977,52 @@
           let isLive = ev.title !== '誕生日';
           let displayTitle = isLive ? `『${ev.title}』` : ev.title;
           let displayVenue = ev.venue && ev.venue !== 'ONLINE' && ev.venue !== '---' ? ev.venue : '';
-          let combinedText = displayVenue ? `${displayVenue} ${displayTitle}` : displayTitle;
+          
+          let combinedHTML = '';
+          if (displayVenue) {
+            combinedHTML = `<div>${displayVenue}</div><div style="font-size: 15px; opacity: 0.95;">${displayTitle}</div>`;
+          } else {
+            combinedHTML = `<div>${displayTitle}</div>`;
+          }
 
           const tr = document.createElement('tr');
-          tr.style.borderBottom = '1px solid #ccc';
+          tr.style.backgroundColor = 'transparent';
           
-          // ★ 完全に白背景（#ffffff）と被らないようにグレー2色の組み合わせを適用
-          tr.style.backgroundColor = index % 2 === 1 ? '#f2f2f2' : '#fafafa';
+          let dateColor = '#ffffff'; 
+          if (dayOfWeek === 0) dateColor = '#ff6b6b'; 
+          if (dayOfWeek === 6) dateColor = '#6be0ff'; 
           
-          let trClass = '';
-          if (dayOfWeek === 0) trClass = 'sunday';
-          if (dayOfWeek === 6) trClass = 'saturday';
           if (ev.title === '誕生日') {
-            trClass = 'anniv';
-            // 誕生日の場合は固有のピンクで上書き
-            tr.style.backgroundColor = '#ffe6f0';
+            tr.style.backgroundColor = 'rgba(255, 100, 150, 0.2)'; 
           }
 
           const td1 = document.createElement('td');
           td1.style.padding = '12px 5px';
           td1.style.textAlign = 'center';
           td1.style.fontWeight = 'bold';
+          td1.style.border = '2px solid #fff';
+          td1.style.color = dateColor;
+          td1.style.textShadow = darkRedShadow; // ★影を追加
           td1.innerText = dateStr;
-          if (trClass === 'sunday') td1.style.color = '#ff0000';
-          if (trClass === 'saturday') td1.style.color = '#0044ff';
 
           const td2 = document.createElement('td');
           td2.style.padding = '12px 5px';
           td2.style.textAlign = 'center';
           td2.style.fontWeight = 'bold';
-          td2.style.color = '#444';
+          td2.style.color = '#fff';
+          td2.style.border = '2px solid #fff';
+          td2.style.textShadow = darkRedShadow; // ★影を追加
           td2.innerText = displayTime;
 
           const td3 = document.createElement('td');
-          td3.style.padding = '12px 5px 12px 10px';
+          td3.style.padding = '10px 5px 10px 10px';
           td3.style.textAlign = 'left';
           td3.style.fontWeight = 'bold';
-          td3.style.whiteSpace = 'nowrap'; 
-          td3.style.overflow = 'hidden';
-          td3.style.textOverflow = 'clip';
-
-          // 文字の長さを測定して切り詰める処理
-          if (ctx.measureText(combinedText).width > maxWidth) {
-            let truncated = combinedText;
-            while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 0) {
-              truncated = truncated.slice(0, -1);
-            }
-            td3.innerText = truncated + '...';
-          } else {
-            td3.innerText = combinedText;
-          }
+          td3.style.color = '#fff';
+          td3.style.border = '2px solid #fff';
+          td3.style.lineHeight = '1.3';
+          td3.style.textShadow = darkRedShadow; // ★影を追加
+          td3.innerHTML = combinedHTML;
 
           tr.appendChild(td1);
           tr.appendChild(td2);
@@ -1052,31 +1033,35 @@
       table.appendChild(tbody);
       captureContainer.appendChild(table);
 
-      const footer = document.createElement('div');
-      footer.style.textAlign = 'right';
-      footer.style.marginTop = '10px';
-      footer.style.fontSize = '9px';
-      footer.style.color = '#999';
-      footer.style.fontWeight = 'bold';
-      footer.innerText = '【非公式】勝手にあむちゃん応援ファンサイト';
-      captureContainer.appendChild(footer);
+      // コピーライトを下部に配置
+      const footerArea = document.createElement('div');
+      footerArea.style.marginTop = '25px'; 
+      footerArea.style.paddingBottom = '10px';
 
+      const copyDiv = document.createElement('div');
+      copyDiv.style.textAlign = 'center';
+      copyDiv.style.fontSize = '15px';
+      copyDiv.style.color = '#fff';
+      copyDiv.style.fontWeight = 'bold';
+      copyDiv.style.textShadow = blackShadow; // ★リスト外なので影を黒に変更
+      copyDiv.innerText = '【非公式】勝手にあむちゃん応援ファンサイト';
+      footerArea.appendChild(copyDiv);
+
+      captureContainer.appendChild(footerArea);
       document.body.appendChild(captureContainer);
 
-      // 4. html2canvasで描画し、ポップアップで表示
+      // 5. html2canvasで描画し、ポップアップで表示
       setTimeout(async () => {
         try {
           const canvas = await html2canvas(captureContainer, {
             scale: 2, 
             useCORS: true,
-            backgroundColor: '#ffffff'
+            backgroundColor: null 
           });
           
           const imgDataUrl = canvas.toDataURL('image/png');
           const imgEl = document.getElementById('generatedImage');
           
-          // ★[重要] iPhoneのレンダリング遅延（裏を触ってしまう現象）を解決する確実な「策」
-          // 画像データ(Base64)が完全に読み込み（ロード）完了したことを検知してから初めて、モーダルを起動(active)する
           imgEl.onload = function() {
             document.getElementById('imageModalOverlay').classList.add('active');
           };
@@ -1101,6 +1086,5 @@
       loadSchedule();
     });
   </script>
-
 </body>
 </html>
