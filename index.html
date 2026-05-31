@@ -302,14 +302,13 @@
   .calendar-nav-btn {
     background: none;
     border: none;
-    font-size: 25px; 
+    font-size: 25px;
     color: var(--main-pink);
     cursor: pointer;
     font-weight: bold;
-    padding: 0 15px; 
+    padding: 5px 15px;
     transition: opacity 0.2s;
   }
-  
   .calendar-nav-btn:active {
     opacity: 0.5;
   }
@@ -583,7 +582,6 @@
 </head>
 <body class="no-scroll">
 
-  <!-- 1. ローディング画面 -->
   <div id="loading">
     <div class="loading-logo">
       聖奈 あむ
@@ -591,17 +589,13 @@
     </div>
   </div>
 
-  <!-- ★ここに共通のメニュー部品（header.html）が自動で読み込まれます -->
   <div id="common-header-container"></div>
 
-  <!-- 4. メインコンテンツ -->
   <main>
-    <!-- ヒーローエリア -->
     <section id="hero" class="hero">
       <img src="top_amu00.jpg" alt="キービジュアル" class="hero-image" oncontextmenu="return false;" ondragstart="return false;" onerror="this.src='https://placehold.co/800x1200/f0f0f0/cccccc?text=Hero+Image'">
     </section>
 
-    <!-- スケジュールセクション -->
     <section id="schedule" class="section-wrapper">
       <h2 class="section-title">SCHEDULE</h2>
       <span class="section-subtitle">スケジュール</span>
@@ -613,7 +607,6 @@
         <button class="calendar-today-btn" onclick="goToToday()">今日</button>
       </div>
       
-      <!-- カレンダー枠 -->
       <table class="calendar-container">
         <thead>
           <tr>
@@ -627,11 +620,9 @@
           </tr>
         </thead>
         <tbody id="calendarBody">
-          <!-- JSで動的にカレンダー枠を描画し、データを挿入 -->
-        </tbody>
+          </tbody>
       </table>
 
-      <!-- リスト一覧への導線 -->
       <a href="schedule-light.html" class="list-schedule-link">
         <svg viewBox="0 0 24 24">
           <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
@@ -640,7 +631,6 @@
       </a>
     </section>
 
-    <!-- SNSセクション -->
     <section id="sns" class="section-wrapper">
       <h2 class="section-title">SNS</h2>
       <span class="section-subtitle">ソーシャルネットワーク</span>
@@ -686,14 +676,6 @@
     </section>
   </main>
 
-  <!-- ★追加: コピーライト表記（小さく目立たない灰色） -->
-  <footer style="text-align: center; padding: 20px 10px 40px; font-size: 11px; color: #aaaaaa; background-color: #fafafa;">
-    &copy; 2026 勝手にあむちゃん応援ファンサイト
-  </footer>
-
-  <!-- ==================================================
-     予定詳細確認用 モーダル画面
-  ================================================== */ -->
   <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
     <div class="modal-content">
       <button class="modal-close-btn" onclick="forceCloseModal()">×</button>
@@ -729,8 +711,9 @@
   // ==================================================
   // 動的カレンダー ＆ CSV自動連動システム
   // ==================================================
-  let currentDate = new Date(2026, 4, 1); // 2026年5月をデフォルト初期値に設定
+  let currentDate = new Date(2026, 4, 1); // 初期値（すぐ後のisFirstRenderで自動修正されます）
   let scheduleEvents = [];
+  let isFirstRender = true; // ★追加：初回描画判定フラグ
 
   // 動的にイベントを追加する関数（誕生日とTikTok定期）
   function addDynamicEvents() {
@@ -814,7 +797,7 @@
     renderCalendar();
   }
 
-  // CSVをパースして扱いやすいオブジェクト配列にする
+  // ★修正：CSVをパースして扱いやすいオブジェクト配列にする（最新の11列＋自動結合フォーマット）
   function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
     if (lines.length <= 1) return [];
@@ -864,6 +847,30 @@
 
   // カレンダー描画
   function renderCalendar() {
+    // ★ 初回だけ、今日以降の最新の予定がある月に自動で合わせる
+    if (isFirstRender && scheduleEvents.length > 0) {
+      isFirstRender = false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // 時間をリセットして日付のみで比較
+      
+      // 今日以降の最も近い予定を探す
+      const upcomingEvent = scheduleEvents.find(ev => new Date(ev.date) >= today);
+      
+      if (upcomingEvent) {
+        // 未来の予定がある場合はその月に合わせる
+        const upcomingDate = new Date(upcomingEvent.date);
+        currentDate = new Date(upcomingDate.getFullYear(), upcomingDate.getMonth(), 1);
+      } else {
+        // 未来の予定がない場合は今の月に合わせる
+        currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      }
+
+      // 2026年5月より前の場合は強制的に2026年5月に戻す
+      if (currentDate.getFullYear() < 2026 || (currentDate.getFullYear() === 2026 && currentDate.getMonth() < 4)) {
+        currentDate = new Date(2026, 4, 1);
+      }
+    }
+
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 

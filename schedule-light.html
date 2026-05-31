@@ -649,8 +649,30 @@
       }).filter(item => item.date !== '');
     }
 
+    // ★初回描画判定用のフラグを追加
+    let isFirstRender = true;
+
     // ★誤って画像用のコードで上書きされて壊れていた描画関数を、本来の形に修復
     function renderTable() {
+      // ★ 初回だけ、今日以降の最新の予定がある月に自動で合わせる
+      if (isFirstRender && scheduleEvents.length > 0) {
+        isFirstRender = false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // 時間をリセットして日付のみで比較
+        
+        // 今日以降の最も近い予定を探す
+        const upcomingEvent = scheduleEvents.find(ev => new Date(ev.date) >= today);
+        
+        if (upcomingEvent) {
+          // 未来の予定がある場合はその月に合わせる
+          const upcomingDate = new Date(upcomingEvent.date);
+          currentDate = new Date(upcomingDate.getFullYear(), upcomingDate.getMonth(), 1);
+        } else {
+          // 未来の予定がない場合は今の月に合わせる
+          currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        }
+      }
+
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
       document.getElementById('currentMonthDisplay').textContent = `${year}.${String(month + 1).padStart(2, '0')}`;
@@ -719,7 +741,7 @@
         const tr = document.createElement('tr');
         if (trClass) tr.className = trClass;
         
-        // ★消滅していたクリックイベント（ポップアップを開く処理）を復活
+        // ★クリックイベント（ポップアップを開く処理）
         tr.onclick = () => openEventDetails(encodedData);
         
         tr.innerHTML = `
@@ -793,7 +815,7 @@
       }
     }
 
-    // ★ 消滅していた「ポップアップ詳細を開く関数」を完全復活させ、新しいCSVフォーマットに適合
+    // ★ 「ポップアップ詳細を開く関数」
     function openEventDetails(encodedData) {
       const ev = JSON.parse(decodeURIComponent(encodedData));
       const dateParts = ev.date.split('/');
@@ -966,7 +988,7 @@
       // ヘッダー（タイトル）部分
       const titleObj = document.createElement('div');
       titleObj.style.position = 'relative';
-      titleObj.style.marginBottom = '5px'; // ★スペースを詰めてリストを上へ上げるため、25pxから5pxへ変更
+      titleObj.style.marginBottom = '5px'; // スペースを詰めるため25pxから5px
       titleObj.innerHTML = `
         <div style="text-align: center; margin-bottom: 5px;">
           <h2 style="display: inline-block; font-size: 40px; font-weight: 900; color: #fff; margin: 0; letter-spacing: 2px; line-height: 1.2; text-shadow: ${blackShadowLarge};">ハイスピLIVEスケジュール</h2>
@@ -983,9 +1005,8 @@
       table.style.fontSize = '16px'; 
       table.style.tableLayout = 'fixed'; 
       table.style.border = '2px solid #fff'; 
-      table.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'; // ★アルファ値を0.65から0.5に変更
+      table.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
 
-      // ★表の枠線がガタガタに崩れるのを防ぐための列幅指定を追加
       const colgroup = document.createElement('colgroup');
       colgroup.innerHTML = `
         <col style="width: 17%;">
@@ -1047,7 +1068,7 @@
           }
 
           const td1 = document.createElement('td');
-          td1.style.padding = '11px 5px'; // 文字を大きくした分、上下を1pxずつ削って高さを維持
+          td1.style.padding = '11px 5px';
           td1.style.textAlign = 'center';
           td1.style.fontWeight = 'bold';
           td1.style.border = '2px solid #fff';
@@ -1057,7 +1078,7 @@
           td1.innerText = dateStr;
 
           const td2 = document.createElement('td');
-          td2.style.padding = '11px 5px'; // 文字を大きくした分、上下を1pxずつ削って高さを維持
+          td2.style.padding = '11px 5px';
           td2.style.textAlign = 'center';
           td2.style.fontWeight = 'bold';
           td2.style.color = '#fff';
@@ -1067,7 +1088,7 @@
           td2.innerText = displayTime;
 
           const td3 = document.createElement('td');
-          td3.style.padding = '9px 5px 9px 10px'; // 上下を1pxずつ削って高さを維持
+          td3.style.padding = '9px 5px 9px 10px';
           td3.style.textAlign = 'left';
           td3.style.fontWeight = 'bold';
           td3.style.color = '#fff';
@@ -1095,7 +1116,7 @@
       copyDiv.style.fontSize = '15px';
       copyDiv.style.color = '#fff';
       copyDiv.style.fontWeight = 'bold';
-      copyDiv.style.textShadow = blackShadow; // ★リスト外なので影を黒に変更
+      copyDiv.style.textShadow = blackShadow; 
       copyDiv.innerText = '【非公式】勝手にあむちゃん応援ファンサイト';
       footerArea.appendChild(copyDiv);
 
