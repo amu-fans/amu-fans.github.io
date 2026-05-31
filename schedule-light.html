@@ -605,13 +605,51 @@
       const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
       if (lines.length <= 1) return [];
       const headers = lines[0].split(',').map(h => h.trim());
+      
       return lines.slice(1).map(line => {
         const cols = line.split(',').map(c => c.trim());
-        if (cols.length < headers.length) return null;
-        return { date: cols[0], title: cols[1], venue: cols[2], openStart: cols[3], live: cols[4], tokuten: cols[5], nyujoTokuten: cols[6], link: cols[8] };
-      }).filter(item => item !== null);
+        
+        // 新しいCSVフォーマット（全11列）に合わせて、空欄があっても配列を埋める
+        while (cols.length < 11) cols.push('');
+
+        const d = cols[0], t = cols[1], v = cols[2];
+        const o = cols[3], s = cols[4];
+        const ls = cols[5], le = cols[6];
+        const ts = cols[7], te = cols[8];
+        const nyu = cols[9], link = cols[10];
+
+        // 開場 / 開演 の自動結合
+        let openStart = '---';
+        if (o && s) openStart = `${o} / ${s}`;
+        else if (o) openStart = `${o} / 未定`;
+        else if (s) openStart = `未定 / ${s}`;
+
+        // ライブ時間 の自動結合
+        let live = '---';
+        if (ls && le) live = `${ls}～${le}`;
+        else if (ls) live = (ls === '終日' || ls === '未定') ? ls : `${ls}～`;
+        else if (le) live = `～${le}`;
+
+        // 特典会時間 の自動結合
+        let tokuten = '---';
+        if (ts && te) tokuten = `${ts}～${te}`;
+        else if (ts) tokuten = (ts === '終日' || ts === '未定') ? ts : `${ts}～`;
+        else if (te) tokuten = `～${te}`;
+
+        return { 
+          date: d, 
+          title: t, 
+          venue: v, 
+          openStart: openStart, 
+          live: live, 
+          tokuten: tokuten, 
+          nyujoTokuten: nyu, 
+          link: link 
+        };
+      }).filter(item => item.date !== '');
     }
 
+    // ★誤って画像用のコードで上書きされて壊れていた描画関数を、本来の形に修復
     function renderTable() {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
@@ -680,6 +718,8 @@
         const encodedData = encodeURIComponent(JSON.stringify(ev));
         const tr = document.createElement('tr');
         if (trClass) tr.className = trClass;
+        
+        // ★消滅していたクリックイベント（ポップアップを開く処理）を復活
         tr.onclick = () => openEventDetails(encodedData);
         
         tr.innerHTML = `
@@ -751,6 +791,69 @@
           wrapper.scrollTo({ top: targetPos, behavior: 'smooth' });
         }, 150);
       }
+    }
+
+    // ★ 消滅していた「ポップアップ詳細を開く関数」を完全復活させ、新しいCSVフォーマットに適合
+    function openEventDetails(encodedData) {
+      const ev = JSON.parse(decodeURIComponent(encodedData));
+      const dateParts = ev.date.split('/');
+      const isBirthday = (parseInt(dateParts[1], 10) === 12 && parseInt(dateParts[2], 10) === 17);
+      const isTikTok = ev.title.includes('TikTok');
+
+      const groupVenue = document.getElementById('groupVenue');
+      const groupOpenStart = document.getElementById('groupOpenStart');
+      const groupLive = document.getElementById('groupLive');
+      const groupTokuten = document.getElementById('groupTokuten');
+      const groupBonus = document.getElementById('groupBonus');
+      const groupTicket = document.getElementById('groupTicket');
+      const ticketLabel = document.getElementById('ticketLabel');
+      const titleEl = document.getElementById('modalTitle');
+
+      groupVenue.style.display = 'block';
+      groupOpenStart.style.display = 'block';
+      groupLive.style.display = 'block';
+      groupTokuten.style.display = 'block';
+      groupBonus.style.display = 'block';
+      groupTicket.style.display = 'block';
+      ticketLabel.textContent = "チケットURL";
+
+      if (isBirthday) {
+        titleEl.innerHTML = `<span style="color: var(--main-pink); font-size: 16px; display: block; margin-bottom: 5px;">🎂 Happy Birthday 🎂<br>お誕生日おめでとう🎉</span>`;
+        groupVenue.style.display = 'none';
+        groupOpenStart.style.display = 'none';
+        groupLive.style.display = 'none';
+        groupTokuten.style.display = 'none';
+        groupBonus.style.display = 'none';
+        groupTicket.style.display = 'none';
+      } else if (isTikTok) {
+        titleEl.textContent = ev.title;
+        groupVenue.style.display = 'none';
+        groupOpenStart.style.display = 'none';
+        groupTokuten.style.display = 'none';
+        groupBonus.style.display = 'none';
+        document.getElementById('modalLive').textContent = ev.live || "木曜定期配信。時間はX等で告知";
+        ticketLabel.textContent = "配信URL";
+        const ticketArea = document.getElementById('modalTicketArea');
+        ticketArea.innerHTML = `<a href="https://www.tiktok.com/@amunyan__" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">https://www.tiktok.com/@amunyan__</a>`;
+      } else {
+        titleEl.textContent = ev.title;
+        document.getElementById('modalVenue').textContent = ev.venue || '-';
+        document.getElementById('modalOpenStart').textContent = ev.openStart || '-';
+        document.getElementById('modalLive').textContent = ev.live || '-';
+        document.getElementById('modalTokuten').textContent = ev.tokuten || '-';
+        document.getElementById('modalBonus').textContent = ev.nyujoTokuten || '-';
+
+        const ticketArea = document.getElementById('modalTicketArea');
+        const hasLink = ev.link && ev.link.trim() !== '' && ev.link.trim() !== '#' && ev.link.trim() !== 'undefined';
+        if (hasLink) {
+          const cleanLink = ev.link.trim();
+          ticketArea.innerHTML = `<a href="${cleanLink}" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">${cleanLink}</a>`;
+          groupTicket.style.display = 'block';
+        } else {
+          groupTicket.style.display = 'none';
+        }
+      }
+      document.getElementById('modalOverlay').classList.add('active');
     }
 
     // モーダルを閉じる
