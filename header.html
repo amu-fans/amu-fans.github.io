@@ -18,7 +18,7 @@
     <li><a href="others.html">OTHERS<span>その他</span></a></li>
   </ul>
   
-  <!-- 注意書き（画面の下部に固定配置） -->
+  <!-- 注意書き（メニュー内での表示：これはメニューが開いた時だけ下部に表示されるものです） -->
   <!-- ★iPhoneの下の線（ホームインジケーター）と被らないよう、安全な余白(env)も設定しています -->
   <div style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); text-align: center; font-size: 11px; color: #888; line-height: 1.6; box-sizing: border-box;">
     <p>※当サイトはファンの運営する非公式ファンサイトであり、<br>所属事務所・公式運営元とは一切関係ありません。</p>
@@ -26,3 +26,14 @@
     <p style="margin-top: 12px; font-size: 10px;">&copy; 2026 勝手にあむちゃん応援ファンサイト</p>
   </div>
 </nav>
+
+<!-- =================================================
+     ページ共通フッター部分
+     ※各ページの「loadCommonHeader」がこの要素を自動で検出し、
+       各ページの正しい最下部（スクロールエリアなど）に自動的に移動・挿入します。
+================================================== -->
+<footer id="sharedFooter" style="padding: 40px 20px calc(40px + env(safe-area-inset-bottom)); text-align: center; font-size: 11px; color: #888; line-height: 1.6; background-color: #fafafa; border-top: 1px solid #eeeeee; box-sizing: border-box; width: 100%;">
+  <p>※当サイトはファンの運営する非公式ファンサイトであり、<br>所属事務所・公式運営元とは一切関係ありません。</p>
+  <p style="margin-top: 8px;">※サイト内に掲載している名称、スケジュール情報等の権利は<br>各権利所有者に帰属します。</p>
+  <p style="margin-top: 12px; font-size: 10px; color: #aaaaaa;">&copy; 2026 勝手にあむちゃん応援ファンサイト</p>
+</footer>

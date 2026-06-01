@@ -247,7 +247,8 @@
     overflow-y: auto; 
     -webkit-overflow-scrolling: touch; 
     background-color: var(--bg-white);
-    padding: 0 10px 40px; 
+    /* フッターがあるため、下のpaddingは最小限にする */
+    padding: 0; 
   }
 
   .schedule-table {
@@ -453,12 +454,15 @@
         </tbody>
       </table>
 
-      <!-- ★画像表示ボタンのテキストを「リスト画像」に変更 -->
-      <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+      <!-- 画像表示ボタン -->
+      <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
         <button id="saveImageBtn" onclick="saveScheduleImage()" style="background-color: var(--main-pink); color: var(--bg-white); border: none; padding: 10px 20px; border-radius: 25px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: opacity 0.2s;">
           📸 リスト画像
         </button>
       </div>
+
+      <!-- ★ここがフッターの挿入ポイントになります（スクロール領域の最下部） -->
+      <div id="footer-container"></div>
     </div>
   </main>
 
@@ -513,49 +517,11 @@
 
   <script>
     // ==================================================
-    // 共通ヘッダー（メニュー）読み込みロジック
-    // ==================================================
-    async function loadCommonHeader() {
-      try {
-        const response = await fetch('header.html');
-        if (!response.ok) throw new Error('Header load failed');
-        const html = await response.text();
-        document.getElementById('common-header-container').innerHTML = html;
-        initMenu();
-      } catch (error) {
-        console.warn('共通メニューの読み込みに失敗しました。');
-      }
-    }
-
-    function initMenu() {
-      const hamburger = document.getElementById('hamburger');
-      const globalNav = document.getElementById('globalNav');
-      
-      if (!hamburger || !globalNav) return;
-
-      function toggleMenu() {
-        hamburger.classList.toggle('active');
-        globalNav.classList.toggle('active');
-        document.body.classList.toggle('no-scroll');
-      }
-
-      hamburger.addEventListener('click', toggleMenu);
-
-      const navLinks = document.querySelectorAll('.nav-link');
-      navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-          if(globalNav.classList.contains('active')) {
-            toggleMenu();
-          }
-        });
-      });
-    }
-
-    // ==================================================
     // 動的データ読み込み＆表示ロジック
     // ==================================================
     let currentDate = new Date(2026, 4, 1);
     let scheduleEvents = [];
+    let isFirstRender = true;
 
     function addDynamicEvents() {
       for (let y = 2026; y <= 2030; y++) {
@@ -609,7 +575,6 @@
       return lines.slice(1).map(line => {
         const cols = line.split(',').map(c => c.trim());
         
-        // 新しいCSVフォーマット（全11列）に合わせて、空欄があっても配列を埋める
         while (cols.length < 11) cols.push('');
 
         const d = cols[0], t = cols[1], v = cols[2];
@@ -618,19 +583,16 @@
         const ts = cols[7], te = cols[8];
         const nyu = cols[9], link = cols[10];
 
-        // 開場 / 開演 の自動結合
         let openStart = '---';
         if (o && s) openStart = `${o} / ${s}`;
         else if (o) openStart = `${o} / 未定`;
         else if (s) openStart = `未定 / ${s}`;
 
-        // ライブ時間 の自動結合
         let live = '---';
         if (ls && le) live = `${ls}～${le}`;
         else if (ls) live = (ls === '終日' || ls === '未定') ? ls : `${ls}～`;
         else if (le) live = `～${le}`;
 
-        // 特典会時間 の自動結合
         let tokuten = '---';
         if (ts && te) tokuten = `${ts}～${te}`;
         else if (ts) tokuten = (ts === '終日' || ts === '未定') ? ts : `${ts}～`;
@@ -649,27 +611,23 @@
       }).filter(item => item.date !== '');
     }
 
-    // ★初回描画判定用のフラグを追加
-    let isFirstRender = true;
-
-    // ★誤って画像用のコードで上書きされて壊れていた描画関数を、本来の形に修復
     function renderTable() {
-      // ★ 初回だけ、今日以降の最新の予定がある月に自動で合わせる
       if (isFirstRender && scheduleEvents.length > 0) {
         isFirstRender = false;
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // 時間をリセットして日付のみで比較
+        today.setHours(0, 0, 0, 0); 
         
-        // 今日以降の最も近い予定を探す
         const upcomingEvent = scheduleEvents.find(ev => new Date(ev.date) >= today);
         
         if (upcomingEvent) {
-          // 未来の予定がある場合はその月に合わせる
           const upcomingDate = new Date(upcomingEvent.date);
           currentDate = new Date(upcomingDate.getFullYear(), upcomingDate.getMonth(), 1);
         } else {
-          // 未来の予定がない場合は今の月に合わせる
           currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        }
+
+        if (currentDate.getFullYear() < 2026 || (currentDate.getFullYear() === 2026 && currentDate.getMonth() < 4)) {
+          currentDate = new Date(2026, 4, 1);
         }
       }
 
@@ -741,7 +699,6 @@
         const tr = document.createElement('tr');
         if (trClass) tr.className = trClass;
         
-        // ★クリックイベント（ポップアップを開く処理）
         tr.onclick = () => openEventDetails(encodedData);
         
         tr.innerHTML = `
@@ -888,9 +845,6 @@
       document.getElementById('modalOverlay').classList.remove('active');
     }
 
-    // ==================================================
-    // 画面を閉じるロジック
-    // ==================================================
     function closeImageModal(event) {
       if (event.target === document.getElementById('imageModalOverlay')) {
         document.getElementById('imageModalOverlay').classList.remove('active');
@@ -898,6 +852,63 @@
     }
     function forceCloseImageModal() {
       document.getElementById('imageModalOverlay').classList.remove('active');
+    }
+
+    // ==================================================
+    // 共通ヘッダー読み込み ★【重要】ここでフッターを切り離して最下部に配置します
+    // ==================================================
+    async function loadCommonHeader() {
+      try {
+        const response = await fetch('header.html');
+        if (!response.ok) throw new Error('Header load failed');
+        const html = await response.text();
+        
+        // 一旦見えない要素にHTMLを流し込む
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+
+        // フッター（#sharedFooter）を探して切り取る
+        const footerElement = tempDiv.querySelector('#sharedFooter');
+        if (footerElement) {
+          footerElement.parentNode.removeChild(footerElement);
+          // フッターを本来の配置場所（最下部）に挿入する
+          const footerContainer = document.getElementById('footer-container');
+          if (footerContainer) {
+            footerContainer.appendChild(footerElement);
+          }
+        }
+
+        // 残りの部分（ヘッダーとメニュー）を上部のコンテナに挿入する
+        document.getElementById('common-header-container').innerHTML = tempDiv.innerHTML;
+        
+        initMenu();
+      } catch (error) {
+        console.warn('共通メニューの読み込みに失敗しました。');
+      }
+    }
+
+    function initMenu() {
+      const hamburger = document.getElementById('hamburger');
+      const globalNav = document.getElementById('globalNav');
+      
+      if (!hamburger || !globalNav) return;
+
+      function toggleMenu() {
+        hamburger.classList.toggle('active');
+        globalNav.classList.toggle('active');
+        document.body.classList.toggle('no-scroll');
+      }
+
+      hamburger.addEventListener('click', toggleMenu);
+
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if(globalNav.classList.contains('active')) {
+            toggleMenu();
+          }
+        });
+      });
     }
 
     // ==================================================
@@ -915,7 +926,6 @@
       btn.disabled = true;
       btn.style.opacity = '0.7';
 
-      // 1. データ抽出 (今日から半年以内、TikTok除外)
       const today = new Date();
       today.setHours(0, 0, 0, 0); 
 
@@ -931,11 +941,9 @@
       futureEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
       const targetEvents = futureEvents;
 
-      // 背景画像から1枚をランダムに決定する
       const bgImages = ['screen_00.jpg', 'screen_01.jpg', 'screen_02.jpg', 'screen_03.jpg'];
       const chosenBg = bgImages[Math.floor(Math.random() * bgImages.length)];
 
-      // 2. 決定したランダム背景画像を確実に読み込むための待機処理
       await new Promise((resolve) => {
         const bgImg = new Image();
         bgImg.onload = resolve;
@@ -943,7 +951,6 @@
         bgImg.src = chosenBg;
       });
 
-      // 3. 画像化用の見えないコンテナを作成
       const captureContainer = document.createElement('div');
       captureContainer.style.position = 'absolute';
       captureContainer.style.left = '-9999px';
@@ -956,15 +963,11 @@
       captureContainer.style.display = 'flex';
       captureContainer.style.flexDirection = 'column';
       
-      // 背景画像を設定
       captureContainer.style.backgroundImage = `url('${chosenBg}')`;
       captureContainer.style.backgroundSize = 'cover';
       captureContainer.style.backgroundPosition = 'center top';
 
-      // ★リスト内用の「深い黒に近い赤」の影
       const darkRedShadow = '-1px -1px 0 #4a0000, 1px -1px 0 #4a0000, -1px 1px 0 #4a0000, 1px 1px 0 #4a0000, 0 2px 4px rgba(50, 0, 0, 0.9)';
-      
-      // ★リスト外用の「黒」の影
       const blackShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)';
       const blackShadowLarge = '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 10px rgba(0,0,0,0.8)';
 
@@ -985,10 +988,9 @@
         liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
       }
 
-      // ヘッダー（タイトル）部分
       const titleObj = document.createElement('div');
       titleObj.style.position = 'relative';
-      titleObj.style.marginBottom = '5px'; // スペースを詰めるため25pxから5px
+      titleObj.style.marginBottom = '5px'; 
       titleObj.innerHTML = `
         <div style="text-align: center; margin-bottom: 5px;">
           <h2 style="display: inline-block; font-size: 40px; font-weight: 900; color: #fff; margin: 0; letter-spacing: 2px; line-height: 1.2; text-shadow: ${blackShadowLarge};">ハイスピLIVEスケジュール</h2>
@@ -998,7 +1000,6 @@
       `;
       captureContainer.appendChild(titleObj);
 
-      // 4. テーブルの構築
       const table = document.createElement('table');
       table.style.width = '100%';
       table.style.borderCollapse = 'collapse';
@@ -1106,7 +1107,6 @@
       table.appendChild(tbody);
       captureContainer.appendChild(table);
 
-      // コピーライトを下部に配置
       const footerArea = document.createElement('div');
       footerArea.style.marginTop = '25px'; 
       footerArea.style.paddingBottom = '10px';
@@ -1123,7 +1123,6 @@
       captureContainer.appendChild(footerArea);
       document.body.appendChild(captureContainer);
 
-      // 5. html2canvasで描画し、ポップアップで表示
       setTimeout(async () => {
         try {
           const canvas = await html2canvas(captureContainer, {
@@ -1153,7 +1152,6 @@
       }, 100);
     }
 
-    // 初期処理
     window.addEventListener('load', () => {
       loadCommonHeader();
       loadSchedule();
