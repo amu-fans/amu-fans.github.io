@@ -226,27 +226,79 @@
   }
 
   /* ==================================================
-     ヒーローエリア
+     ヒーローエリア（いかなる環境でも画像をカットしない設定）
   ================================================== */
   .hero {
     width: 100%;
-    height: calc(85vh - 60px); 
     margin-top: 60px; 
     position: relative;
     background-color: var(--bg-white);
-    overflow: hidden;
+    overflow: visible !important; /* はみ出しによるカットを防ぐ */
+    height: auto !important;      /* 高さをブラウザサイズに固定させない */
+    container-type: inline-size;  /* 画像サイズに合わせて文字を比例縮小させるコンテナ指定 */
   }
 
   .hero-image {
     width: 100%;
-    height: 100%;
-    object-fit: cover; 
-    object-position: top; 
+    height: auto !important;       /* 縦横比を完全に維持して縮小・拡大 */
+    object-fit: contain !important; /* トリミングを絶対に発生させない */
     display: block;
     pointer-events: none;
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
+  }
+
+  /* ==================================================
+     赤いライン座布団と文字（カウントダウン）
+  ================================================== */
+  .countdown-wrapper {
+    position: absolute;
+    /* @渋谷WWW Xの赤看板ロゴと被らないように、bottomの値を8%から14.5%へ引き上げ */
+    bottom: 14.5%; 
+    right: 6%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    /* 余分な余白を詰め、中身の文字で幅いっぱいに満たすためのパディング調整 */
+    padding: clamp(4px, 1cqw, 8px) clamp(10px, 2.2cqw, 18px); 
+    background-color: #d10028; /* 赤ライン座布団 */
+    transform: rotate(-3deg); /* 傾きを同調 */
+    border-radius: 4px;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+  }
+
+  .countdown-text {
+    color: #ffffff;
+    font-weight: 900;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* 背景に埋もれないための影 */
+  }
+
+  /* 「あと」 */
+  .countdown-prefix {
+    font-size: clamp(12px, 2.4cqw, 18px); 
+    letter-spacing: -0.5px;
+  }
+
+  /* 際立たせる数字（両脇のスペースを埋めるため、サイズを大幅にスケールアップ） */
+  .countdown-number {
+    /* clampの上限・基準値を引き上げ、スペースをきれいに埋めるサイズに調整 */
+    font-size: clamp(44px, 9.6cqw, 72px); 
+    line-height: 0.85;
+    font-family: 'Impact', 'Arial Black', sans-serif; /* 太く強いフォント */
+    letter-spacing: -1.5px;
+    padding: 0 2px;
+  }
+
+  /* 「にち」 */
+  .countdown-suffix {
+    font-size: clamp(12px, 2.4cqw, 18px); 
+    letter-spacing: -0.5px;
   }
 
   /* ==================================================
@@ -602,7 +654,16 @@
   <main>
     <!-- ヒーローエリア -->
     <section id="hero" class="hero">
-      <img src="top_amu00.jpg" alt="キービジュアル" class="hero-image" oncontextmenu="return false;" ondragstart="return false;" onerror="this.src='https://placehold.co/800x1200/f0f0f0/cccccc?text=Hero+Image'">
+      <img src="top_amu02.jpg" alt="キービジュアル" class="hero-image" oncontextmenu="return false;" ondragstart="return false;" onerror="this.src='https://placehold.co/800x1200/f0f0f0/cccccc?text=Hero+Image'">
+      
+      <!-- 赤ラインとカウントダウン -->
+      <div class="countdown-wrapper" id="crayonCountdown">
+        <div class="countdown-text">
+          <span class="countdown-prefix">あと</span>
+          <span class="countdown-number" id="crayonDays">--</span>
+          <span class="countdown-suffix">にち</span>
+        </div>
+      </div>
     </section>
 
     <!-- スケジュールセクション -->
@@ -958,6 +1019,9 @@
     renderCalendar();
   }
 
+  // ==================================================
+  // 今日のイベント位置へスクロール
+  // ==================================================
   function goToToday() {
     currentDate = new Date();
     if (currentDate.getFullYear() < 2026 || (currentDate.getFullYear() === 2026 && currentDate.getMonth() < 4)) {
@@ -1046,7 +1110,7 @@
   }
 
   // ==================================================
-  // 共通ヘッダー読み込み ★【重要】ここでフッターを切り離して最下部に配置します
+  // 共通ヘッダー読み込み
   // ==================================================
   async function loadCommonHeader() {
     try {
@@ -1132,11 +1196,40 @@
   }
 
   // ==================================================
+  // カウントダウンロジック（日付計算）
+  // ==================================================
+  function initCrayonCountdown() {
+    // ターゲット：2026年11月17日 00:00:00 (JST)
+    const targetDate = new Date(2026, 10, 17, 0, 0, 0).getTime();
+    const daysEl = document.getElementById('crayonDays');
+    const wrapperEl = document.getElementById('crayonCountdown');
+
+    if (!daysEl || !wrapperEl) return;
+
+    function update() {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+
+      if (distance <= 0) {
+        wrapperEl.style.display = 'none';
+        return;
+      }
+      // 残り日数を切り上げ計算
+      const days = Math.ceil(distance / (1000 * 60 * 60 * 24));
+      daysEl.textContent = days;
+    }
+    
+    update();
+    setInterval(update, 1000 * 60 * 60); // 1時間ごとに更新
+  }
+
+  // ==================================================
   // アプリケーションライフサイクル
   // ==================================================
   window.addEventListener('load', () => {
     loadCommonHeader(); 
     loadScheduleFromCSV();
+    initCrayonCountdown(); // カウントダウンの初期化
 
     const loading = document.getElementById('loading');
     const body = document.body;
@@ -1144,7 +1237,7 @@
       loading.classList.add('loaded');
       body.classList.remove('no-scroll');
 
-      // ★ 別ページからのハッシュリンク（#sns等）対応
+      // 別ページからのハッシュリンク（#sns等）対応
       if (window.location.hash) {
         setTimeout(() => {
           const targetElement = document.querySelector(window.location.hash);
