@@ -770,7 +770,7 @@
         <div id="modalOpenStart" class="modal-text">-</div>
       </div>
       <div class="modal-info-group" id="groupLive">
-        <span class="modal-label">出演時間</span>
+        <span class="modal-label">内容</span>
         <div id="modalLive" class="modal-text">-</div>
       </div>
       <div class="modal-info-group" id="groupTokuten">
@@ -817,10 +817,21 @@
         if (y === 2026 && m < 5) continue;
         let d = new Date(y, m - 1, 1);
         while (d.getMonth() === m - 1) {
-          if (d.getDay() === 4) { 
+          // 木曜日、または指定期間の月曜日を判定
+          const isThursday = d.getDay() === 4;
+          const startDate = new Date(2026, 5, 6); // 2026/6/6 (月は0始まりなので5)
+          const endDate = new Date(2026, 10, 17); // 2026/11/17 (月は0始まりなので10)
+          const isMondayBeforeTarget = d.getDay() === 1 && d >= startDate && d <= endDate;
+
+          if (isThursday || isMondayBeforeTarget) { 
             let mm = String(m).padStart(2, '0');
             let dd = String(d.getDate()).padStart(2, '0');
             let dateStr = `${y}/${mm}/${dd}`;
+            
+            let liveText = "木曜定期配信。時間はSNSで告知";
+            if (d >= startDate && d <= endDate) {
+              liveText = "月曜木曜定期配信。時間はSNSで告知";
+            }
             
             if (!scheduleEvents.some(ev => ev.date === dateStr && ev.title.includes('TikTok'))) {
               scheduleEvents.push({
@@ -828,7 +839,7 @@
                 title: "TikTok個人配信",
                 venue: "ONLINE", 
                 openStart: "---",
-                live: "木曜定期配信。時間はX等で告知",
+                live: liveText,
                 tokuten: "---",
                 nyujoTokuten: "---",
                 link: "https://www.tiktok.com/@amunyan__"
@@ -1072,7 +1083,7 @@
       groupTokuten.style.display = 'none';
       groupBonus.style.display = 'none';
       
-      document.getElementById('modalLive').textContent = "木曜定期配信。時間はX等で告知";
+      document.getElementById('modalLive').textContent = ev.live || "木曜定期配信。時間はSNSで告知";
       
       ticketLabel.textContent = "配信URL";
       const ticketArea = document.getElementById('modalTicketArea');

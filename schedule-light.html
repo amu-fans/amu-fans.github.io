@@ -305,7 +305,25 @@
 
   /* 縞模様に負けないように !important を追加 */
   .schedule-table tr.tiktok { background-color: #e6d4ff !important; }
+  
+  /* ★TikTok配信の行は高さを抑えてコンパクトにする */
+  .schedule-table tr.tiktok td {
+    padding: 4px 5px !important; /* 上下の隙間を大幅に減らす */
+    font-size: 13px !important;  /* 文字サイズを少し小さく */
+    font-weight: normal !important; /* 太字を解除して圧迫感を減らす */
+    color: #444 !important;      /* 真っ黒ではなく少し色を落とす */
+  }
+
   .schedule-table tr.anniv { background-color: #ffe6f0 !important; }
+
+  /* ★月曜の頭にラインを入れるクラス */
+  .schedule-table tr.monday-line td {
+    border-top: 1px solid var(--main-pink) !important;
+  }
+  /* ★ボーダーの相殺を防ぐためのクラス */
+  .schedule-table tr.before-monday-line td {
+    border-bottom: none !important;
+  }
 
   .schedule-table tr.saturday td:first-child { color: #0044ff; }
   .schedule-table tr.sunday td:first-child { color: #ff0000; }
@@ -454,8 +472,13 @@
         </tbody>
       </table>
 
+      <!-- ★追加：TikTok定期配信の注釈 -->
+      <div style="text-align: left; font-size: 12px; color: #444; padding: 10px 15px 0; font-weight: bold; line-height: 1.4;">
+        ※月曜木曜TikTok個人配信（時間はSNSで告知）
+      </div>
+
       <!-- 画像表示ボタン -->
-      <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
+      <div style="text-align: center; margin-top: 25px; margin-bottom: 30px;">
         <button id="saveImageBtn" onclick="saveScheduleImage()" style="background-color: var(--main-pink); color: var(--bg-white); border: none; padding: 10px 20px; border-radius: 25px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: opacity 0.2s;">
           📸 リスト画像
         </button>
@@ -480,7 +503,7 @@
         <div id="modalOpenStart" class="modal-text">-</div>
       </div>
       <div class="modal-info-group" id="groupLive">
-        <span class="modal-label">出演時間</span>
+        <span class="modal-label">内容</span>
         <div id="modalLive" class="modal-text">-</div>
       </div>
       <div class="modal-info-group" id="groupTokuten">
@@ -529,19 +552,32 @@
         if (!scheduleEvents.some(ev => ev.date === bdayStr && ev.title.includes('誕生日'))) {
           scheduleEvents.push({ date: bdayStr, title: "誕生日", venue: "ONLINE", openStart: "---", live: "---", tokuten: "---", nyujoTokuten: "---", link: "" });
         }
+        /* ★リスト版では一旦TikTok配信を非表示にするためコメントアウト
         for (let m = 1; m <= 12; m++) {
           if (y === 2026 && m < 5) continue;
           let d = new Date(y, m - 1, 1);
           while (d.getMonth() === m - 1) {
-            if (d.getDay() === 4) {
+            const isThursday = d.getDay() === 4;
+            const startDate = new Date(2026, 5, 6); // 2026/6/6 (月は0始まりなので5)
+            const endDate = new Date(2026, 10, 17); // 2026/11/17 (月は0始まりなので10)
+            const isMondayBeforeTarget = d.getDay() === 1 && d >= startDate && d <= endDate;
+
+            if (isThursday || isMondayBeforeTarget) {
               let dateStr = `${y}/${String(m).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+              
+              let liveText = "木曜定期配信。時間はSNSで告知";
+              if (d >= startDate && d <= endDate) {
+                liveText = "月曜木曜定期配信。時間はSNSで告知";
+              }
+
               if (!scheduleEvents.some(ev => ev.date === dateStr && ev.title.includes('TikTok'))) {
-                scheduleEvents.push({ date: dateStr, title: "TikTok個人配信", venue: "ONLINE", openStart: "---", live: "木曜定期配信。時間はX等で告知", tokuten: "---", nyujoTokuten: "---", link: "https://www.tiktok.com/@amunyan__" });
+                scheduleEvents.push({ date: dateStr, title: "TikTok個人配信", venue: "ONLINE", openStart: "---", live: liveText, tokuten: "---", nyujoTokuten: "---", link: "https://www.tiktok.com/@amunyan__" });
               }
             }
             d.setDate(d.getDate() + 1);
           }
         }
+        */
       }
     }
 
@@ -662,6 +698,15 @@
       const isCurrentMonth = (year === today.getFullYear() && month === today.getMonth());
       const todayDate = today.getDate();
       let nextEventMarked = false;
+      let currentWeekBase = null; // ★週の頭ライン判定用
+
+      // 月曜始まりの週の基準日を求める関数
+      function getMondayBase(d) {
+        const date = new Date(d);
+        const day = date.getDay();
+        const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(date.getFullYear(), date.getMonth(), diff).getTime();
+      }
 
       monthlyEvents.forEach(ev => {
         const evDate = new Date(ev.date);
@@ -673,6 +718,17 @@
         if (dayOfWeek === 6) trClass = 'saturday';
         if (ev.title.includes('TikTok')) trClass = 'tiktok';
         if (ev.title === '誕生日') trClass = 'anniv';
+
+        // ★月曜始まりの週の最初の行にラインを入れる
+        const weekBase = getMondayBase(evDate);
+        if (currentWeekBase !== weekBase) {
+          trClass += (trClass ? ' ' : '') + 'monday-line';
+          currentWeekBase = weekBase;
+          // ★ボーダー相殺を防ぐため、前の行にクラスを追加
+          if (tbody.lastChild) {
+            tbody.lastChild.classList.add('before-monday-line');
+          }
+        }
 
         if (isCurrentMonth && !nextEventMarked) {
           if (evDate.getDate() >= todayDate) {
@@ -810,7 +866,7 @@
         groupOpenStart.style.display = 'none';
         groupTokuten.style.display = 'none';
         groupBonus.style.display = 'none';
-        document.getElementById('modalLive').textContent = ev.live || "木曜定期配信。時間はX等で告知";
+        document.getElementById('modalLive').textContent = ev.live || "木曜定期配信。時間はSNSで告知";
         ticketLabel.textContent = "配信URL";
         const ticketArea = document.getElementById('modalTicketArea');
         ticketArea.innerHTML = `<a href="https://www.tiktok.com/@amunyan__" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">https://www.tiktok.com/@amunyan__</a>`;
@@ -939,7 +995,9 @@
       });
 
       futureEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
-      const targetEvents = futureEvents;
+      
+      // ★画像が長くなりすぎないよう、最大15件に制限を戻しました
+      const targetEvents = futureEvents.slice(0, 15);
 
       const bgImages = ['screen_00.jpg', 'screen_01.jpg', 'screen_02.jpg', 'screen_03.jpg'];
       const chosenBg = bgImages[Math.floor(Math.random() * bgImages.length)];
