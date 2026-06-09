@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>あむちゃん告知くりっかー</title>
+  <style>
+    :root {
+      --main-pink: #ff2a7a;
+      --bg-color: #111;
+      --text-color: #fff;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #050505; 
+      color: var(--text-color);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      overflow: hidden; 
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      user-select: none; 
+      -webkit-user-select: none;
+    }
+
+    .game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 56.25vh; 
+      max-height: 100vh;
+      aspect-ratio: 9 / 16;
+      background-image: url('bg_img.jpg');
+      background-size: cover;
+      background-position: center;
+      background-color: var(--bg-color); 
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8); 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden; 
+      container-type: inline-size;
+    }
+
+    .counter-area {
+      margin-top: 8cqw; 
+      text-align: center;
+      z-index: 10;
+    }
+
+    .total-clicks {
+      font-size: 6.5cqw; 
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(255, 42, 122, 0.5);
+    }
+
+    .combo-text {
+      font-size: 4.5cqw; 
+      font-weight: bold;
+      color: #44ff44;
+      height: 7cqw; 
+      margin-top: 1cqw;
+      transition: color 0.3s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .game-area {
+      position: relative;
+      flex: 1;
+      width: 100%;
+    }
+
+    .oshi-wrapper {
+      position: absolute;
+      left: 50%;
+      top: 50%; /* 55%から真ん中(50%)に変更 */
+      transform: translate(-50%, -50%);
+      transform-origin: center center;
+      z-index: 5;
+    }
+
+    .oshi-shaker {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transform-origin: center center;
+    }
+
+    /* 【軽量化】重い filter を完全撤廃 */
+    .oshi-button {
+      position: relative;
+      width: 45cqw;
+      height: 45cqw;
+      background-image: url('oshi_img.png');
+      background-size: contain; 
+      background-repeat: no-repeat;
+      background-position: center;
+      background-color: transparent; 
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transform: translateZ(0) translateY(0cqw) scale(1.5);
+      transform-origin: center center;
+      will-change: transform;
+      z-index: 2;
+    }
+
+    /* 【軽量・マイルド発光】タップした瞬間の「白フラッシュ」用レイヤー */
+    .oshi-button::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      
+      -webkit-mask-image: url('oshi_img.png');
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-image: url('oshi_img.png');
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      
+      background-color: #ffffff; 
+      opacity: 0; 
+      
+      /* 顔がベタ白で潰れないように「スクリーン（発光）」で重ねる */
+      mix-blend-mode: screen;
+      
+      pointer-events: none;
+      transition: opacity 0.05s ease-out; 
+      will-change: opacity;
+      z-index: 3; 
+    }
+
+    /* クリックした瞬間の発光度合いを10%（ごく僅かなマイルド発光）に変更 */
+    .oshi-button.clicked::before {
+      opacity: 0.1; 
+    }
+
+    /* 【新設・超軽量】キャラの色を変える「切り抜きカラーセロハン」レイヤー */
+    .oshi-button::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      
+      -webkit-mask-image: url('oshi_img.png');
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-image: url('oshi_img.png');
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      
+      mix-blend-mode: overlay; 
+      
+      background-color: var(--aura-color, rgb(255, 255, 0));
+      opacity: var(--aura-opacity, 0); 
+      
+      pointer-events: none; 
+      transition: background-color 0.1s, opacity 0.1s; 
+      will-change: background-color, opacity; 
+    }
+
+    /* コンボテキストの色変化 */
+    body.level-2 .combo-text {
+      color: #ffaa00;
+    }
+
+    /* レベル3の激しい揺れ */
+    body.level-3 .oshi-shaker {
+      animation: shake 0.2s infinite; 
+      will-change: transform; 
+    }
+    body.level-3 .combo-text {
+      color: #ff0000;
+      animation: shake 0.1s infinite;
+    }
+
+    /* 吹き出しのスタイル */
+    .floating-text {
+      position: absolute;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 
+        -0.3cqw -0.3cqw 0 #000,  
+         0.3cqw -0.3cqw 0 #000,
+        -0.3cqw  0.3cqw 0 #000,
+         0.3cqw  0.3cqw 0 #000;
+      pointer-events: none; 
+      white-space: nowrap; 
+      z-index: 20;
+      opacity: 1;
+      animation: floatUp 1s ease-out forwards;
+      will-change: transform, opacity; 
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translate(-50%, -50%) rotate(var(--angle, 0deg));
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, calc(-50% - 25cqw)) rotate(var(--angle, 0deg));
+        opacity: 0;
+      }
+    }
+
+    @keyframes shake {
+      0% { transform: translate(0.2cqw, 0.2cqw) rotate(0deg); }
+      10% { transform: translate(-0.2cqw, -0.4cqw) rotate(-1deg); }
+      20% { transform: translate(-0.5cqw, 0px) rotate(1deg); }
+      30% { transform: translate(0.5cqw, 0.4cqw) rotate(0deg); }
+      40% { transform: translate(0.2cqw, -0.2cqw) rotate(1deg); }
+      50% { transform: translate(-0.2cqw, 0.4cqw) rotate(-1deg); }
+      60% { transform: translate(-0.5cqw, 0.2cqw) rotate(0deg); }
+      70% { transform: translate(0.5cqw, 0.2cqw) rotate(-1deg); }
+      80% { transform: translate(-0.2cqw, -0.2cqw) rotate(1deg); }
+      90% { transform: translate(0.2cqw, 0.4cqw) rotate(0deg); }
+      100% { transform: translate(0.2cqw, -0.4cqw) rotate(-1deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="game-container">
+    <div class="counter-area">
+      <!-- 表示を TOTAL から 動員 に変更 -->
+      <div class="total-clicks" id="totalCounter">動員: 0</div>
+      <div class="combo-text" id="comboCounter"></div>
+    </div>
+
+    <div class="game-area" id="gameArea">
+      <div class="oshi-wrapper" id="oshiWrapper">
+        <div class="oshi-shaker" id="oshiShaker">
+          <div class="oshi-button" id="oshiBtn"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let totalClicks = 0;
+    let combo = 0;
+    let lastClickTime = 0;
+    let currentLevel = 1;
+    
+    const minScale = 1.5;        
+    const maxScale = 7.0;        // 最大コンボ時のサイズ（7.0倍に拡大）
+    const maxComboForScale = 30; 
+    let currentScale = minScale; 
+
+    // --- 文字サイズの制限設定（初期値の約3倍に制限） ---
+    const minFontSize = 3.5;     // 初期文字サイズ (3.5cqw)
+    const maxFontSize = 10.5;    // 最大文字サイズ (10.5cqw = 初期の約3倍に抑える)
+
+    const oshiBtn = document.getElementById('oshiBtn');
+    const totalCounter = document.getElementById('totalCounter');
+    const comboCounter = document.getElementById('comboCounter');
+    const gameArea = document.getElementById('gameArea');
+
+    // --- セリフ設定 ---
+    const phrases_1_30 = [
+      "ありがとう！", "うれしい！", "ニヤリ！", "いいねありがとう！", "周年ライブきて！", "ハートありがと！"
+    ];
+    const phrases_10_30 = [
+      "ハイスピ10周年ライブ", "11/17！渋谷！", "WWWXであります！", "絶対に来てください！", "今すぐメモ！"
+    ];
+    const phrases_31_plus = [
+      "11/17！11/17！", "2026年11月17日！", "あむちゃんリアバ1か月前！", "渋谷WWWX", "周年！WWWX", "ハイスピ10周年ライブ", "もちろん来るよね？"
+    ];
+    const phrases_50_plus = [
+      "いちいちいちなな！", "今すぐ予定をあけろ！", "周年もリアバも予定あける！", "来なかったら××！", "絶対来るよなオマエら！？", "わかった？わかってるよな？"
+    ];
+
+    function getPhrases(combo) {
+      let currentPhrases = [];
+      if (combo <= 30) {
+        currentPhrases = currentPhrases.concat(phrases_1_30);
+        if (combo >= 10) {
+          currentPhrases = currentPhrases.concat(phrases_10_30);
+        }
+      } else {
+        currentPhrases = currentPhrases.concat(phrases_31_plus);
+        if (combo >= 50) {
+          currentPhrases = currentPhrases.concat(phrases_50_plus);
+        }
+      }
+      return currentPhrases;
+    }
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function playVoice(level) {
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const baseFreq = level === 1 ? 400 : level === 2 ? 600 : 800;
+      osc.frequency.value = baseFreq + Math.random() * 300; 
+      
+      osc.type = level === 3 ? 'square' : 'triangle';
+
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function createFloatingText(level, currentCombo) {
+      const existingTexts = document.querySelectorAll('.floating-text');
+      if (existingTexts.length > 30) {
+        existingTexts[0].remove();
+      }
+
+      const textEl = document.createElement('div');
+      textEl.className = 'floating-text';
+      
+      const currentPhrases = getPhrases(currentCombo);
+      textEl.textContent = currentPhrases[Math.floor(Math.random() * currentPhrases.length)];
+
+      // 【サイズ調整】最大サイズを10.5cqw（初期3.5の3倍）までに抑えて読みやすく
+      let fontSize;
+      if (currentCombo <= maxComboForScale) {
+        fontSize = minFontSize + ((maxFontSize - minFontSize) * (currentCombo / maxComboForScale));
+      } else {
+        fontSize = maxFontSize;
+      }
+      textEl.style.fontSize = `${fontSize}cqw`;
+
+      const randomOffsetX = (Math.random() - 0.5) * 60; 
+      textEl.style.left = `calc(50% + ${randomOffsetX}cqw)`;
+      
+      const randomOffsetY = (Math.random() - 0.5) * 40; 
+      textEl.style.top = `calc(25% + ${randomOffsetY}cqw)`; 
+
+      const angle = (Math.random() - 0.5) * 20;
+      textEl.style.setProperty('--angle', `${angle}deg`);
+
+      gameArea.appendChild(textEl);
+
+      setTimeout(() => {
+        if (textEl.parentNode) {
+          textEl.remove();
+        }
+      }, 1000);
+    }
+
+    oshiBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); 
+
+      const now = Date.now();
+      
+      if (now - lastClickTime < 1000) {
+        combo++;
+      } else {
+        combo = 1; 
+      }
+      lastClickTime = now;
+      totalClicks++;
+
+      if (combo <= maxComboForScale) {
+        currentScale = minScale + ((maxScale - minScale) * (combo / maxComboForScale));
+      } else {
+        currentScale = maxScale;
+      }
+
+      const colorRatio = Math.min(combo / maxComboForScale, 1.0); 
+      
+      // 巨大化時の沈み込み量を25から35に増やし、顔をもう少し下へずらす
+      const maxShiftY = 35; 
+      const shiftY = maxShiftY * colorRatio;
+      
+      const greenValue = Math.floor(255 * (1 - colorRatio)); 
+      oshiBtn.style.setProperty('--aura-color', `rgb(255, ${greenValue}, 0)`);
+      
+      const opacityValue = 0.4 * colorRatio;
+      oshiBtn.style.setProperty('--aura-opacity', opacityValue);
+
+      // 【重要】掛け算(currentScale * 0.9)をやめ、引き算(currentScale - 0.15)にして
+      // キャラクターがどれだけ巨大化しても、一律で「0.15倍分だけプニッと縮む」固定値に変更しました。
+      oshiBtn.style.transform = `translateZ(0) translateY(${shiftY}cqw) scale(${currentScale - 0.15})`;
+      oshiBtn.classList.add('clicked');
+      
+      setTimeout(() => {
+        oshiBtn.style.transform = `translateZ(0) translateY(${shiftY}cqw) scale(${currentScale})`;
+        oshiBtn.classList.remove('clicked');
+      }, 50);
+
+      if (combo > 30) {
+        currentLevel = 3;
+        document.body.className = 'level-3';
+      } else if (combo > 10) {
+        currentLevel = 2;
+        document.body.className = 'level-2';
+      } else {
+        currentLevel = 1;
+        document.body.className = '';
+      }
+
+      // TOTAL を 動員 に書き換え
+      totalCounter.textContent = `動員: ${totalClicks}`;
+      comboCounter.textContent = combo > 1 ? `${combo} COMBO!!` : '';
+
+      playVoice(currentLevel);
+      createFloatingText(currentLevel, combo);
+    });
+
+    setInterval(() => {
+      if (combo > 0 && Date.now() - lastClickTime > 1000) {
+        combo = 0;
+        currentLevel = 1;
+        currentScale = minScale; 
+        
+        comboCounter.textContent = '';
+        document.body.className = '';
+        oshiBtn.style.transform = `translateZ(0) scale(${currentScale})`; 
+        
+        oshiBtn.style.setProperty('--aura-color', `rgb(255, 255, 0)`);
+        oshiBtn.style.setProperty('--aura-opacity', 0);
+      }
+    }, 100);
+
+  </script>
+</body>
+</html>
