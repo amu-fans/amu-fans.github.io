@@ -11,16 +11,19 @@
       --text-color: #fff;
     }
 
-    /* 画面全体のスクロールを完全にロックする設定 */
+    /* 画面全体のスクロール・ズームを完全にロックする設定 */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100dvh; /* スマホのアドレスバー領域を正確に考慮する単位 */
+      height: 100dvh; 
       overflow: hidden;
-      position: fixed; /* 全面スクロールを完全に禁止 */
+      position: fixed; 
       top: 0;
       left: 0;
+      /* 【強力なロック】ブラウザのズームやスワイプ動作を完全に無効化 */
+      touch-action: none; 
+      -webkit-touch-callout: none; /* 長押しメニューの禁止 */
     }
 
     body {
@@ -32,17 +35,17 @@
       align-items: center;
       user-select: none; 
       -webkit-user-select: none;
-      touch-action: manipulation; /* ダブルタップズーム等の禁止 */
-      -webkit-tap-highlight-color: transparent; /* タップ時の青いハイライトを消去 */
+      -webkit-tap-highlight-color: transparent; 
     }
 
     .game-container {
       position: relative;
-      /* 9:16の比率を維持したまま、画面内に最大化する計算式 */
       width: 100vw;
       height: 100dvh;
-      max-width: calc(100dvh * 9 / 16);
-      max-height: calc(100vw * 16 / 9);
+      /* 【変更】アスペクト比を 2:3 に変更（横に少しゆとりが出る黄金比） */
+      max-width: calc(100dvh * 2 / 3);
+      max-height: calc(100vw * 3 / 2);
+      aspect-ratio: 2 / 3;
       
       background-image: url('bg_img.jpg');
       background-size: cover;
@@ -54,6 +57,7 @@
       align-items: center;
       overflow: hidden; 
       container-type: inline-size;
+      touch-action: none; /* 念押しでコンテナ内もジェスチャー禁止 */
     }
 
     .counter-area {
@@ -254,6 +258,11 @@
   </div>
 
   <script>
+    // iOS Safari等のダブルタップズームをJS側からも念押しでブロック
+    document.addEventListener('dblclick', function(e) {
+      e.preventDefault();
+    }, { passive: false });
+
     let totalClicks = 0;
     let combo = 0;
     let lastClickTime = 0;
