@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>あむちゃん告知くりっかー</title>
+  
+  <!-- Firebase SDK の読み込み -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --main-pink: #ff2a7a;
+      --bg-color: #111;
+      --text-color: #fff;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh; 
+      overflow: hidden;
+      position: fixed; 
+      top: 0;
+      left: 0;
+      touch-action: none; 
+      -webkit-touch-callout: none; 
+    }
+
+    body {
+      background-color: #050505; 
+      color: var(--text-color);
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none; 
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent; 
+    }
+
+    /* レイヤー1：bg_a (最背面背景) */
+    .game-container {
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
+      /* アスペクト比を5:7に固定 */
+      max-width: calc(100dvh * 5 / 7);
+      max-height: calc(100vw * 7 / 5);
+      aspect-ratio: 5 / 7;
+      
+      background-image: url('bg_a.jpg'); /* 背面背景 */
+      background-size: cover;
+      background-position: center;
+      background-color: var(--bg-color); 
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8); 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden; 
+      container-type: inline-size;
+      touch-action: none; 
+    }
+
+    /* レイヤー2：キャラ立ち絵 */
+    .oshi-wrapper {
+      position: absolute;
+      left: 50%;
+      top: 50%; 
+      transform: translate(-50%, -50%);
+      transform-origin: center center;
+      z-index: 5; /* キャラ：z-index 5 */
+    }
+
+    .oshi-shaker {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transform-origin: center center;
+    }
+
+    .oshi-button {
+      position: relative;
+      width: 45cqw;
+      height: 45cqw;
+      background-image: url('am_01.png');
+      background-size: contain; 
+      background-repeat: no-repeat;
+      background-position: center;
+      background-color: transparent; 
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transform: translateZ(0) scale(1.5);
+      transform-origin: center center;
+      will-change: transform;
+    }
+
+    /* マイルド発光 */
+    .oshi-button::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      -webkit-mask-image: var(--mask-image, url('am_01.png'));
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-image: var(--mask-image, url('am_01.png'));
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      background-color: #ffffff; 
+      opacity: 0; 
+      mix-blend-mode: screen;
+      pointer-events: none;
+      transition: opacity 0.05s ease-out; 
+    }
+    .oshi-button.clicked::before { opacity: 0.1; }
+
+    .oshi-button.resetting { transition: transform 0.4s ease-out; }
+
+    /* カラーセロハン */
+    .oshi-button::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      -webkit-mask-image: var(--mask-image, url('am_01.png'));
+      -webkit-mask-size: contain;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-image: var(--mask-image, url('am_01.png'));
+      mask-size: contain;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      mix-blend-mode: overlay; 
+      background-color: var(--aura-color, rgb(255, 255, 0));
+      opacity: var(--aura-opacity, 0); 
+      pointer-events: none; 
+      transition: background-color 0.1s, opacity 0.1s; 
+    }
+
+    /* レイヤー3：bg_b 前景レイヤー (キャラの手前、ポップ文字より奥) */
+    .foreground-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('bg_b.png'); /* 前景画像 */
+      background-size: cover;
+      background-position: center;
+      pointer-events: none; /* タップ操作は完全に貫通 */
+      z-index: 8; /* bg_b：z-index 8 */
+    }
+
+    /* レイヤー4：ポップ文字・UIエリア (最前面) */
+    .counter-area {
+      margin-top: 8cqw; 
+      text-align: center;
+      z-index: 15; /* UI文字：z-index 15 (bg_bより前) */
+      width: 100%; 
+    }
+
+    .total-clicks {
+      font-size: 8cqw; 
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #ffffff;
+      text-shadow: 
+        -0.5cqw -0.5cqw 0 #000,  
+         0.5cqw -0.5cqw 0 #000,
+        -0.5cqw  0.5cqw 0 #000,
+         0.5cqw  0.5cqw 0 #000,
+         0 0 15px rgba(0, 0, 0, 0.9);
+    }
+
+    .status-area {
+      position: relative;
+      width: 100%;
+      height: 8cqw;
+      margin-top: 1cqw;
+    }
+
+    .venue-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      font-size: 3.5cqw;
+      font-weight: 900;
+      color: #ffd700; 
+      transition: opacity 0.3s ease;
+      white-space: nowrap; 
+      text-shadow: 
+        -0.3cqw -0.3cqw 0 #000,  
+         0.3cqw -0.3cqw 0 #000,
+        -0.3cqw  0.3cqw 0 #000,
+         0.3cqw  0.3cqw 0 #000,
+         0 0 8px rgba(0,0,0,0.8);
+      opacity: 1;
+    }
+    .venue-text.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .combo-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      font-size: 5cqw; 
+      font-weight: 900; 
+      color: #44ff44;
+      transition: color 0.3s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      white-space: nowrap; 
+      text-shadow: 
+        -0.4cqw -0.4cqw 0 #000,  
+         0.4cqw -0.4cqw 0 #000,
+        -0.4cqw  0.4cqw 0 #000,
+         0.4cqw  0.4cqw 0 #000,
+         0 0 10px rgba(0, 0, 0, 0.9);
+    }
+
+    .game-area {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10; /* 飛び散る文字エリア：z-index 10 (bg_bより前) */
+    }
+
+    .tap-guide {
+      position: absolute;
+      top: 95%; 
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 8cqw;
+      font-family: 'Impact', 'Arial Black', sans-serif;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #fff;
+      text-shadow: 
+        -0.5cqw -0.5cqw 0 var(--main-pink),  
+         0.5cqw -0.5cqw 0 var(--main-pink),
+        -0.5cqw  0.5cqw 0 var(--main-pink),
+         0.5cqw  0.5cqw 0 var(--main-pink),
+         0 0 10px rgba(0,0,0,0.8);
+      pointer-events: none; 
+      z-index: 20; /* ガイド文字：z-index 20 (一番手前) */
+      animation: pulse-tap 1.2s infinite; 
+      transition: opacity 0.2s ease-out; 
+    }
+
+    @keyframes pulse-tap {
+      0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.8; }
+      50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.8; }
+    }
+
+    body.level-2 .combo-text { color: #ffaa00; }
+    body.level-3 .oshi-shaker { animation: shake 0.2s infinite; }
+    body.level-3 .combo-text {
+      color: #ff0000;
+      animation: combo-shake 0.1s infinite;
+    }
+
+    .floating-text {
+      position: absolute;
+      font-weight: 900; 
+      color: #fff;
+      text-shadow: 
+        -0.3cqw -0.3cqw 0 #000,  
+         0.3cqw -0.3cqw 0 #000,
+        -0.3cqw  0.3cqw 0 #000,
+         0.3cqw  0.3cqw 0 #000;
+      pointer-events: none; 
+      white-space: nowrap; 
+      z-index: 20; /* 吹き出し文字：z-index 20 (一番手前) */
+      opacity: 1;
+      animation: floatUp 1.0s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translate(-50%, -50%) rotate(var(--angle, 0deg)); opacity: 1; }
+      50% { opacity: 1; }
+      100% { transform: translate(-50%, calc(-50% - var(--travel-y, 25cqw))) rotate(var(--angle, 0deg)); opacity: 0; }
+    }
+
+    @keyframes shake {
+      0% { transform: translate(0.2cqw, 0.2cqw) rotate(0deg); }
+      10% { transform: translate(-0.2cqw, -0.4cqw) rotate(-1deg); }
+      20% { transform: translate(-0.5cqw, 0px) rotate(1deg); }
+      30% { transform: translate(0.5cqw, 0.4cqw) rotate(0deg); }
+      40% { transform: translate(0.2cqw, -0.2cqw) rotate(1deg); }
+      50% { transform: translate(-0.2cqw, 0.4cqw) rotate(-1deg); }
+      60% { transform: translate(-0.5cqw, 0.2cqw) rotate(0deg); }
+      70% { transform: translate(0.5cqw, 0.2cqw) rotate(-1deg); }
+      80% { transform: translate(-0.2cqw, -0.2cqw) rotate(1deg); }
+      90% { transform: translate(0.2cqw, 0.4cqw) rotate(0deg); }
+      100% { transform: translate(0.2cqw, -0.4cqw) rotate(-1deg); }
+    }
+
+    @keyframes combo-shake {
+      0% { transform: translate(calc(-50% + 0.2cqw), calc(-50% + 0.2cqw)) rotate(0deg); }
+      10% { transform: translate(calc(-50% - 0.2cqw), calc(-50% - 0.4cqw)) rotate(-1deg); }
+      20% { transform: translate(calc(-50% - 0.5cqw), calc(-50% + 0px)) rotate(1deg); }
+      30% { transform: translate(calc(-50% + 0.5cqw), calc(-50% + 0.4cqw)) rotate(0deg); }
+      40% { transform: translate(calc(-50% + 0.2cqw), calc(-50% - 0.2cqw)) rotate(1deg); }
+      50% { transform: translate(calc(-50% - 0.2cqw), calc(-50% + 0.4cqw)) rotate(-1deg); }
+      60% { transform: translate(calc(-50% - 0.5cqw), calc(-50% + 0.2cqw)) rotate(0deg); }
+      70% { transform: translate(calc(-50% + 0.5cqw), calc(-50% + 0.2cqw)) rotate(-1deg); }
+      80% { transform: translate(calc(-50% - 0.2cqw), calc(-50% - 0.2cqw)) rotate(1deg); }
+      90% { transform: translate(calc(-50% + 0.2cqw), calc(-50% + 0.4cqw)) rotate(0deg); }
+      100% { transform: translate(calc(-50% + 0.2cqw), calc(-50% - 0.4cqw)) rotate(-1deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="game-container">
+    <div class="counter-area">
+      <div class="total-clicks" id="totalCounter">動員: 0</div>
+      <div class="status-area">
+        <div class="venue-text" id="venueText"></div>
+        <div class="combo-text" id="comboCounter"></div>
+      </div>
+    </div>
+
+    <!-- レイヤー2：キャラの奥 -->
+    <div class="oshi-wrapper" id="oshiWrapper">
+      <div class="oshi-shaker" id="oshiShaker">
+        <div class="oshi-button" id="oshiBtn">
+          <div class="tap-guide" id="tapGuide">TAP!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- レイヤー3：キャラの前面、ポップ文字・UIの背後 -->
+    <div class="foreground-layer"></div>
+
+    <!-- レイヤー4：ポップアップ吹き出し（最前面） -->
+    <div class="game-area" id="gameArea"></div>
+  </div>
+
+  <script>
+    // ========================================================
+    // ★ ここに取得したキーを上書きしてください
+    // ========================================================
+    const firebaseConfig = {
+		apiKey: "AIzaSyBOaiV7Uy30KvFi38V-pKJA25oZ-D-2UUY",
+		authDomain: "amu-clicker.firebaseapp.com",
+		databaseURL: "https://amu-clicker-default-rtdb.firebaseio.com/",
+		projectId: "amu-clicker",
+		storageBucket: "amu-clicker.firebasestorage.app",
+		messagingSenderId: "413500240591",
+		appId: "1:413500240591:web:c36084b3ba4c801a5dfdba"
+    };
+    // ========================================================
+
+    let totalAudienceRef = null;
+    let serverTotalAudience = 0; 
+    let pendingAudience = 0;     
+
+    if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      totalAudienceRef = database.ref('total_audience');
+
+      totalAudienceRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data !== null) {
+          serverTotalAudience = parseInt(data, 10);
+          updateAudienceDisplay();
+        }
+      });
+    } else {
+      serverTotalAudience = 0;
+      setTimeout(() => { updateAudienceDisplay(); }, 100);
+    }
+
+    setInterval(() => {
+      if (pendingAudience > 0 && totalAudienceRef) {
+        const sendCount = pendingAudience;
+        totalAudienceRef.set(firebase.database.ServerValue.increment(sendCount))
+          .then(() => {
+            pendingAudience -= sendCount;
+            updateAudienceDisplay();
+          })
+          .catch((error) => console.error("エラー:", error));
+      }
+    }, 5000); 
+
+    document.addEventListener('dblclick', function(e) { e.preventDefault(); }, { passive: false });
+
+    const preloadedImages = [];
+    for (let i = 1; i <= 18; i++) {
+      const img = new Image();
+      const paddedNum = String(i).padStart(2, '0');
+      img.src = `am_${paddedNum}.png`;
+      preloadedImages.push(img);
+    }
+
+    let combo = 0;
+    let lastClickTime = 0;
+    let tapHistory = [];
+    const MAX_TAPS_PER_SECOND = 8; 
+
+    const minScale = 1.5;        
+    const maxScale = 4.0;        
+    const maxComboForScale = 30; 
+    let currentScale = minScale; 
+
+    const minFontSize = 3.5;     
+    const maxFontSize = 8.0;     
+
+    const phrases_1_30 = ["ありがとう！", "うれしい！", "ニヤリ！", "いいねありがとう！", "周年ライブきて！", "ハートありがと！"];
+    const phrases_10_30 = ["ハイスピ10周年ライブ", "11/17！渋谷！", "WWWXであります！", "絶対に来てください！", "今すぐメモ！"];
+    const phrases_31_plus = ["11/17！11/17！", "2026年11月17日！", "あむちゃんリアバ1か月前！", "渋谷WWWX", "周年！WWWX", "ハイスピ10周年ライブ", "もちろん来るよね？"];
+    const phrases_50_plus = ["いちいちいちなな！", "今すぐ予定をあけろ！", "周年もリアバも予定あける！", "来なかったら××！", "絶対来るよなオマエら！？", "わかった？わわかってるよな？"];
+
+    const oshiBtn = document.getElementById('oshiBtn');
+    const totalCounter = document.getElementById('totalCounter');
+    const comboCounter = document.getElementById('comboCounter');
+    const venueText = document.getElementById('venueText'); 
+    const gameArea = document.getElementById('gameArea');
+
+    function getVenue(clicks) {
+      if (clicks < 50) return "目標：路上ライブ（50人）";
+      if (clicks < 300) return "目標：渋谷 VIDENT（300人）";
+      if (clicks < 600) return "目標：渋谷 WWW X（600人）";
+      if (clicks < 700) return "目標：渋谷 duo（700人）";
+      if (clicks < 1500) return "目標：Zepp Shinjuku（1,500人）";
+      if (clicks < 2500) return "目標：Zepp DiverCity（2,500人）";
+      if (clicks < 5000) return "目標：東京国際フォーラム（5,000人）";
+      if (clicks < 8000) return "目標：東京ガーデンシアター（8,000人）";
+      if (clicks < 14000) return "目標：日本武道館（1.4万人）";
+      if (clicks < 30000) return "目標：さいたまスーパーアリーナ（3万人）";
+      if (clicks < 55000) return "目標：東京ドーム（5.5万人）";
+      if (clicks < 80000) return "目標：国立競技場（8万人）";
+      if (clicks < 200000) return "目標：渋谷エリア（20万人）";
+      if (clicks < 300000) return "目標：6大ドームツアー（30万人）";
+      if (clicks < 1000000) return "目標：東京ドーム20回公演（100万人）";
+      if (clicks < 3000000) return "目標：6大ドームツアー10周（300万人）";
+      if (clicks < 10000000) return "目標：東京23区エリア（1,000万人）";
+      if (clicks < 120000000) return "目標：47都道府県ツアー（1.2億人）";
+      if (clicks < 8300000000) return "目標：地球（83億人）";
+      return "👑 地球到達!!（83億人） 👑";
+    }
+
+    function getPhrases(currentCombo) {
+      let currentPhrases = [];
+      if (currentCombo <= 30) {
+        currentPhrases = currentPhrases.concat(phrases_1_30);
+        if (currentCombo >= 10) currentPhrases = currentPhrases.concat(phrases_10_30);
+      } else {
+        currentPhrases = currentPhrases.concat(phrases_31_plus);
+        if (currentCombo >= 50) currentPhrases = currentPhrases.concat(phrases_50_plus);
+      }
+      return currentPhrases;
+    }
+
+    function getRandomOshiImage(currentCombo) {
+      if (currentCombo === 0) return 'am_01.png';
+      let min, max;
+      if (currentCombo <= 30) {
+        min = 1; max = 9;
+      } else {
+        min = 10; max = 18;
+      }
+      const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+      const paddedNum = String(randomNum).padStart(2, '0');
+      return `am_${paddedNum}.png`;
+    }
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function playVoice(level) {
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const baseFreq = level === 1 ? 400 : level === 2 ? 600 : 800;
+      osc.frequency.value = baseFreq + Math.random() * 300; 
+      osc.type = level === 3 ? 'square' : 'triangle';
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function updateAudienceDisplay() {
+      const currentVisualTotal = serverTotalAudience + pendingAudience;
+      totalCounter.textContent = `動員: ${currentVisualTotal.toLocaleString()}`;
+      venueText.textContent = getVenue(currentVisualTotal);
+    }
+
+    let currentLevel = 1;
+    let tapGuideTimer = null; 
+
+    oshiBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const now = Date.now();
+
+      if (now - lastClickTime < 50) return; 
+
+      tapHistory = tapHistory.filter(t => now - t < 1000);
+      if (tapHistory.length >= MAX_TAPS_PER_SECOND) return;
+
+      tapHistory.push(now);
+
+      oshiBtn.classList.remove('resetting');
+      venueText.classList.add('hidden');
+      
+      clearTimeout(tapGuideTimer);
+      const tapGuide = document.getElementById('tapGuide');
+      if (tapGuide) {
+        tapGuide.style.animation = 'none';
+        tapGuide.style.opacity = '0';
+      }
+
+      if (now - lastClickTime < 1000) combo++; else combo = 1; 
+      lastClickTime = now;
+
+      pendingAudience++;
+      if (!totalAudienceRef) {
+        serverTotalAudience++;
+        pendingAudience = 0;
+      }
+      updateAudienceDisplay();
+
+      const newImage = getRandomOshiImage(combo);
+      oshiBtn.style.backgroundImage = `url('${newImage}')`;
+      oshiBtn.style.setProperty('--mask-image', `url('${newImage}')`);
+
+      let colorRatio = 0;
+      if (combo <= maxComboForScale) {
+        currentScale = minScale + ((maxScale - minScale) * (combo / maxComboForScale));
+        colorRatio = combo / maxComboForScale;
+      } else {
+        currentScale = maxScale;
+        colorRatio = 1.0;
+      }
+
+      const greenValue = Math.floor(255 * (1 - colorRatio)); 
+      oshiBtn.style.setProperty('--aura-color', `rgb(255, ${greenValue}, 0)`);
+      let opacityValue = (combo <= 30) ? 0.35 * (combo / 30) : 0.50;
+      oshiBtn.style.setProperty('--aura-opacity', opacityValue);
+
+      const shiftY = 120 * colorRatio; 
+      oshiBtn.style.transform = `translateZ(0) translateY(${shiftY}px) scale(${currentScale - 0.15})`;
+      oshiBtn.classList.add('clicked');
+      
+      setTimeout(() => {
+        oshiBtn.style.transform = `translateZ(0) translateY(${shiftY}px) scale(${currentScale})`;
+        oshiBtn.classList.remove('clicked');
+      }, 50);
+
+      if (combo > 30) {
+        currentLevel = 3; document.body.className = 'level-3';
+      } else if (combo > 10) {
+        currentLevel = 2; document.body.className = 'level-2';
+      } else {
+        currentLevel = 1; document.body.className = '';
+      }
+
+      comboCounter.textContent = combo > 1 ? `${combo} COMBO!!` : '';
+
+      playVoice(currentLevel);
+      createFloatingText(currentLevel, combo);
+    });
+
+    function createFloatingText(level, currentCombo) {
+      const existingTexts = document.querySelectorAll('.floating-text');
+      if (existingTexts.length > 35) existingTexts[0].remove();
+
+      const textEl = document.createElement('div');
+      textEl.className = 'floating-text';
+      
+      const currentPhrases = getPhrases(currentCombo);
+      textEl.textContent = currentPhrases[Math.floor(Math.random() * currentPhrases.length)];
+
+      let fontSize = (currentCombo <= maxComboForScale) 
+        ? minFontSize + ((maxFontSize - minFontSize) * (currentCombo / maxComboForScale))
+        : maxFontSize;
+      textEl.style.fontSize = `${fontSize}cqw`;
+
+      const randomOffsetX = (Math.random() - 0.5) * 60; 
+      textEl.style.left = `calc(50% + ${randomOffsetX}cqw)`;
+      
+      let angle, randomOffsetY, travelY;
+      if (currentCombo > 30) {
+        angle = (Math.random() - 0.5) * 50; 
+        randomOffsetY = (Math.random() - 0.5) * 60; 
+        textEl.style.top = `calc(45% + ${randomOffsetY}cqw)`; 
+        travelY = 15 + Math.random() * 25; 
+      } else {
+        angle = (Math.random() - 0.5) * 20; 
+        randomOffsetY = (Math.random() - 0.5) * 40; 
+        textEl.style.top = `calc(25% + ${randomOffsetY}cqw)`; 
+        travelY = 25; 
+      }
+
+      textEl.style.setProperty('--angle', `${angle}deg`);
+      textEl.style.setProperty('--travel-y', `${travelY}cqw`);
+
+      gameArea.appendChild(textEl);
+      setTimeout(() => { if (textEl.parentNode) textEl.remove(); }, 1000);
+    }
+
+    setInterval(() => {
+      if (combo > 0 && Date.now() - lastClickTime >= 1000) {
+        combo = 0;
+        currentLevel = 1;
+        currentScale = minScale; 
+        
+        comboCounter.textContent = '';
+        document.body.className = '';
+        
+        venueText.classList.remove('hidden');
+
+        const resetImage = getRandomOshiImage(0);
+        oshiBtn.style.backgroundImage = `url('${resetImage}')`;
+        oshiBtn.style.setProperty('--mask-image', `url('${resetImage}')`);
+
+        oshiBtn.classList.add('resetting');
+        oshiBtn.style.transform = `translateZ(0) translateY(0px) scale(${minScale})`; 
+        oshiBtn.style.setProperty('--aura-opacity', '0');
+
+        tapGuideTimer = setTimeout(() => {
+          const tapGuide = document.getElementById('tapGuide');
+          if (tapGuide) {
+            tapGuide.style.animation = 'pulse-tap 1.2s infinite';
+            tapGuide.style.opacity = '1';
+          }
+        }, 2500);
+      }
+    }, 100);
+  </script>
+</body>
+</html>
