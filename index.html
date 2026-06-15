@@ -4,10 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>【非公式】勝手にあむちゃん応援ファンサイト</title>
+
+<!-- Firebase SDK の読み込み -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+<!-- 外部化されたFirebase設定ファイルの読み込み -->
+<script src="firebase-config.js"></script>
+
 <style>
-  /* ==================================================
-     ベース設定
-  ================================================== */
   :root {
     --main-pink: #ff2a7a;
     --text-black: #111111;
@@ -226,47 +231,264 @@
   }
 
   /* ==================================================
-     ヒーローエリア（いかなる環境でも画像をカットしない設定）
+     ヒーローエリア（あむちゃんくりっかー統合）
   ================================================== */
   .hero {
     width: 100%;
     margin-top: 60px; 
     position: relative;
-    background-color: var(--bg-white);
-    overflow: visible !important; /* はみ出しによるカットを防ぐ */
-    height: auto !important;      /* 高さをブラウザサイズに固定させない */
-    container-type: inline-size;  /* 画像サイズに合わせて文字を比例縮小させるコンテナ指定 */
+    background-color: #111; 
+    background-image: url('/game/bg_a.jpg'); /* 最背面背景 */
+    background-size: cover;
+    background-position: center;
+    overflow: hidden !important; 
+    aspect-ratio: 5 / 7; /* game.htmlと同様の5:7に固定 */
+    container-type: inline-size;  
   }
 
-  .hero-image {
-    width: 100%;
-    height: auto !important;       /* 縦横比を完全に維持して縮小・拡大 */
-    object-fit: contain !important; /* トリミングを絶対に発生させない */
-    display: block;
-    pointer-events: none;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
+  .oshi-wrapper {
+    position: absolute;
+    left: 50%;
+    top: 50%; 
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+    z-index: 5; 
+  }
+
+  .oshi-shaker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform-origin: center center;
+  }
+
+  /* タップのレスポンス向上とCanvas基盤の構築 */
+  .oshi-button {
+    position: relative;
+    width: 45cqw;
+    height: 45cqw;
+    background-color: transparent; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transform: translateZ(0) scale(1.5);
+    transform-origin: center center;
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #oshiCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; /* タップは親要素で判定 */
+    /* マスキングの代わりにキャンバス自体にドロップシャドウをかけて発光を表現 */
+    filter: drop-shadow(0 0 var(--shadow-blur, 0px) var(--aura-color, transparent));
+    transition: filter 0.1s;
+  }
+
+  .oshi-button.resetting { 
+    transition: transform 0.4s ease-out; 
   }
 
   /* ==================================================
-     赤いライン座布団と文字（カウントダウン）
+     ゲーム前面レイヤー・テキストUI
+  ================================================== */
+  .foreground-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/game/bg_b.png'); /* 前景画像 */
+    background-size: cover;
+    background-position: center;
+    pointer-events: none; 
+    z-index: 8; 
+  }
+
+  .counter-area {
+    margin-top: 8cqw; 
+    text-align: center;
+    z-index: 15; 
+    width: 100%; 
+    position: relative;
+  }
+
+  .total-clicks {
+    font-size: 8cqw; 
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #ffffff;
+    text-shadow: 
+      -0.5cqw -0.5cqw 0 #000,  
+       0.5cqw -0.5cqw 0 #000,
+      -0.5cqw  0.5cqw 0 #000,
+       0.5cqw  0.5cqw 0 #000,
+       0 0 15px rgba(0, 0, 0, 0.9);
+  }
+
+  .status-area {
+    position: relative;
+    width: 100%;
+    height: 8cqw;
+    margin-top: 1cqw;
+  }
+
+  .venue-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    font-size: 3.5cqw;
+    font-weight: 900;
+    color: #ffd700; 
+    transition: opacity 0.3s ease;
+    white-space: nowrap; 
+    text-shadow: 
+      -0.3cqw -0.3cqw 0 #000,  
+       0.3cqw -0.3cqw 0 #000,
+      -0.3cqw  0.3cqw 0 #000,
+       0.3cqw  0.3cqw 0 #000,
+       0 0 8px rgba(0,0,0,0.8);
+    opacity: 1;
+  }
+  .venue-text.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .combo-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    font-size: 5cqw; 
+    font-weight: 900; 
+    color: #44ff44;
+    transition: color 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap; 
+    text-shadow: 
+      -0.4cqw -0.4cqw 0 #000,  
+       0.4cqw -0.4cqw 0 #000,
+      -0.4cqw  0.4cqw 0 #000,
+       0.4cqw  0.4cqw 0 #000,
+       0 0 10px rgba(0, 0, 0, 0.9);
+  }
+
+  .game-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10; 
+  }
+
+  .tap-guide {
+    position: absolute;
+    top: 95%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8cqw;
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #fff;
+    text-shadow: 
+      -0.5cqw -0.5cqw 0 var(--main-pink),  
+       0.5cqw -0.5cqw 0 var(--main-pink),
+      -0.5cqw  0.5cqw 0 var(--main-pink),
+       0.5cqw  0.5cqw 0 var(--main-pink),
+       0 0 10px rgba(0,0,0,0.8);
+    pointer-events: none; 
+    z-index: 20; 
+    animation: pulse-tap 1.2s infinite; 
+    transition: opacity 0.2s ease-out; 
+  }
+
+  /* コンボレベルごとのスタイル変更 */
+  .hero.level-2 .combo-text { color: #ffaa00; }
+  .hero.level-3 .oshi-shaker { animation: shake 0.2s infinite; }
+  .hero.level-3 .combo-text {
+    color: #ff0000;
+    animation: combo-shake 0.1s infinite;
+  }
+
+  .floating-text {
+    position: absolute;
+    font-weight: 900; 
+    color: #fff;
+    text-shadow: 
+      -0.3cqw -0.3cqw 0 #000,  
+       0.3cqw -0.3cqw 0 #000,
+      -0.3cqw  0.3cqw 0 #000,
+       0.3cqw  0.3cqw 0 #000;
+    pointer-events: none; 
+    white-space: nowrap; 
+    z-index: 20; 
+    opacity: 1;
+    animation: floatUp 1.0s ease-out forwards;
+  }
+
+  @keyframes floatUp {
+    0% { transform: translate(-50%, -50%) rotate(var(--angle, 0deg)); opacity: 1; }
+    50% { opacity: 1; }
+    100% { transform: translate(-50%, calc(-50% - var(--travel-y, 25cqw))) rotate(var(--angle, 0deg)); opacity: 0; }
+  }
+
+  @keyframes shake {
+    0% { transform: translate(0.2cqw, 0.2cqw) rotate(0deg); }
+    10% { transform: translate(-0.2cqw, -0.4cqw) rotate(-1deg); }
+    20% { transform: translate(-0.5cqw, 0px) rotate(1deg); }
+    30% { transform: translate(0.5cqw, 0.4cqw) rotate(0deg); }
+    40% { transform: translate(0.2cqw, -0.2cqw) rotate(1deg); }
+    50% { transform: translate(-0.2cqw, 0.4cqw) rotate(-1deg); }
+    60% { transform: translate(-0.5cqw, 0.2cqw) rotate(0deg); }
+    70% { transform: translate(0.5cqw, 0.2cqw) rotate(-1deg); }
+    80% { transform: translate(-0.2cqw, -0.2cqw) rotate(1deg); }
+    90% { transform: translate(0.2cqw, 0.4cqw) rotate(0deg); }
+    100% { transform: translate(0.2cqw, -0.4cqw) rotate(-1deg); }
+  }
+
+  @keyframes combo-shake {
+    0% { transform: translate(calc(-50% + 0.2cqw), calc(-50% + 0.2cqw)) rotate(0deg); }
+    10% { transform: translate(calc(-50% - 0.2cqw), calc(-50% - 0.4cqw)) rotate(-1deg); }
+    20% { transform: translate(calc(-50% - 0.5cqw), calc(-50% + 0px)) rotate(1deg); }
+    30% { transform: translate(calc(-50% + 0.5cqw), calc(-50% + 0.4cqw)) rotate(0deg); }
+    40% { transform: translate(calc(-50% + 0.2cqw), calc(-50% - 0.2cqw)) rotate(1deg); }
+    50% { transform: translate(calc(-50% - 0.2cqw), calc(-50% + 0.4cqw)) rotate(-1deg); }
+    60% { transform: translate(calc(-50% - 0.5cqw), calc(-50% + 0.2cqw)) rotate(0deg); }
+    70% { transform: translate(calc(-50% + 0.5cqw), calc(-50% + 0.2cqw)) rotate(-1deg); }
+    80% { transform: translate(calc(-50% - 0.2cqw), calc(-50% - 0.2cqw)) rotate(1deg); }
+    90% { transform: translate(calc(-50% + 0.2cqw), calc(-50% + 0.4cqw)) rotate(0deg); }
+    100% { transform: translate(calc(-50% + 0.2cqw), calc(-50% - 0.4cqw)) rotate(-1deg); }
+  }
+
+  /* ==================================================
+     赤いカウントダウンリボン
   ================================================== */
   .countdown-wrapper {
     position: absolute;
-    /* @渋谷WWW Xの赤看板ロゴと被らないように、bottomの値を8%から14.5%へ引き上げ */
     bottom: 14.5%; 
     right: 6%;
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 10;
-    /* 余分な余白を詰め、中身の文字で幅いっぱいに満たすためのパディング調整 */
+    z-index: 50;
     padding: clamp(4px, 1cqw, 8px) clamp(10px, 2.2cqw, 18px); 
-    background-color: #d10028; /* 赤ライン座布団 */
-    transform: rotate(-3deg); /* 傾きを同調 */
+    background-color: #d10028;
+    transform: rotate(-3deg); 
     border-radius: 4px;
     box-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+    pointer-events: none;
   }
 
   .countdown-text {
@@ -276,26 +498,22 @@
     display: flex;
     align-items: baseline;
     gap: 3px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* 背景に埋もれないための影 */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); 
   }
 
-  /* 「あと」 */
   .countdown-prefix {
     font-size: clamp(12px, 2.4cqw, 18px); 
     letter-spacing: -0.5px;
   }
 
-  /* 際立たせる数字（両脇のスペースを埋めるため、サイズを大幅にスケールアップ） */
   .countdown-number {
-    /* clampの上限・基準値を引き上げ、スペースをきれいに埋めるサイズに調整 */
     font-size: clamp(44px, 9.6cqw, 72px); 
     line-height: 0.85;
-    font-family: 'Impact', 'Arial Black', sans-serif; /* 太く強いフォント */
+    font-family: 'Impact', 'Arial Black', sans-serif; 
     letter-spacing: -1.5px;
     padding: 0 2px;
   }
 
-  /* 「にち」 */
   .countdown-suffix {
     font-size: clamp(12px, 2.4cqw, 18px); 
     letter-spacing: -0.5px;
@@ -340,7 +558,7 @@
   }
 
   /* ==================================================
-     スケジュール（カレンダー表示）
+     スケジュール（カレンダー）
   ================================================== */
   .calendar-header {
     display: flex;
@@ -445,7 +663,6 @@
     color: #ff4444;
   }
 
-  /* イベントバッジスタイル */
   .event-item {
     font-size: 8px;
     padding: 2px;
@@ -481,7 +698,9 @@
     color: var(--bg-white);
   }
 
-  /* リスト一覧スケジュールへのリンク用スタイル */
+  /* ==================================================
+     リスト一覧カレンダーリンク
+  ================================================== */
   .list-schedule-link {
     display: flex;
     justify-content: flex-end;
@@ -506,7 +725,7 @@
   }
 
   /* ==================================================
-     SNSセクション設定
+     SNSセクション
   ================================================== */
   .sns-group {
     margin-bottom: 30px; 
@@ -634,7 +853,6 @@
     word-break: break-all;
     font-weight: bold;
   }
-
 </style>
 </head>
 <body class="no-scroll">
@@ -647,16 +865,39 @@
     </div>
   </div>
 
-  <!-- ★ここに共通のメニュー部品（header.html）が自動で読み込まれます -->
   <div id="common-header-container"></div>
 
-  <!-- 4. メインコンテンツ -->
   <main>
-    <!-- ヒーローエリア -->
+    <!-- ヒーローエリア (ゲーム統合) -->
     <section id="hero" class="hero">
-      <img src="top_amu02.jpg" alt="キービジュアル" class="hero-image" oncontextmenu="return false;" ondragstart="return false;" onerror="this.src='https://placehold.co/800x1200/f0f0f0/cccccc?text=Hero+Image'">
       
-      <!-- 赤ラインとカウントダウン -->
+      <!-- ゲームUI情報 -->
+      <div class="counter-area">
+        <div class="total-clicks" id="totalCounter">動員: 0</div>
+        <div class="status-area">
+          <div class="venue-text" id="venueText"></div>
+          <div class="combo-text" id="comboCounter"></div>
+        </div>
+      </div>
+
+      <!-- キャラクタの配置とタップ領域 (Canvas描画でチラつきを完全排除) -->
+      <div class="oshi-wrapper" id="oshiWrapper">
+        <div class="oshi-shaker" id="oshiShaker">
+          <div class="oshi-button" id="oshiBtn">
+            <!-- Canvas要素 -->
+            <canvas id="oshiCanvas"></canvas>
+            <div class="tap-guide" id="tapGuide">TAP!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 前景レイヤー（エフェクトやキャラ手前の装飾など） -->
+      <div class="foreground-layer"></div>
+
+      <!-- 飛び散る文字用のエリア -->
+      <div class="game-area" id="gameArea"></div>
+      
+      <!-- 赤ラインとカウントダウン (ゲーム要素の上に重ねる) -->
       <div class="countdown-wrapper" id="crayonCountdown">
         <div class="countdown-text">
           <span class="countdown-prefix">あと</span>
@@ -692,7 +933,7 @@
           </tr>
         </thead>
         <tbody id="calendarBody">
-          <!-- JSで動的にカレンダー枠を描画し、データを挿入 -->
+          <!-- JSで動的にカレンダー枠を描画 -->
         </tbody>
       </table>
 
@@ -751,7 +992,6 @@
     </section>
   </main>
 
-  <!-- ★ここがフッターの挿入ポイントになります -->
   <div id="footer-container"></div>
 
   <!-- ==================================================
@@ -792,7 +1032,7 @@
   // ==================================================
   // 動的カレンダー ＆ CSV自動連動システム
   // ==================================================
-  let currentDate = new Date(2026, 4, 1); // 初期値
+  let currentDate = new Date(2026, 4, 1); 
   let scheduleEvents = [];
   let isFirstRender = true; 
 
@@ -817,10 +1057,9 @@
         if (y === 2026 && m < 5) continue;
         let d = new Date(y, m - 1, 1);
         while (d.getMonth() === m - 1) {
-          // 木曜日、または指定期間の月曜日を判定
           const isThursday = d.getDay() === 4;
-          const startDate = new Date(2026, 5, 6); // 2026/6/6 (月は0始まりなので5)
-          const endDate = new Date(2026, 10, 17); // 2026/11/17 (月は0始まりなので10)
+          const startDate = new Date(2026, 5, 6); 
+          const endDate = new Date(2026, 10, 17); 
           const isMondayBeforeTarget = d.getDay() === 1 && d >= startDate && d <= endDate;
 
           if (isThursday || isMondayBeforeTarget) { 
@@ -870,7 +1109,7 @@
       
       scheduleEvents = parseCSV(csvText);
     } catch (error) {
-      console.warn('スケジュールデータの読み込みに失敗しました。');
+      console.warn('スケジュールデータの読み込みに失敗しました。モックデータで継続します。');
       scheduleEvents = [];
     }
     
@@ -1020,7 +1259,7 @@
   }
 
   function prevMonth() {
-    if (currentDate.getFullYear() <= 2026 && currentDate.getMonth() <= 4) return;
+    if (currentDate.getFullYear() < 2026 || (currentDate.getFullYear() === 2026 && currentDate.getMonth() <= 4)) return;
     currentDate.setMonth(currentDate.getMonth() - 1);
     renderCalendar();
   }
@@ -1030,9 +1269,6 @@
     renderCalendar();
   }
 
-  // ==================================================
-  // 今日のイベント位置へスクロール
-  // ==================================================
   function goToToday() {
     currentDate = new Date();
     if (currentDate.getFullYear() < 2026 || (currentDate.getFullYear() === 2026 && currentDate.getMonth() < 4)) {
@@ -1041,9 +1277,6 @@
     renderCalendar();
   }
 
-  // ==================================================
-  // モーダル詳細ウィンドウの制御
-  // ==================================================
   function openEventDetails(event, encodedData) {
     event.stopPropagation();
     const ev = JSON.parse(decodeURIComponent(encodedData));
@@ -1120,31 +1353,24 @@
     document.getElementById('modalOverlay').classList.remove('active');
   }
 
-  // ==================================================
-  // 共通ヘッダー読み込み
-  // ==================================================
   async function loadCommonHeader() {
     try {
       const response = await fetch('header.html');
       if (!response.ok) throw new Error('Header load failed');
       const html = await response.text();
       
-      // 一旦見えない要素にHTMLを流し込む
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
 
-      // フッター（#sharedFooter）を探して切り取る
       const footerElement = tempDiv.querySelector('#sharedFooter');
       if (footerElement) {
         footerElement.parentNode.removeChild(footerElement);
-        // フッターを本来の配置場所（最下部）に挿入する
         const footerContainer = document.getElementById('footer-container');
         if (footerContainer) {
           footerContainer.appendChild(footerElement);
         }
       }
 
-      // 残りの部分（ヘッダーとメニュー）を上部のコンテナに挿入する
       document.getElementById('common-header-container').innerHTML = tempDiv.innerHTML;
       
       initMenu();
@@ -1206,11 +1432,7 @@
     });
   }
 
-  // ==================================================
-  // カウントダウンロジック（日付計算）
-  // ==================================================
   function initCrayonCountdown() {
-    // ターゲット：2026年11月17日 00:00:00 (JST)
     const targetDate = new Date(2026, 10, 17, 0, 0, 0).getTime();
     const daysEl = document.getElementById('crayonDays');
     const wrapperEl = document.getElementById('crayonCountdown');
@@ -1225,22 +1447,423 @@
         wrapperEl.style.display = 'none';
         return;
       }
-      // 残り日数を切り上げ計算
       const days = Math.ceil(distance / (1000 * 60 * 60 * 24));
       daysEl.textContent = days;
     }
     
     update();
-    setInterval(update, 1000 * 60 * 60); // 1時間ごとに更新
+    setInterval(update, 1000 * 60 * 60); 
   }
 
   // ==================================================
-  // アプリケーションライフサイクル
+  // ゲームロジック：倍率の二段階進化 ＆ プレビュー対応
+  // ==================================================
+  function initGame() {
+    const oshiBtn = document.getElementById('oshiBtn');
+    const canvas = document.getElementById('oshiCanvas');
+    const ctx = canvas ? canvas.getContext('2d') : null;
+    const totalCounter = document.getElementById('totalCounter');
+    const comboCounter = document.getElementById('comboCounter');
+    const venueText = document.getElementById('venueText'); 
+    const gameArea = document.getElementById('gameArea');
+    const heroSection = document.getElementById('hero');
+
+    if (!oshiBtn) return;
+
+    // --- 画像のプリロードとCanvas描画ロジック ---
+    const oshiImages = {};
+    for (let i = 1; i <= 18; i++) {
+      const numStr = String(i).padStart(2, '0');
+      const key = `am_${numStr}`;
+      const img = new Image();
+      img.src = `/game/${key}.png`;
+      oshiImages[key] = img;
+    }
+
+    if (canvas) {
+      canvas.width = 800;
+      canvas.height = 800;
+    }
+
+    // Canvasへの描画関数 (プレビュー時の画像未発見フォールバック対応)
+    function drawOshiCanvas(imageKey, comboCount) {
+      if (!ctx) return;
+      const img = oshiImages[imageKey];
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      // ★ スケール（倍率）と位置（Y軸降下）の計算
+      const minScaleVal = 1.5;        
+      const midScaleVal = 4.0;
+      const maxScaleVal = 10.0; // 100コンボで最大10倍化
+      
+      let currentDrawScale = minScaleVal;
+      let shiftY = 0;
+
+      if (comboCount <= 30) {
+        currentDrawScale = minScaleVal + ((midScaleVal - minScaleVal) * (comboCount / 30));
+        shiftY = 120 * (comboCount / 30); // 30コンボまでは動かさない（今の動き）
+      } else if (comboCount <= 100) {
+        currentDrawScale = midScaleVal + ((maxScaleVal - midScaleVal) * ((comboCount - 30) / 70));
+        // ★調整場所1：最大350px下へ移動させる（350 - 120 = 230）
+        shiftY = 120 + (230 * ((comboCount - 30) / 70));
+      } else {
+        currentDrawScale = maxScaleVal;
+        // ★調整場所1：最大移動量を350に設定
+        shiftY = 350;
+      }
+
+      // ▼画像がないプレビュー環境用の代役を描画▼
+      if (!img || !img.complete || img.naturalWidth === 0) {
+        ctx.fillStyle = 'rgba(255, 42, 122, 0.7)'; 
+        ctx.beginPath();
+        // 常に一定のサイズで描画 (拡大はCSS側で行うため)
+        const radius = w * 0.35;
+        ctx.arc(w/2, h/2, radius, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('NO IMAGE', w/2, h/2);
+        
+        // カラーセロハン効果
+        if (comboCount > 0) {
+           let colorRatio = Math.min(comboCount / 30, 1.0);
+           let opacity = 0.20; 
+           const greenValue = Math.floor(255 * (1 - colorRatio));
+           ctx.globalCompositeOperation = 'source-atop';
+           ctx.fillStyle = `rgba(255, ${greenValue}, 0, ${opacity})`;
+           ctx.fillRect(0, 0, w, h);
+           ctx.globalCompositeOperation = 'source-over';
+        }
+        return;
+      }
+      
+      // ▼通常環境での画像描画▼
+      // 画像自体は常にキャンバス領域(800x800)に収まるように描画する
+      const baseScale = Math.min(w / img.width, h / img.height);
+      const drawW = img.width * baseScale;
+      const drawH = img.height * baseScale;
+      const drawX = (w - drawW) / 2;
+      const drawY = (h - drawH) / 2;
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+      // カラーセロハン効果 (染まり具合20%上限)
+      if (comboCount > 0) {
+        let colorRatio = Math.min(comboCount / 30, 1.0); 
+        let opacity = (comboCount <= 30) ? 0.20 * colorRatio : 0.20; 
+        const greenValue = Math.floor(255 * (1 - colorRatio));
+        
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = `rgba(255, ${greenValue}, 0, ${opacity})`;
+        ctx.fillRect(0, 0, w, h);
+      }
+    }
+
+    // 初期画像の表示
+    oshiImages['am_01'].onload = () => {
+      drawOshiCanvas('am_01', 0);
+    };
+    setTimeout(() => drawOshiCanvas('am_01', 0), 200);
+
+    // --- Firebase 接続ロジック ---
+    let totalAudienceRef = null;
+    let serverTotalAudience = 0; 
+    let pendingAudience = 0;     
+
+    if (typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "ここに本物のAPIキーを書いてください") {
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        totalAudienceRef = database.ref('total_audience');
+
+        totalAudienceRef.on('value', (snapshot) => {
+          const data = snapshot.val();
+          if (data !== null) {
+            serverTotalAudience = parseInt(data, 10);
+            updateAudienceDisplay();
+          }
+        });
+      } catch (e) {
+        console.error("Firebase初期化エラー:", e);
+      }
+    } else {
+      serverTotalAudience = 0;
+      setTimeout(() => { updateAudienceDisplay(); }, 100);
+    }
+
+    setInterval(() => {
+      if (pendingAudience > 0 && totalAudienceRef) {
+        const sendCount = pendingAudience;
+        totalAudienceRef.set(firebase.database.ServerValue.increment(sendCount))
+          .then(() => {
+            pendingAudience -= sendCount;
+            updateAudienceDisplay();
+          })
+          .catch((error) => console.error("Firebase送信エラー:", error));
+      }
+    }, 5000); 
+
+    document.addEventListener('dblclick', function(e) { e.preventDefault(); }, { passive: false });
+
+    let combo = 0;
+    let lastClickTime = 0;
+    let tapHistory = [];
+    const MAX_TAPS_PER_SECOND = 8; 
+
+    // ★ 倍率の二段階設定 (1.5倍 -> 30コンボで4倍 -> 100コンボで10倍)
+    const minScale = 1.5;        
+    const midScale = 4.0;
+    const maxScale = 10.0; // 100コンボで最大10倍        
+    let currentScale = minScale; 
+
+    const minFontSize = 3.5;     
+    const maxFontSize = 8.0;     
+
+    const phrases_1_30 = ["ありがとう！", "うれしい！", "ニヤリ！", "いいねありがとう！", "周年ライブきて！", "ハートありがと！"];
+    const phrases_10_30 = ["ハイスピ10周年ライブ", "11/17！渋谷！", "WWWXであります！", "絶対に来てください！", "今すぐメモ！"];
+    const phrases_31_plus = ["11/17！11/17！", "2026年11月17日！", "あむちゃんリアバ1か月前！", "渋谷WWWX", "周年！WWWX", "ハイスピ10周年ライブ", "もちろん来るよね？"];
+    const phrases_50_plus = ["いちいちいちなな！", "今すぐ予定をあけろ！", "周年もリアバも予定あける！", "来なかったら××！", "絶対来るよなオマエら！？", "わかった？わわかってるよな？"];
+
+    function getVenue(clicks) {
+      if (clicks < 50) return "目標：路上ライブ（50人）";
+      if (clicks < 300) return "目標：渋谷 VIDENT（300人）";
+      if (clicks < 600) return "目標：渋谷 WWW X（600人）";
+      if (clicks < 700) return "目標：渋谷 duo（700人）";
+      if (clicks < 1500) return "目標：Zepp Shinjuku（1,500人）";
+      if (clicks < 2500) return "目標：Zepp DiverCity（2,500人）";
+      if (clicks < 5000) return "目標：東京国際フォーラム（5,000人）";
+      if (clicks < 8000) return "目標：東京ガーデンシアター（8,000人）";
+      if (clicks < 14000) return "目標：日本武道館（1.4万人）";
+      if (clicks < 30000) return "目標：さいたまスーパーアリーナ（3万人）";
+      if (clicks < 55000) return "目標：東京ドーム（5.5万人）";
+      if (clicks < 80000) return "目標：国立競技場（8万人）";
+      if (clicks < 200000) return "目標：渋谷エリア（20万人）";
+      if (clicks < 300000) return "目標：6大ドームツアー（30万人）";
+      if (clicks < 1000000) return "目標：東京ドーム20回公演（100万人）";
+      if (clicks < 3000000) return "目標：6大ドームツアー10周（300万人）";
+      if (clicks < 10000000) return "目標：東京23区エリア（1,000万人）";
+      if (clicks < 120000000) return "目標：47都道府県ツアー（1.2億人）";
+      if (clicks < 8300000000) return "目標：地球（83億人）";
+      return "👑 地球到達!!（83億人） 👑";
+    }
+
+    function getPhrases(currentCombo) {
+      let currentPhrases = [];
+      if (currentCombo <= 30) {
+        currentPhrases = currentPhrases.concat(phrases_1_30);
+        if (currentCombo >= 10) currentPhrases = currentPhrases.concat(phrases_10_30);
+      } else {
+        currentPhrases = currentPhrases.concat(phrases_31_plus);
+        if (currentCombo >= 50) currentPhrases = currentPhrases.concat(phrases_50_plus);
+      }
+      return currentPhrases;
+    }
+
+    function getRandomOshiImage(currentCombo) {
+      if (currentCombo === 0) return 'am_01.png';
+      let min, max;
+      if (currentCombo <= 30) {
+        min = 1; max = 9;
+      } else {
+        min = 10; max = 18;
+      }
+      const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+      const paddedNum = String(randomNum).padStart(2, '0');
+      return `am_${paddedNum}.png`;
+    }
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function playVoice(level) {
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const baseFreq = level === 1 ? 400 : level === 2 ? 600 : 800;
+      osc.frequency.value = baseFreq + Math.random() * 300; 
+      osc.type = level === 3 ? 'square' : 'triangle';
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function updateAudienceDisplay() {
+      const currentVisualTotal = serverTotalAudience + pendingAudience;
+      totalCounter.textContent = `動員: ${currentVisualTotal.toLocaleString()}`;
+      venueText.textContent = getVenue(currentVisualTotal);
+    }
+
+    let currentLevel = 1;
+    let tapGuideTimer = null; 
+
+    oshiBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const now = Date.now();
+
+      if (now - lastClickTime < 50) return; 
+
+      tapHistory = tapHistory.filter(t => now - t < 1000);
+      if (tapHistory.length >= MAX_TAPS_PER_SECOND) return;
+
+      tapHistory.push(now);
+
+      oshiBtn.classList.remove('resetting');
+      venueText.classList.add('hidden');
+      
+      clearTimeout(tapGuideTimer);
+      const tapGuide = document.getElementById('tapGuide');
+      if (tapGuide) {
+        tapGuide.style.animation = 'none';
+        tapGuide.style.opacity = '0';
+      }
+
+      if (now - lastClickTime < 1000) combo++; else combo = 1; 
+      lastClickTime = now;
+
+      pendingAudience++;
+      if (!totalAudienceRef) {
+        serverTotalAudience++;
+        pendingAudience = 0;
+      }
+      updateAudienceDisplay();
+
+      // Canvasへ描画
+      const newImageSrc = getRandomOshiImage(combo);
+      const match = newImageSrc.match(/am_(\d+)\.png/);
+      const imageKey = match ? `am_${match[1]}` : 'am_01';
+      drawOshiCanvas(imageKey, combo);
+
+      // ★ スケール（倍率）と色合い、そして位置(Y軸)の多段計算
+      let colorRatio = 0;
+      let shiftY = 0;
+
+      if (combo <= 30) {
+        // 0〜30コンボ：1.5倍から4.0倍へ
+        currentScale = minScale + ((midScale - minScale) * (combo / 30));
+        colorRatio = combo / 30; 
+        shiftY = 120 * colorRatio; // 30コンボ目までは現状維持
+      } else if (combo <= 100) {
+        // 31〜100コンボ：4.0倍から10.0倍へ巨大化
+        currentScale = midScale + ((maxScale - midScale) * ((combo - 30) / 70));
+        colorRatio = 1.0; 
+        // ★調整場所2：最大350px下へ移動させる（350 - 120 = 230）
+        shiftY = 120 + (230 * ((combo - 30) / 70));
+      } else {
+        // 100コンボ以上：最大10.0倍・位置固定
+        currentScale = maxScale;
+        colorRatio = 1.0;
+        // ★調整場所2：最大移動量を350に設定
+        shiftY = 350;
+      }
+
+      const greenValue = Math.floor(255 * (1 - colorRatio)); 
+      oshiBtn.style.setProperty('--aura-color', `rgb(255, ${greenValue}, 0)`);
+      
+      let blurValue = (combo > 0) ? 10 + (20 * colorRatio) : 0;
+      oshiBtn.style.setProperty('--shadow-blur', `${blurValue}px`);
+
+      oshiBtn.style.transform = `translateZ(0) translateY(${shiftY}px) scale(${currentScale - 0.15})`;
+      
+      setTimeout(() => {
+        oshiBtn.style.transform = `translateZ(0) translateY(${shiftY}px) scale(${currentScale})`;
+      }, 50);
+
+      if (combo > 30) {
+        currentLevel = 3; heroSection.className = 'hero level-3';
+      } else if (combo > 10) {
+        currentLevel = 2; heroSection.className = 'hero level-2';
+      } else {
+        currentLevel = 1; heroSection.className = 'hero';
+      }
+
+      comboCounter.textContent = combo > 1 ? `${combo} COMBO!!` : '';
+
+      playVoice(currentLevel);
+      createFloatingText(currentLevel, combo);
+    });
+
+    function createFloatingText(level, currentCombo) {
+      const existingTexts = document.querySelectorAll('.floating-text');
+      if (existingTexts.length > 35) existingTexts[0].remove();
+
+      const textEl = document.createElement('div');
+      textEl.className = 'floating-text';
+      
+      const currentPhrases = getPhrases(currentCombo);
+      textEl.textContent = currentPhrases[Math.floor(Math.random() * currentPhrases.length)];
+
+      let fontSize = (currentCombo <= 30) 
+        ? minFontSize + ((maxFontSize - minFontSize) * (currentCombo / 30))
+        : maxFontSize;
+      textEl.style.fontSize = `${fontSize}cqw`;
+
+      const randomOffsetX = (Math.random() - 0.5) * 60; 
+      textEl.style.left = `calc(50% + ${randomOffsetX}cqw)`;
+      
+      let angle, randomOffsetY, travelY;
+      if (currentCombo > 30) {
+        angle = (Math.random() - 0.5) * 50; 
+        randomOffsetY = (Math.random() - 0.5) * 60; 
+        textEl.style.top = `calc(45% + ${randomOffsetY}cqw)`; 
+        travelY = 15 + Math.random() * 25; 
+      } else {
+        angle = (Math.random() - 0.5) * 20; 
+        randomOffsetY = (Math.random() - 0.5) * 40; 
+        textEl.style.top = `calc(25% + ${randomOffsetY}cqw)`; 
+        travelY = 25; 
+      }
+
+      textEl.style.setProperty('--angle', `${angle}deg`);
+      textEl.style.setProperty('--travel-y', `${travelY}cqw`);
+
+      gameArea.appendChild(textEl);
+      setTimeout(() => { if (textEl.parentNode) textEl.remove(); }, 1000);
+    }
+
+    setInterval(() => {
+      if (combo > 0 && Date.now() - lastClickTime >= 1000) {
+        combo = 0;
+        currentLevel = 1;
+        currentScale = minScale; 
+        
+        comboCounter.textContent = '';
+        heroSection.className = 'hero'; 
+        
+        venueText.classList.remove('hidden');
+
+        // Canvasを初期状態にリセット
+        drawOshiCanvas('am_01', 0);
+
+        oshiBtn.classList.add('resetting');
+        oshiBtn.style.transform = `translateZ(0) translateY(0px) scale(${minScale})`; 
+        oshiBtn.style.setProperty('--shadow-blur', '0px');
+
+        tapGuideTimer = setTimeout(() => {
+          const tapGuide = document.getElementById('tapGuide');
+          if (tapGuide) {
+            tapGuide.style.animation = 'pulse-tap 1.2s infinite';
+            tapGuide.style.opacity = '1';
+          }
+        }, 2500);
+      }
+    }, 100);
+  }
+
+  // ==================================================
   // ==================================================
   window.addEventListener('load', () => {
     loadCommonHeader(); 
     loadScheduleFromCSV();
-    initCrayonCountdown(); // カウントダウンの初期化
+    initCrayonCountdown(); 
+    initGame(); 
 
     const loading = document.getElementById('loading');
     const body = document.body;
@@ -1248,7 +1871,6 @@
       loading.classList.add('loaded');
       body.classList.remove('no-scroll');
 
-      // 別ページからのハッシュリンク（#sns等）対応
       if (window.location.hash) {
         setTimeout(() => {
           const targetElement = document.querySelector(window.location.hash);
