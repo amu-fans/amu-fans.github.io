@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>重要ライブ | あむちゃんスケジュール</title>
+<!-- iPhoneの日付自動リンク化を無効化 -->
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+<!-- 画像保存機能のためのライブラリ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  /* ==================================================
+     ベース設定
+  ================================================== */
+  :root {
+    --main-pink: #ff2a7a;
+    --text-black: #111111;
+    --bg-white: #ffffff;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden; 
+  }
+
+  body {
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    color: var(--text-black);
+    background-color: var(--bg-white);
+    max-width: 768px; 
+    margin: 0 auto;   
+  }
+
+  .no-scroll {
+    overflow: hidden;
+  }
+
+  /* ==================================================
+     ヘッダー＆メニュー周り
+  ================================================== */
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;       
+    margin: 0 auto; 
+    width: 100%;
+    max-width: 768px; 
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 1100;
+    background-color: var(--main-pink);
+  }
+
+  .site-logo {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--bg-white);
+    text-decoration: none;
+    z-index: 1001;
+    line-height: 1.3;
+    max-width: calc(100% - 50px);
+  }
+
+  .hamburger {
+    width: 30px;
+    height: 20px;
+    position: relative;
+    cursor: pointer;
+    z-index: 1001;
+  }
+
+  .hamburger span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--bg-white);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .hamburger span:nth-child(1) { top: 0; }
+  .hamburger span:nth-child(2) { top: 50%; transform: translateY(-50%); }
+  .hamburger span:nth-child(3) { bottom: 0; }
+
+  .hamburger.active span:nth-child(1) {
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+    background-color: var(--bg-white);
+  }
+  .hamburger.active span:nth-child(2) { opacity: 0; }
+  .hamburger.active span:nth-child(3) {
+    bottom: 50%;
+    transform: translateY(50%) rotate(-45deg);
+    background-color: var(--bg-white);
+  }
+
+  .global-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;       
+    margin: 0 auto; 
+    width: 100vw;
+    max-width: 768px; 
+    height: 100vh;
+    background-color: var(--bg-white);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: 100px;
+    align-items: center;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+
+  .global-nav.active {
+    transform: translateX(0);
+  }
+
+  .nav-list {
+    list-style: none;
+    text-align: center;
+  }
+
+  .nav-list li {
+    margin: 25px 0;
+  }
+
+  .nav-list a {
+    color: var(--text-black);
+    text-decoration: none;
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    display: block;
+  }
+
+  .nav-list span {
+    display: block;
+    font-size: 12px;
+    font-weight: normal;
+    margin-top: 5px;
+    opacity: 0.8;
+  }
+
+  /* ==================================================
+     メインレイアウト
+  ================================================== */
+  .page-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh; 
+    padding-top: 60px; 
+  }
+
+  .sticky-top-area {
+    flex-shrink: 0; 
+    background-color: var(--bg-white);
+    z-index: 100;
+    padding: 10px 10px 0; 
+  }
+
+  .page-title {
+    text-align: center;
+    font-size: 32px; 
+    font-weight: 900;
+    color: var(--text-black);
+    text-shadow: 1px 1px 0 var(--bg-white), 2px 2px 0 var(--bg-white), 3px 3px 0 var(--bg-white);
+    margin-bottom: 5px; 
+    display: inline-block;
+    padding: 0 10px;
+    background: linear-gradient(transparent 50%, var(--main-pink) 50%);
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    letter-spacing: 2px;
+  }
+
+  /* ==================================================
+     スケジュールテーブル
+  ================================================== */
+  .schedule-wrapper {
+    flex-grow: 1; 
+    overflow-y: auto; 
+    -webkit-overflow-scrolling: touch; 
+    background-color: var(--bg-white);
+    padding: 0; 
+  }
+
+  .schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    table-layout: fixed;
+  }
+
+  .schedule-table th, 
+  .schedule-table td {
+    padding: 12px 5px; 
+    border-bottom: 1px solid #cccccc;
+    vertical-align: middle;
+  }
+
+  .schedule-table th {
+    font-weight: 900;
+    color: var(--bg-white);
+    background-color: var(--text-black);
+    padding: 6px 0; 
+    text-align: center;
+  }
+
+  .col-date { width: 16%; }
+  .col-time { width: 18%; }
+  .col-venue { width: 66%; }
+
+  .schedule-table td:nth-child(1) { text-align: center; white-space: nowrap; }
+  .schedule-table td:nth-child(2) { text-align: center; white-space: nowrap; }
+  .schedule-table td:nth-child(3) { 
+    text-align: left; 
+    padding-left: 10px; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+  }
+
+  .schedule-table tbody tr {
+    cursor: pointer;
+    background-color: #fafafa;
+    transition: filter 0.2s;
+  }
+
+  .schedule-table tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+
+  .schedule-table tbody tr:active {
+    filter: brightness(0.95);
+  }
+
+  .schedule-table tr.tiktok { background-color: #e6d4ff !important; }
+  
+  .schedule-table tr.tiktok td {
+    padding: 4px 5px !important; 
+    font-size: 13px !important;  
+    font-weight: normal !important; 
+    color: #444 !important;      
+  }
+
+  .schedule-table tr.anniv { background-color: #ffe6f0 !important; }
+
+  .schedule-table tr.monday-line td {
+    border-top: 1px solid var(--main-pink) !important;
+  }
+  .schedule-table tr.before-monday-line td {
+    border-bottom: none !important;
+  }
+
+  .schedule-table tr.saturday td:first-child { color: #0044ff; }
+  .schedule-table tr.sunday td:first-child { color: #ff0000; }
+
+  .schedule-table tr.row-next td:first-child {
+    position: relative;
+  }
+  .schedule-table tr.row-next td:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background-color: var(--main-pink);
+  }
+
+  .empty-msg {
+    padding: 40px !important;
+    text-align: center !important;
+    color: var(--text-black);
+    font-weight: bold;
+    background-color: #fafafa;
+  }
+
+  /* ==================================================
+     モーダル（通常ポップアップ）
+  ================================================== */
+  .modal-overlay {
+    display: none; 
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); 
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.active {
+    display: flex; 
+  }
+
+  .modal-content {
+    background-color: var(--bg-white);
+    border: 3px solid var(--text-black);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 360px;
+    padding: 25px 20px;
+    box-shadow: 6px 6px 0 var(--text-black);
+    position: relative;
+  }
+
+  .modal-close-btn {
+    position: absolute;
+    top: 10px; right: 15px;
+    font-size: 28px;
+    color: #999;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .modal-title {
+    font-size: 20px;
+    font-weight: 900;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--main-pink); 
+    padding-bottom: 5px;
+    text-align: center;
+    color: var(--text-black);
+  }
+
+  .modal-info-group {
+    margin-bottom: 12px;
+  }
+
+  .modal-label {
+    display: block;
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--main-pink);
+    margin-bottom: 2px;
+  }
+
+  .modal-text {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text-black);
+    line-height: 1.4;
+  }
+
+  .modal-text a {
+    color: var(--main-pink);
+    text-decoration: underline;
+    word-break: break-all;
+    font-weight: bold;
+  }
+
+  /* ==================================================
+     画像保存モーダル用のスタイル（余計な枠・背景・影を完全排除）
+  ================================================== */
+  .image-modal-box {
+    position: relative;
+    width: 100%;
+    max-width: 500px; 
+    padding: 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .image-modal-close-btn {
+    position: absolute;
+    top: -45px;
+    right: 0;
+    font-size: 38px;
+    color: #ffffff;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  }
+</style>
+</head>
+<body>
+
+  <div id="common-header-container"></div>
+
+  <!-- メインコンテンツ -->
+  <main class="page-wrapper">
+    <div class="sticky-top-area">
+      <h1 class="page-title">重要ライブ</h1>
+      
+      <table class="schedule-table" style="margin-top: 15px; margin-bottom: 0;">
+        <colgroup>
+          <col class="col-date">
+          <col class="col-time">
+          <col class="col-venue">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>日程</th>
+            <th>時間</th>
+            <th>会場 / タイトル</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+
+    <!-- スクロールされるリスト部分 -->
+    <div class="schedule-wrapper">
+      <table class="schedule-table">
+        <colgroup>
+          <col class="col-date">
+          <col class="col-time">
+          <col class="col-venue">
+        </colgroup>
+        <tbody id="scheduleBody">
+          <!-- JSで予定が生成されます -->
+        </tbody>
+      </table>
+
+      <!-- 画像表示ボタン -->
+      <div style="text-align: center; margin-top: 25px; margin-bottom: 30px;">
+        <button id="saveImageBtn" onclick="saveScheduleImage()" style="background-color: var(--main-pink); color: var(--bg-white); border: none; padding: 10px 20px; border-radius: 25px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: opacity 0.2s;">
+          📸 重要ライブ画像
+        </button>
+      </div>
+
+      <div id="footer-container"></div>
+    </div>
+  </main>
+
+  <!-- イベント詳細モーダル -->
+  <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-content">
+      <button class="modal-close-btn" onclick="forceCloseModal()">×</button>
+      <div id="modalTitle" class="modal-title">イベント詳細</div>
+      <div class="modal-info-group" id="groupVenue">
+        <span class="modal-label">開催場所 / 会場</span>
+        <div id="modalVenue" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupOpenStart">
+        <span class="modal-label">開場 / 開演時間</span>
+        <div id="modalOpenStart" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupLive">
+        <span class="modal-label">内容</span>
+        <div id="modalLive" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupTokuten">
+        <span class="modal-label">物販 / 特典会</span>
+        <div id="modalTokuten" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupBonus">
+        <span class="modal-label">入場特典</span>
+        <div id="modalBonus" class="modal-text">-</div>
+      </div>
+      <div class="modal-info-group" id="groupTicket">
+        <span class="modal-label" id="ticketLabel">チケットURL</span>
+        <div id="modalTicketArea" class="modal-text">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 画像表示モーダル -->
+  <div id="imageModalOverlay" class="modal-overlay" onclick="closeImageModal(event)">
+    <div class="image-modal-box" onclick="event.stopPropagation();">
+      <button class="image-modal-close-btn" onclick="forceCloseImageModal()">×</button>
+      
+      <!-- スケジュール画像（カード単体だけにきれいな影をつける） -->
+      <img id="generatedImage" src="" alt="スケジュール画像" style="width: auto; height: auto; max-width: 100%; max-height: 75vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: block;">
+
+      <!-- 長押し保存の案内テキスト -->
+      <div style="text-align: center; color: #fff; font-size: 13px; font-weight: bold; margin-top: 15px; line-height: 1.5; padding: 0 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+        画像を長押し（PCは右クリック）で保存できます。<br>
+        <span style="font-size: 11px; color: #ffcccc;">※iPhoneの場合は画像の空きスペースを長押しすると保存メニューが出やすいです。</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let scheduleEvents = [];
+
+    // スケジュールデータの読み込み
+    async function loadSchedule() {
+      try {
+        const response = await fetch('schedule.csv');
+        if (!response.ok) throw new Error();
+        const arrayBuffer = await response.arrayBuffer();
+        let csvText = '';
+        try {
+          const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+          csvText = utf8Decoder.decode(arrayBuffer);
+        } catch (e) {
+          const sjisDecoder = new TextDecoder('shift_jis');
+          csvText = sjisDecoder.decode(arrayBuffer);
+        }
+        scheduleEvents = parseCSV(csvText);
+      } catch (error) {
+        console.warn('スケジュールデータの読み込みに失敗しました。プレビュー用の仮データを表示します。');
+        const dummyCSV = `date,important,title,venue,open,start,live_start,live_end,tokuten_start,tokuten_end,nyujo_tokuten,link
+2026/7/11,○,SPARK 2026 渋谷納涼祭,渋谷複数会場,,,,,,,,https://ticketdive.com/event/spark2026_summer
+2026/11/17,○,HIGHSPIRITS 10th Anniversary Live,渋谷WWWX,,,,,,,,`;
+        scheduleEvents = parseCSV(dummyCSV);
+      }
+
+      // 今日以降の予定に限定
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      scheduleEvents = scheduleEvents.filter(ev => {
+        const evDate = new Date(ev.date);
+        evDate.setHours(0, 0, 0, 0);
+        return evDate >= today;
+      });
+
+      renderTable();
+    }
+
+    // CSVの解析
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+      if (lines.length <= 1) return [];
+      
+      return lines.slice(1).map(line => {
+        const cols = line.split(',').map(c => c.trim());
+        while (cols.length < 12) cols.push('');
+
+        const d = cols[0], imp = cols[1], t = cols[2], v = cols[3];
+        const o = cols[4], s = cols[5];
+        const ls = cols[6], le = cols[7];
+        const ts = cols[8], te = cols[9];
+        const nyu = cols[10], link = cols[11];
+
+        let openStart = '---';
+        if (o && s) openStart = `${o} / ${s}`;
+        else if (o) openStart = `${o} / 未定`;
+        else if (s) openStart = `未定 / ${s}`;
+
+        let live = '---';
+        if (ls && le) live = `${ls}～${le}`;
+        else if (ls) live = (ls === '終日' || ls === '未定') ? ls : `${ls}～`;
+        else if (le) live = `～${le}`;
+
+        let tokuten = '---';
+        if (ts && te) tokuten = `${ts}～${te}`;
+        else if (ts) tokuten = (ts === '終日' || ts === '未定') ? ts : `${ts}～`;
+        else if (te) tokuten = `～${te}`;
+
+        return { 
+          date: d, 
+          important: imp,
+          title: t, 
+          venue: v, 
+          openStart: openStart, 
+          live: live, 
+          tokuten: tokuten, 
+          nyujoTokuten: nyu, 
+          link: link 
+        };
+      }).filter(item => item.date !== '' && item.important === '○'); 
+    }
+
+    // テーブル描画
+    function renderTable() {
+      const tbody = document.getElementById('scheduleBody');
+      tbody.innerHTML = '';
+
+      let displayEvents = [...scheduleEvents];
+      displayEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (displayEvents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-msg">今後の重要ライブ予定はありません</td></tr>';
+        return;
+      }
+
+      const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+      let currentWeekBase = null;
+      let isFirstRow = true;
+
+      function getMondayBase(d) {
+        const date = new Date(d);
+        const day = date.getDay();
+        const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(date.getFullYear(), date.getMonth(), diff).getTime();
+      }
+
+      displayEvents.forEach(ev => {
+        const evDate = new Date(ev.date);
+        const dayOfWeek = evDate.getDay();
+        const dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}<span style="font-size:12px; margin-left:2px;">(${weekdays[dayOfWeek]})</span>`;
+        
+        let trClass = '';
+        if (dayOfWeek === 0) trClass = 'sunday';
+        if (dayOfWeek === 6) trClass = 'saturday';
+        if (ev.title.includes('TikTok')) trClass = 'tiktok';
+        if (ev.title === '誕生日') trClass = 'anniv';
+
+        const weekBase = getMondayBase(evDate);
+        if (currentWeekBase !== weekBase) {
+          trClass += (trClass ? ' ' : '') + 'monday-line';
+          currentWeekBase = weekBase;
+          if (tbody.lastChild) {
+            tbody.lastChild.classList.add('before-monday-line');
+          }
+        }
+
+        if (isFirstRow) {
+          trClass += (trClass ? ' ' : '') + 'row-next';
+          isFirstRow = false;
+        }
+
+        let displayTime = '未定';
+        if (ev.live && ev.live !== '---' && ev.live !== '終日') {
+          displayTime = ev.live.split('～')[0] + '～'; 
+        } else if (ev.live === '終日') {
+          displayTime = '終日';
+        }
+        if (ev.title.includes('TikTok')) displayTime = '';
+        if (ev.title === '誕生日') displayTime = '🎂';
+
+        let isLive = !ev.title.includes('TikTok') && ev.title !== '誕生日';
+        let displayTitle = isLive ? `『${ev.title}』` : ev.title;
+        let displayVenue = ev.venue && ev.venue !== 'ONLINE' && ev.venue !== '---' ? ev.venue : '';
+        
+        let combinedText = displayVenue ? `${displayVenue} ${displayTitle}` : displayTitle;
+
+        const encodedData = encodeURIComponent(JSON.stringify(ev));
+        const tr = document.createElement('tr');
+        if (trClass) tr.className = trClass;
+        
+        tr.onclick = () => openEventDetails(encodedData);
+        
+        tr.innerHTML = `
+          <td style="font-weight: bold;">${dateStr}</td>
+          <td style="font-weight: bold; color: #444;">${displayTime}</td>
+          <td style="font-weight: bold;">${combinedText}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // モーダル表示処理
+    function openEventDetails(encodedData) {
+      const ev = JSON.parse(decodeURIComponent(encodedData));
+      const dateParts = ev.date.split('/');
+      const isBirthday = (parseInt(dateParts[1], 10) === 12 && parseInt(dateParts[2], 10) === 17);
+      const isTikTok = ev.title.includes('TikTok');
+
+      const groupVenue = document.getElementById('groupVenue');
+      const groupOpenStart = document.getElementById('groupOpenStart');
+      const groupLive = document.getElementById('groupLive');
+      const groupTokuten = document.getElementById('groupTokuten');
+      const groupBonus = document.getElementById('groupBonus');
+      const groupTicket = document.getElementById('groupTicket');
+      const ticketLabel = document.getElementById('ticketLabel');
+      const titleEl = document.getElementById('modalTitle');
+
+      groupVenue.style.display = 'block';
+      groupOpenStart.style.display = 'block';
+      groupLive.style.display = 'block';
+      groupTokuten.style.display = 'block';
+      groupBonus.style.display = 'block';
+      groupTicket.style.display = 'block';
+      ticketLabel.textContent = "チケットURL";
+
+      if (isBirthday) {
+        titleEl.innerHTML = `<span style="color: var(--main-pink); font-size: 16px; display: block; margin-bottom: 5px;">🎂 Happy Birthday 🎂<br>お誕生日おめでとう🎉</span>`;
+        groupVenue.style.display = 'none';
+        groupOpenStart.style.display = 'none';
+        groupLive.style.display = 'none';
+        groupTokuten.style.display = 'none';
+        groupBonus.style.display = 'none';
+        groupTicket.style.display = 'none';
+      } else if (isTikTok) {
+        titleEl.textContent = ev.title;
+        groupVenue.style.display = 'none';
+        groupOpenStart.style.display = 'none';
+        groupTokuten.style.display = 'none';
+        groupBonus.style.display = 'none';
+        document.getElementById('modalLive').textContent = ev.live || "木曜定期配信。時間はSNSで告知";
+        ticketLabel.textContent = "配信URL";
+        const ticketArea = document.getElementById('modalTicketArea');
+        ticketArea.innerHTML = `<a href="https://www.tiktok.com/@amunyan__" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">https://www.tiktok.com/@amunyan__</a>`;
+      } else {
+        titleEl.textContent = ev.title;
+        document.getElementById('modalVenue').textContent = ev.venue || '-';
+        document.getElementById('modalOpenStart').textContent = ev.openStart || '-';
+        document.getElementById('modalLive').textContent = ev.live || '-';
+        document.getElementById('modalTokuten').textContent = ev.tokuten || '-';
+        document.getElementById('modalBonus').textContent = ev.nyujoTokuten || '-';
+
+        const ticketArea = document.getElementById('modalTicketArea');
+        const hasLink = ev.link && ev.link.trim() !== '' && ev.link.trim() !== '#' && ev.link.trim() !== 'undefined';
+        if (hasLink) {
+          const cleanLink = ev.link.trim();
+          ticketArea.innerHTML = `<a href="${cleanLink}" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">${cleanLink}</a>`;
+          groupTicket.style.display = 'block';
+        } else {
+          groupTicket.style.display = 'none';
+        }
+      }
+      document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function closeModal(event) {
+      if (event.target === document.getElementById('modalOverlay')) {
+        document.getElementById('modalOverlay').classList.remove('active');
+      }
+    }
+    function forceCloseModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    function closeImageModal(event) {
+      if (event.target === document.getElementById('imageModalOverlay')) {
+        document.getElementById('imageModalOverlay').classList.remove('active');
+      }
+    }
+    function forceCloseImageModal() {
+      document.getElementById('imageModalOverlay').classList.remove('active');
+    }
+
+    // 共通ヘッダー読み込み
+    async function loadCommonHeader() {
+      try {
+        const response = await fetch('header.html');
+        if (!response.ok) throw new Error('Header load failed');
+        const html = await response.text();
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+
+        const footerElement = tempDiv.querySelector('#sharedFooter');
+        if (footerElement) {
+          footerElement.parentNode.removeChild(footerElement);
+          const footerContainer = document.getElementById('footer-container');
+          if (footerContainer) {
+            footerContainer.appendChild(footerElement);
+          }
+        }
+
+        document.getElementById('common-header-container').innerHTML = tempDiv.innerHTML;
+        initMenu();
+      } catch (error) {
+        document.getElementById('common-header-container').innerHTML = `
+          <header class="header">
+            <a href="index.html" class="site-logo">【非公式】勝手にあむちゃん応援ファンサイト</a>
+            <div class="hamburger" id="hamburger">
+              <span></span><span></span><span></span>
+            </div>
+          </header>
+        `;
+      }
+    }
+
+    function initMenu() {
+      const hamburger = document.getElementById('hamburger');
+      const globalNav = document.getElementById('globalNav');
+      
+      if (!hamburger || !globalNav) return;
+
+      function toggleMenu() {
+        hamburger.classList.toggle('active');
+        globalNav.classList.toggle('active');
+        document.body.classList.toggle('no-scroll');
+      }
+
+      hamburger.addEventListener('click', toggleMenu);
+
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if(globalNav.classList.contains('active')) {
+            toggleMenu();
+          }
+        });
+      });
+    }
+
+    // ==================================================
+    // 画像化ロジック (A4サイズ比率: 640px x 905px 固定)
+    // ==================================================
+    async function saveScheduleImage() {
+      if (typeof html2canvas === 'undefined') {
+        alert('画像作成プログラムを読み込み中です。数秒後にもう一度お試しください。');
+        return;
+      }
+
+      const btn = document.getElementById('saveImageBtn');
+      const origBtnText = btn.innerHTML;
+      btn.innerHTML = '⏳ 画像を生成中...';
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+
+      const targetEvents = scheduleEvents.slice(0, 15);
+
+      const bgImages = ['screen_00.jpg', 'screen_01.jpg', 'screen_02.jpg', 'screen_03.jpg'];
+      const chosenBg = bgImages[Math.floor(Math.random() * bgImages.length)];
+
+      // ★修正：背景画像が存在するかチェックし、エラーなら無効化する
+      let bgLoaded = false;
+      await new Promise((resolve) => {
+        const bgImg = new Image();
+        bgImg.onload = () => { bgLoaded = true; resolve(); };
+        bgImg.onerror = () => { bgLoaded = false; resolve(); }; 
+        bgImg.src = chosenBg;
+      });
+
+      const captureContainer = document.createElement('div');
+      captureContainer.style.position = 'absolute';
+      captureContainer.style.left = '-9999px';
+      captureContainer.style.top = '0';
+      captureContainer.style.width = '640px'; 
+      captureContainer.style.height = '905px'; // A4サイズ比率
+      captureContainer.style.overflow = 'hidden'; 
+      captureContainer.style.boxSizing = 'border-box';
+      captureContainer.style.fontFamily = "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif";
+      captureContainer.style.padding = '40px 25px';
+      captureContainer.style.display = 'flex';
+      captureContainer.style.flexDirection = 'column';
+      
+      // ★修正：画像が存在すれば設定、なければ完全に黒(#111)で塗りつぶす
+      if (bgLoaded) {
+        captureContainer.style.backgroundImage = `url('${chosenBg}')`;
+        captureContainer.style.backgroundSize = 'cover';
+        captureContainer.style.backgroundPosition = 'center top';
+      } else {
+        captureContainer.style.background = '#111111';
+      }
+      
+      captureContainer.style.backgroundColor = '#111111'; // 保険用不透明色
+
+      const darkRedShadow = '-1px -1px 0 #4a0000, 1px -1px 0 #4a0000, -1px 1px 0 #4a0000, 1px 1px 0 #4a0000, 0 2px 4px rgba(50, 0, 0, 0.9)';
+      const blackShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)';
+      const blackShadowLarge = '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 10px rgba(0,0,0,0.8)';
+
+      const now = new Date();
+      const dateText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} 付`;
+
+      let liveScheduleText = "";
+      if (targetEvents.length > 0) {
+        const firstEvDate = new Date(targetEvents[0].date);
+        const startYear = firstEvDate.getFullYear();
+        const startMonth = firstEvDate.getMonth() + 1;
+        const startDate = firstEvDate.getDate();
+        liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
+      } else {
+        const startYear = now.getFullYear();
+        const startMonth = now.getMonth() + 1;
+        const startDate = now.getDate();
+        liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
+      }
+
+      const titleObj = document.createElement('div');
+      titleObj.style.position = 'relative';
+      titleObj.style.marginBottom = '5px'; 
+      titleObj.innerHTML = `
+        <div style="text-align: center; margin-bottom: 5px;">
+          <h2 style="display: inline-block; font-size: 40px; font-weight: 900; color: #fff; margin: 0; letter-spacing: 2px; line-height: 1.2; text-shadow: ${blackShadowLarge};">重要ライブ一覧</h2>
+        </div>
+        <div style="text-align: center; font-size: 28px; font-weight: 900; color: #fff; letter-spacing: 2px; margin-top: 5px; text-shadow: ${blackShadowLarge};">${liveScheduleText}</div>
+        <div style="position: absolute; right: 0; bottom: 0; font-size: 13px; color: #fff; font-weight: bold; opacity: 0.8; text-shadow: ${blackShadow};">${dateText}</div>
+      `;
+      captureContainer.appendChild(titleObj);
+
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.fontSize = '16px'; 
+      table.style.tableLayout = 'fixed'; 
+      table.style.border = '2px solid #fff'; 
+      table.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+
+      const colgroup = document.createElement('colgroup');
+      colgroup.innerHTML = `
+        <col style="width: 17%;">
+        <col style="width: 18%;">
+        <col style="width: 65%;">
+      `;
+      table.appendChild(colgroup);
+
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th style="color: #fff; padding: 12px 5px; width: 17%; border: 2px solid #fff; font-size: 18px; text-shadow: ${darkRedShadow};">日程</th>
+          <th style="color: #fff; padding: 12px 5px; width: 18%; border: 2px solid #fff; font-size: 18px; text-shadow: ${darkRedShadow};">時間</th>
+          <th style="color: #fff; padding: 12px 5px; width: 65%; border: 2px solid #fff; font-size: 18px; text-shadow: ${darkRedShadow};">会場/タイトル</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      
+      if (targetEvents.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 40px; font-weight: bold; border: 2px solid #fff; color: #fff; text-shadow: ${darkRedShadow};">今後の重要ライブ予定がありません</td></tr>`;
+      } else {
+        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+
+        targetEvents.forEach((ev) => {
+          const evDate = new Date(ev.date);
+          const dayOfWeek = evDate.getDay();
+          const dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}(${weekdays[dayOfWeek]})`;
+
+          let displayTime = '未定';
+          if (ev.live && ev.live !== '---' && ev.live !== '終日') {
+            displayTime = ev.live.split('～')[0] + '～'; 
+          } else if (ev.live === '終日') {
+            displayTime = '終日';
+          }
+          if (ev.title === '誕生日') displayTime = '🎂';
+
+          let isLive = ev.title !== '誕生日';
+          let displayTitle = isLive ? `『${ev.title}』` : ev.title;
+          let displayVenue = ev.venue && ev.venue !== 'ONLINE' && ev.venue !== '---' ? ev.venue : '';
+          
+          let combinedHTML = '';
+          if (displayVenue) {
+            combinedHTML = `<div style="font-size: 14px;">${displayVenue}</div><div style="font-size: 18px; opacity: 0.95;">${displayTitle}</div>`;
+          } else {
+            combinedHTML = `<div style="font-size: 18px;">${displayTitle}</div>`;
+          }
+
+          const tr = document.createElement('tr');
+          tr.style.backgroundColor = 'transparent';
+          
+          let dateColor = '#ffffff'; 
+          if (dayOfWeek === 0) dateColor = '#ff6b6b'; 
+          if (dayOfWeek === 6) dateColor = '#6be0ff'; 
+          
+          if (ev.title === '誕生日') {
+            tr.style.backgroundColor = 'rgba(255, 100, 150, 0.2)'; 
+          }
+
+          const td1 = document.createElement('td');
+          td1.style.padding = '11px 5px';
+          td1.style.textAlign = 'center';
+          td1.style.fontWeight = 'bold';
+          td1.style.border = '2px solid #fff';
+          td1.style.color = dateColor;
+          td1.style.fontSize = '18px'; 
+          td1.style.textShadow = darkRedShadow; 
+          td1.innerText = dateStr;
+
+          const td2 = document.createElement('td');
+          td2.style.padding = '11px 5px';
+          td2.style.textAlign = 'center';
+          td2.style.fontWeight = 'bold';
+          td2.style.color = '#fff';
+          td2.style.border = '2px solid #fff';
+          td2.style.fontSize = '18px'; 
+          td2.style.textShadow = darkRedShadow; 
+          td2.innerText = displayTime;
+
+          const td3 = document.createElement('td');
+          td3.style.padding = '9px 5px 9px 10px';
+          td3.style.textAlign = 'left';
+          td3.style.fontWeight = 'bold';
+          td3.style.color = '#fff';
+          td3.style.border = '2px solid #fff';
+          td3.style.lineHeight = '1.3';
+          td3.style.textShadow = darkRedShadow; 
+          td3.innerHTML = combinedHTML;
+
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+          tr.appendChild(td3);
+          tbody.appendChild(tr);
+        });
+      }
+      table.appendChild(tbody);
+      captureContainer.appendChild(table);
+
+      const footerArea = document.createElement('div');
+      footerArea.style.marginTop = 'auto'; // フッター固定
+      footerArea.style.paddingBottom = '10px';
+
+      const copyDiv = document.createElement('div');
+      copyDiv.style.textAlign = 'center';
+      copyDiv.style.fontSize = '15px';
+      copyDiv.style.color = '#fff';
+      copyDiv.style.fontWeight = 'bold';
+      copyDiv.style.textShadow = blackShadow; 
+      copyDiv.innerText = '【非公式】勝手にあむちゃん応援ファンサイト';
+      footerArea.appendChild(copyDiv);
+
+      captureContainer.appendChild(footerArea);
+      document.body.appendChild(captureContainer);
+
+      setTimeout(async () => {
+        try {
+          const canvas = await html2canvas(captureContainer, {
+            scale: 2, 
+            useCORS: true,
+            backgroundColor: '#111111'
+          });
+          
+          const imgDataUrl = canvas.toDataURL('image/png');
+          const imgEl = document.getElementById('generatedImage');
+          
+          imgEl.onload = function() {
+            document.getElementById('imageModalOverlay').classList.add('active');
+          };
+          
+          imgEl.src = imgDataUrl;
+
+        } catch (error) {
+          console.error('画像化エラー:', error);
+          alert('画像の保存に失敗しました。');
+        } finally {
+          document.body.removeChild(captureContainer);
+          btn.innerHTML = origBtnText;
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      }, 100);
+    }
+
+    window.addEventListener('load', () => {
+      loadCommonHeader();
+      loadSchedule();
+    });
+  </script>
+</body>
+</html>

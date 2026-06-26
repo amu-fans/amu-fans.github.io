@@ -1043,6 +1043,7 @@
       if (!scheduleEvents.some(ev => ev.date === bdayStr && ev.title.includes('誕生日'))) {
         scheduleEvents.push({
           date: bdayStr,
+          important: '', 
           title: "誕生日",
           venue: "ONLINE",
           openStart: "---",
@@ -1075,6 +1076,7 @@
             if (!scheduleEvents.some(ev => ev.date === dateStr && ev.title.includes('TikTok'))) {
               scheduleEvents.push({
                 date: dateStr,
+                important: '', 
                 title: "TikTok個人配信",
                 venue: "ONLINE", 
                 openStart: "---",
@@ -1117,19 +1119,22 @@
     renderCalendar();
   }
 
+  // ★ 修正：12列分（重要フラグ対応）を確保しつつ列を正しく割り当てる（装飾等は一切なし）
   function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
     if (lines.length <= 1) return [];
     
     return lines.slice(1).map(line => {
       const cols = line.split(',').map(c => c.trim());
-      while (cols.length < 11) cols.push('');
+      // 新しいCSVフォーマットに合わせて12列分を確保
+      while (cols.length < 12) cols.push('');
 
-      const d = cols[0], t = cols[1], v = cols[2];
-      const o = cols[3], s = cols[4];
-      const ls = cols[5], le = cols[6];
-      const ts = cols[7], te = cols[8];
-      const nyu = cols[9], link = cols[10];
+      // 列を1つずつずらして正しく割り当て
+      const d = cols[0], imp = cols[1], t = cols[2], v = cols[3];
+      const o = cols[4], s = cols[5];
+      const ls = cols[6], le = cols[7];
+      const ts = cols[8], te = cols[9];
+      const nyu = cols[10], link = cols[11];
 
       let openStart = '---';
       if (o && s) openStart = `${o} / ${s}`;
@@ -1148,6 +1153,7 @@
 
       return { 
         date: d, 
+        important: imp,
         title: t, 
         venue: v, 
         openStart: openStart, 
@@ -1506,11 +1512,9 @@
         shiftY = 120 * (comboCount / 30); // 30コンボまでは動かさない（今の動き）
       } else if (comboCount <= 100) {
         currentDrawScale = midScaleVal + ((maxScaleVal - midScaleVal) * ((comboCount - 30) / 70));
-        // ★調整場所1：最大350px下へ移動させる（350 - 120 = 230）
         shiftY = 120 + (230 * ((comboCount - 30) / 70));
       } else {
         currentDrawScale = maxScaleVal;
-        // ★調整場所1：最大移動量を350に設定
         shiftY = 350;
       }
 
@@ -1615,7 +1619,6 @@
     let tapHistory = [];
     const MAX_TAPS_PER_SECOND = 8; 
 
-    // ★ 倍率の二段階設定 (1.5倍 -> 30コンボで4倍 -> 100コンボで10倍)
     const minScale = 1.5;        
     const midScale = 4.0;
     const maxScale = 10.0; // 100コンボで最大10倍        
@@ -1741,26 +1744,20 @@
       const imageKey = match ? `am_${match[1]}` : 'am_01';
       drawOshiCanvas(imageKey, combo);
 
-      // ★ スケール（倍率）と色合い、そして位置(Y軸)の多段計算
       let colorRatio = 0;
       let shiftY = 0;
 
       if (combo <= 30) {
-        // 0〜30コンボ：1.5倍から4.0倍へ
         currentScale = minScale + ((midScale - minScale) * (combo / 30));
         colorRatio = combo / 30; 
-        shiftY = 120 * colorRatio; // 30コンボ目までは現状維持
+        shiftY = 120 * colorRatio; 
       } else if (combo <= 100) {
-        // 31〜100コンボ：4.0倍から10.0倍へ巨大化
         currentScale = midScale + ((maxScale - midScale) * ((combo - 30) / 70));
         colorRatio = 1.0; 
-        // ★調整場所2：最大350px下へ移動させる（350 - 120 = 230）
         shiftY = 120 + (230 * ((combo - 30) / 70));
       } else {
-        // 100コンボ以上：最大10.0倍・位置固定
         currentScale = maxScale;
         colorRatio = 1.0;
-        // ★調整場所2：最大移動量を350に設定
         shiftY = 350;
       }
 
@@ -1839,7 +1836,6 @@
         
         venueText.classList.remove('hidden');
 
-        // Canvasを初期状態にリセット
         drawOshiCanvas('am_01', 0);
 
         oshiBtn.classList.add('resetting');
