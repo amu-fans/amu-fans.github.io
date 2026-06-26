@@ -228,7 +228,6 @@
     color: var(--bg-white);
   }
 
-  /* ★ 「重要」ボタン（「今日」ボタンと同じ白黒デザイン） */
   .calendar-important-btn {
     position: absolute;
     left: 10px;
@@ -592,20 +591,19 @@
       scrollToTodayEvent();
     }
 
-    // ★ CSVパーサーを正しい元の11列に戻し、データのズレを解消
     function parseCSV(text) {
       const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
       if (lines.length <= 1) return [];
       
       return lines.slice(1).map(line => {
         const cols = line.split(',').map(c => c.trim());
-        while (cols.length < 11) cols.push('');
+        while (cols.length < 12) cols.push('');
 
-        const d = cols[0], t = cols[1], v = cols[2];
-        const o = cols[3], s = cols[4];
-        const ls = cols[5], le = cols[6];
-        const ts = cols[7], te = cols[8];
-        const nyu = cols[9], link = cols[10];
+        const d = cols[0], imp = cols[1], t = cols[2], v = cols[3];
+        const o = cols[4], s = cols[5];
+        const ls = cols[6], le = cols[7];
+        const ts = cols[8], te = cols[9];
+        const nyu = cols[10], link = cols[11];
 
         let openStart = '---';
         if (o && s) openStart = `${o} / ${s}`;
@@ -614,12 +612,12 @@
 
         let live = '---';
         if (ls && le) live = `${ls}～${le}`;
-        else if (ls) live = (ls === '終日' || ls === '未定') ? ls : `${ls}～`;
-        else if (le) live = `～${le}`;
+        else if (ls && ls !== '終日' && ls !== '未定') live = `${ls}～`;
+        else if (ls === '終日') live = '終日';
 
         let tokuten = '---';
         if (ts && te) tokuten = `${ts}～${te}`;
-        else if (ts) tokuten = (ts === '終日' || ts === '未定') ? ts : `${ts}～`;
+        else if (ts && ts !== '終日' && ts !== '未定') tokuten = `${ts}～`;
         else if (te) tokuten = `～${te}`;
 
         return { 
@@ -732,7 +730,7 @@
         if (ev.title === '誕生日') displayTime = '🎂';
 
         let isLive = ev.title && !ev.title.includes('TikTok') && ev.title !== '誕生日';
-        let displayTitle = isLive ? `『${ev.title}』` : ev.title;
+        let displayTitle = isLive ? `『${ev.title}』` : (ev.title || '');
         let displayVenue = ev.venue && ev.venue !== 'ONLINE' && ev.venue !== '---' ? ev.venue : '';
         let combinedText = displayVenue ? `${displayVenue} ${displayTitle}` : displayTitle;
 
@@ -855,7 +853,7 @@
         const ticketArea = document.getElementById('modalTicketArea');
         ticketArea.innerHTML = `<a href="https://www.tiktok.com/@amunyan__" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">https://www.tiktok.com/@amunyan__</a>`;
       } else {
-        titleEl.textContent = ev.title;
+        titleEl.textContent = ev.title || '';
         document.getElementById('modalVenue').textContent = ev.venue || '-';
         document.getElementById('modalOpenStart').textContent = ev.openStart || '-';
         document.getElementById('modalLive').textContent = ev.live || '-';
@@ -961,9 +959,13 @@
       sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
 
       let futureEvents = scheduleEvents.filter(ev => {
-        const evDate = new Date(ev.date);
-        evDate.setHours(0, 0, 0, 0);
-        return evDate >= today && evDate <= sixMonthsLater && (!ev.title || !ev.title.includes('TikTok'));
+        try {
+          const evDate = new Date(ev.date);
+          evDate.setHours(0, 0, 0, 0);
+          return evDate >= today && evDate <= sixMonthsLater && (!ev.title || !ev.title.includes('TikTok'));
+        } catch(e) {
+          return false;
+        }
       });
 
       futureEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1011,16 +1013,22 @@
 
       let liveScheduleText = "LIVE SCHEDULE";
       if (targetEvents.length > 0) {
-        const firstEvDate = new Date(targetEvents[0].date);
-        const startYear = firstEvDate.getFullYear();
-        const startMonth = firstEvDate.getMonth() + 1;
-        const startDate = firstEvDate.getDate();
-        liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
+        let firstEvDate = null;
+        try {
+          firstEvDate = new Date(targetEvents[0].date);
+          if (!isNaN(firstEvDate.getTime())) {
+            const startYear = firstEvDate.getFullYear();
+            const startMonth = firstEvDate.getMonth() + 1;
+            const startDate = firstEvDate.getDate();
+            liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
+          } else {
+            liveScheduleText = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}～`;
+          }
+        } catch(e) {
+          liveScheduleText = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}～`;
+        }
       } else {
-        const startYear = now.getFullYear();
-        const startMonth = now.getMonth() + 1;
-        const startDate = now.getDate();
-        liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
+        liveScheduleText = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}～`;
       }
 
       const titleObj = document.createElement('div');
@@ -1069,9 +1077,15 @@
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
 
         targetEvents.forEach((ev) => {
-          const evDate = new Date(ev.date);
-          const dayOfWeek = evDate.getDay();
-          const dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}(${weekdays[dayOfWeek]})`;
+          let dateStr = ev.date;
+          let dayOfWeek = 0;
+          try {
+            const evDate = new Date(ev.date);
+            if (!isNaN(evDate.getTime())) {
+              dayOfWeek = evDate.getDay();
+              dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}(${weekdays[dayOfWeek]})`;
+            }
+          } catch(e) {}
 
           let displayTime = '未定';
           if (ev.live && ev.live !== '---' && ev.live !== '終日') {
@@ -1082,14 +1096,14 @@
           if (ev.title === '誕生日') displayTime = '🎂';
 
           let isLive = ev.title !== '誕生日';
-          let displayTitle = isLive ? `『${ev.title}』` : ev.title;
+          let displayTitle = isLive ? `『${ev.title || ''}』` : (ev.title || '');
           let displayVenue = ev.venue && ev.venue !== 'ONLINE' && ev.venue !== '---' ? ev.venue : '';
           
           let combinedHTML = '';
           if (displayVenue) {
-            combinedHTML = `<div style="font-size: 14px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayVenue}</div><div style="font-size: 18px; opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>`;
+            combinedHTML = `<div style="font-size: 14px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayVenue}</div><div style="font-size: 20px; opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>`;
           } else {
-            combinedHTML = `<div style="font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>`;
+            combinedHTML = `<div style="font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>`;
           }
 
           const tr = document.createElement('tr');

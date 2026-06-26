@@ -291,6 +291,46 @@
     background-color: #fafafa;
   }
 
+  .calendar-important-btn {
+    position: absolute;
+    left: 10px;
+    background-color: var(--bg-white);
+    color: var(--text-black);
+    border: 1px solid var(--text-black);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .calendar-important-btn:active {
+    background-color: var(--text-black);
+    color: var(--bg-white);
+  }
+
+  .month-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 5px; 
+    position: relative;
+  }
+
+  .month-nav h2 {
+    font-size: 28px; 
+    font-weight: 900;
+    color: var(--text-black);
+    letter-spacing: 2px;
+    min-width: 140px; 
+    text-align: center;
+  }
+
   /* ==================================================
      モーダル（通常ポップアップ）
   ================================================== */
@@ -367,7 +407,7 @@
   }
 
   /* ==================================================
-     画像保存モーダル用のスタイル（余計な枠・背景・影を完全排除）
+     画像保存モーダル用のスタイル
   ================================================== */
   .image-modal-box {
     position: relative;
@@ -410,6 +450,13 @@
     <div class="sticky-top-area">
       <h1 class="page-title">重要ライブ</h1>
       
+      <div class="month-nav">
+        <!-- 「重要」から「通常リスト」に戻るためのボタン -->
+        <a href="schedule-light.html" class="calendar-important-btn">通常リスト</a>
+
+        <h2 id="currentMonthDisplay"> </h2>
+      </div>
+
       <table class="schedule-table" style="margin-top: 15px; margin-bottom: 0;">
         <colgroup>
           <col class="col-date">
@@ -439,10 +486,14 @@
         </tbody>
       </table>
 
+      <div style="text-align: left; font-size: 12px; color: #444; padding: 10px 15px 0; font-weight: bold; line-height: 1.4;">
+        ※重要ライブのみ表示しています
+      </div>
+
       <!-- 画像表示ボタン -->
       <div style="text-align: center; margin-top: 25px; margin-bottom: 30px;">
         <button id="saveImageBtn" onclick="saveScheduleImage()" style="background-color: var(--main-pink); color: var(--bg-white); border: none; padding: 10px 20px; border-radius: 25px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: opacity 0.2s;">
-          📸 重要ライブ画像
+          📸 リスト画像生成
         </button>
       </div>
 
@@ -487,7 +538,7 @@
     <div class="image-modal-box" onclick="event.stopPropagation();">
       <button class="image-modal-close-btn" onclick="forceCloseImageModal()">×</button>
       
-      <!-- スケジュール画像（カード単体だけにきれいな影をつける） -->
+      <!-- スケジュール画像 -->
       <img id="generatedImage" src="" alt="スケジュール画像" style="width: auto; height: auto; max-width: 100%; max-height: 75vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: block;">
 
       <!-- 長押し保存の案内テキスト -->
@@ -517,18 +568,15 @@
         }
         scheduleEvents = parseCSV(csvText);
       } catch (error) {
-        console.warn('スケジュールデータの読み込みに失敗しました。プレビュー用の仮データを表示します。');
-        const dummyCSV = `date,important,title,venue,open,start,live_start,live_end,tokuten_start,tokuten_end,nyujo_tokuten,link
-2026/7/11,○,SPARK 2026 渋谷納涼祭,渋谷複数会場,,,,,,,,https://ticketdive.com/event/spark2026_summer
-2026/11/17,○,HIGHSPIRITS 10th Anniversary Live,渋谷WWWX,,,,,,,,`;
-        scheduleEvents = parseCSV(dummyCSV);
+        console.warn('スケジュールデータの読み込みに失敗しました。');
       }
 
-      // 今日以降の予定に限定
+      // 今日以降の予定に限定して表示する
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       scheduleEvents = scheduleEvents.filter(ev => {
         const evDate = new Date(ev.date);
+        if (isNaN(evDate.getTime())) return true; // 日付不明なものは残す
         evDate.setHours(0, 0, 0, 0);
         return evDate >= today;
       });
@@ -536,14 +584,14 @@
       renderTable();
     }
 
-    // CSVの解析
+    // CSVの解析（フラグ判定を緩くして抽出漏れを防ぐ）
     function parseCSV(text) {
       const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
       if (lines.length <= 1) return [];
       
       return lines.slice(1).map(line => {
         const cols = line.split(',').map(c => c.trim());
-        while (cols.length < 12) cols.push('');
+        while (cols.length < 12) cols.push(''); // リストスケジュールと同じ12列目まで確保
 
         const d = cols[0], imp = cols[1], t = cols[2], v = cols[3];
         const o = cols[4], s = cols[5];
@@ -558,12 +606,12 @@
 
         let live = '---';
         if (ls && le) live = `${ls}～${le}`;
-        else if (ls) live = (ls === '終日' || ls === '未定') ? ls : `${ls}～`;
-        else if (le) live = `～${le}`;
+        else if (ls && ls !== '終日' && ls !== '未定') live = `${ls}～`;
+        else if (ls === '終日') live = '終日';
 
         let tokuten = '---';
         if (ts && te) tokuten = `${ts}～${te}`;
-        else if (ts) tokuten = (ts === '終日' || ts === '未定') ? ts : `${ts}～`;
+        else if (ts && ts !== '終日' && ts !== '未定') tokuten = `${ts}～`;
         else if (te) tokuten = `～${te}`;
 
         return { 
@@ -577,7 +625,12 @@
           nyujoTokuten: nyu, 
           link: link 
         };
-      }).filter(item => item.date !== '' && item.important === '○'); 
+      }).filter(item => {
+        if (!item.date) return false;
+        // 重要フラグの抽出条件を緩く（「○」「〇」「1」「重」「TRUE」どれかが含まれていればOK）
+        const flag = item.important ? item.important.trim() : '';
+        return flag.includes('○') || flag.includes('〇') || flag.includes('1') || flag.toUpperCase().includes('TRUE') || flag.includes('重');
+      }); 
     }
 
     // テーブル描画
@@ -605,18 +658,25 @@
       }
 
       displayEvents.forEach(ev => {
-        const evDate = new Date(ev.date);
-        const dayOfWeek = evDate.getDay();
-        const dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}<span style="font-size:12px; margin-left:2px;">(${weekdays[dayOfWeek]})</span>`;
-        
+        let dateStr = ev.date;
         let trClass = '';
-        if (dayOfWeek === 0) trClass = 'sunday';
-        if (dayOfWeek === 6) trClass = 'saturday';
-        if (ev.title.includes('TikTok')) trClass = 'tiktok';
-        if (ev.title === '誕生日') trClass = 'anniv';
+        let weekBase = null;
 
-        const weekBase = getMondayBase(evDate);
-        if (currentWeekBase !== weekBase) {
+        try {
+          const evDate = new Date(ev.date);
+          if (!isNaN(evDate.getTime())) {
+            const dayOfWeek = evDate.getDay();
+            dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}<span style="font-size:12px; margin-left:2px;">(${weekdays[dayOfWeek]})</span>`;
+            if (dayOfWeek === 0) trClass = 'sunday';
+            if (dayOfWeek === 6) trClass = 'saturday';
+            weekBase = getMondayBase(evDate);
+          }
+        } catch(e) {}
+
+        if (ev.title && ev.title.includes('TikTok')) trClass += (trClass ? ' ' : '') + 'tiktok';
+        if (ev.title === '誕生日') trClass += (trClass ? ' ' : '') + 'anniv';
+
+        if (weekBase !== null && currentWeekBase !== weekBase) {
           trClass += (trClass ? ' ' : '') + 'monday-line';
           currentWeekBase = weekBase;
           if (tbody.lastChild) {
@@ -635,11 +695,11 @@
         } else if (ev.live === '終日') {
           displayTime = '終日';
         }
-        if (ev.title.includes('TikTok')) displayTime = '';
+        if (ev.title && ev.title.includes('TikTok')) displayTime = '';
         if (ev.title === '誕生日') displayTime = '🎂';
 
-        let isLive = !ev.title.includes('TikTok') && ev.title !== '誕生日';
-        let displayTitle = isLive ? `『${ev.title}』` : ev.title;
+        let isLive = ev.title && !ev.title.includes('TikTok') && ev.title !== '誕生日';
+        let displayTitle = isLive ? `『${ev.title}』` : (ev.title || '');
         let displayVenue = ev.venue && ev.venue !== 'ONLINE' && ev.venue !== '---' ? ev.venue : '';
         
         let combinedText = displayVenue ? `${displayVenue} ${displayTitle}` : displayTitle;
@@ -664,7 +724,7 @@
       const ev = JSON.parse(decodeURIComponent(encodedData));
       const dateParts = ev.date.split('/');
       const isBirthday = (parseInt(dateParts[1], 10) === 12 && parseInt(dateParts[2], 10) === 17);
-      const isTikTok = ev.title.includes('TikTok');
+      const isTikTok = ev.title && ev.title.includes('TikTok');
 
       const groupVenue = document.getElementById('groupVenue');
       const groupOpenStart = document.getElementById('groupOpenStart');
@@ -702,7 +762,7 @@
         const ticketArea = document.getElementById('modalTicketArea');
         ticketArea.innerHTML = `<a href="https://www.tiktok.com/@amunyan__" target="_blank" style="color: var(--main-pink); text-decoration: underline; word-break: break-all;">https://www.tiktok.com/@amunyan__</a>`;
       } else {
-        titleEl.textContent = ev.title;
+        titleEl.textContent = ev.title || '';
         document.getElementById('modalVenue').textContent = ev.venue || '-';
         document.getElementById('modalOpenStart').textContent = ev.openStart || '-';
         document.getElementById('modalLive').textContent = ev.live || '-';
@@ -798,7 +858,8 @@
     }
 
     // ==================================================
-    // 画像化ロジック (A4サイズ比率: 640px x 905px 固定)
+    // ★ 修正：リストスケジュールと全く同じ画像生成フォーマット
+    // （文字がはみ出た際の「…」カット処理も完全に適用しています）
     // ==================================================
     async function saveScheduleImage() {
       if (typeof html2canvas === 'undefined') {
@@ -812,12 +873,12 @@
       btn.disabled = true;
       btn.style.opacity = '0.7';
 
+      // 既に今日以降の重要ライブだけになっている scheduleEvents を最大15件まで表示
       const targetEvents = scheduleEvents.slice(0, 15);
 
       const bgImages = ['screen_00.jpg', 'screen_01.jpg', 'screen_02.jpg', 'screen_03.jpg'];
       const chosenBg = bgImages[Math.floor(Math.random() * bgImages.length)];
 
-      // ★修正：背景画像が存在するかチェックし、エラーなら無効化する
       let bgLoaded = false;
       await new Promise((resolve) => {
         const bgImg = new Image();
@@ -830,16 +891,16 @@
       captureContainer.style.position = 'absolute';
       captureContainer.style.left = '-9999px';
       captureContainer.style.top = '0';
-      captureContainer.style.width = '640px'; 
-      captureContainer.style.height = '905px'; // A4サイズ比率
-      captureContainer.style.overflow = 'hidden'; 
+      
+      // A4サイズ比率のまま高解像度化 (リストスケジュールと同一)
+      captureContainer.style.width = '840px'; 
+      captureContainer.style.height = '1188px'; 
       captureContainer.style.boxSizing = 'border-box';
       captureContainer.style.fontFamily = "'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif";
-      captureContainer.style.padding = '40px 25px';
+      captureContainer.style.padding = '50px 30px'; 
       captureContainer.style.display = 'flex';
       captureContainer.style.flexDirection = 'column';
       
-      // ★修正：画像が存在すれば設定、なければ完全に黒(#111)で塗りつぶす
       if (bgLoaded) {
         captureContainer.style.backgroundImage = `url('${chosenBg}')`;
         captureContainer.style.backgroundSize = 'cover';
@@ -847,8 +908,7 @@
       } else {
         captureContainer.style.background = '#111111';
       }
-      
-      captureContainer.style.backgroundColor = '#111111'; // 保険用不透明色
+      captureContainer.style.backgroundColor = '#111111'; 
 
       const darkRedShadow = '-1px -1px 0 #4a0000, 1px -1px 0 #4a0000, -1px 1px 0 #4a0000, 1px 1px 0 #4a0000, 0 2px 4px rgba(50, 0, 0, 0.9)';
       const blackShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 4px rgba(0,0,0,0.8)';
@@ -857,54 +917,60 @@
       const now = new Date();
       const dateText = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} 付`;
 
-      let liveScheduleText = "";
+      let liveScheduleText = "LIVE SCHEDULE";
       if (targetEvents.length > 0) {
-        const firstEvDate = new Date(targetEvents[0].date);
-        const startYear = firstEvDate.getFullYear();
-        const startMonth = firstEvDate.getMonth() + 1;
-        const startDate = firstEvDate.getDate();
-        liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
+        let firstEvDate = null;
+        try {
+          firstEvDate = new Date(targetEvents[0].date);
+          if (!isNaN(firstEvDate.getTime())) {
+            const startYear = firstEvDate.getFullYear();
+            const startMonth = firstEvDate.getMonth() + 1;
+            const startDate = firstEvDate.getDate();
+            liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
+          } else {
+            liveScheduleText = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}～`;
+          }
+        } catch(e) {
+          liveScheduleText = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}～`;
+        }
       } else {
-        const startYear = now.getFullYear();
-        const startMonth = now.getMonth() + 1;
-        const startDate = now.getDate();
-        liveScheduleText = `${startYear}/${startMonth}/${startDate}～`;
+        liveScheduleText = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}～`;
       }
 
       const titleObj = document.createElement('div');
       titleObj.style.position = 'relative';
-      titleObj.style.marginBottom = '5px'; 
+      titleObj.style.marginBottom = '15px'; 
       titleObj.innerHTML = `
         <div style="text-align: center; margin-bottom: 5px;">
-          <h2 style="display: inline-block; font-size: 40px; font-weight: 900; color: #fff; margin: 0; letter-spacing: 2px; line-height: 1.2; text-shadow: ${blackShadowLarge};">重要ライブ一覧</h2>
+          <h2 style="display: inline-block; font-size: 44px; font-weight: 900; color: #fff; margin: 0; letter-spacing: 2px; line-height: 1.2; text-shadow: ${blackShadowLarge};">重要ライブ一覧</h2>
         </div>
-        <div style="text-align: center; font-size: 28px; font-weight: 900; color: #fff; letter-spacing: 2px; margin-top: 5px; text-shadow: ${blackShadowLarge};">${liveScheduleText}</div>
-        <div style="position: absolute; right: 0; bottom: 0; font-size: 13px; color: #fff; font-weight: bold; opacity: 0.8; text-shadow: ${blackShadow};">${dateText}</div>
+        <div style="text-align: center; font-size: 30px; font-weight: 900; color: #fff; letter-spacing: 2px; margin-top: 5px; text-shadow: ${blackShadowLarge};">${liveScheduleText}</div>
+        <div style="position: absolute; right: 0; bottom: 0; font-size: 16px; color: #fff; font-weight: bold; opacity: 0.8; text-shadow: ${blackShadow};">${dateText}</div>
       `;
       captureContainer.appendChild(titleObj);
 
       const table = document.createElement('table');
       table.style.width = '100%';
       table.style.borderCollapse = 'collapse';
-      table.style.fontSize = '16px'; 
+      table.style.fontSize = '18px'; 
       table.style.tableLayout = 'fixed'; 
       table.style.border = '2px solid #fff'; 
       table.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
 
       const colgroup = document.createElement('colgroup');
       colgroup.innerHTML = `
-        <col style="width: 17%;">
-        <col style="width: 18%;">
-        <col style="width: 65%;">
+        <col style="width: 16%;">
+        <col style="width: 16%;">
+        <col style="width: 68%;">
       `;
       table.appendChild(colgroup);
 
       const thead = document.createElement('thead');
       thead.innerHTML = `
         <tr>
-          <th style="color: #fff; padding: 12px 5px; width: 17%; border: 2px solid #fff; font-size: 18px; text-shadow: ${darkRedShadow};">日程</th>
-          <th style="color: #fff; padding: 12px 5px; width: 18%; border: 2px solid #fff; font-size: 18px; text-shadow: ${darkRedShadow};">時間</th>
-          <th style="color: #fff; padding: 12px 5px; width: 65%; border: 2px solid #fff; font-size: 18px; text-shadow: ${darkRedShadow};">会場/タイトル</th>
+          <th style="color: #fff; padding: 14px 5px; width: 16%; border: 2px solid #fff; font-size: 20px; text-shadow: ${darkRedShadow};">日程</th>
+          <th style="color: #fff; padding: 14px 5px; width: 16%; border: 2px solid #fff; font-size: 20px; text-shadow: ${darkRedShadow};">時間</th>
+          <th style="color: #fff; padding: 14px 5px; width: 68%; border: 2px solid #fff; font-size: 20px; text-shadow: ${darkRedShadow};">会場/タイトル</th>
         </tr>
       `;
       table.appendChild(thead);
@@ -917,9 +983,15 @@
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
 
         targetEvents.forEach((ev) => {
-          const evDate = new Date(ev.date);
-          const dayOfWeek = evDate.getDay();
-          const dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}(${weekdays[dayOfWeek]})`;
+          let dateStr = ev.date;
+          let dayOfWeek = 0;
+          try {
+            const evDate = new Date(ev.date);
+            if (!isNaN(evDate.getTime())) {
+              dayOfWeek = evDate.getDay();
+              dateStr = `${evDate.getMonth() + 1}/${evDate.getDate()}(${weekdays[dayOfWeek]})`;
+            }
+          } catch(e) {}
 
           let displayTime = '未定';
           if (ev.live && ev.live !== '---' && ev.live !== '終日') {
@@ -930,14 +1002,15 @@
           if (ev.title === '誕生日') displayTime = '🎂';
 
           let isLive = ev.title !== '誕生日';
-          let displayTitle = isLive ? `『${ev.title}』` : ev.title;
+          let displayTitle = isLive ? `『${ev.title || ''}』` : (ev.title || '');
           let displayVenue = ev.venue && ev.venue !== 'ONLINE' && ev.venue !== '---' ? ev.venue : '';
           
+          // ★修正ポイント：リストスケジュールと全く同じ「文字カット処理（nowrap & ellipsis）」を適用
           let combinedHTML = '';
           if (displayVenue) {
-            combinedHTML = `<div style="font-size: 14px;">${displayVenue}</div><div style="font-size: 18px; opacity: 0.95;">${displayTitle}</div>`;
+            combinedHTML = `<div style="font-size: 14px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayVenue}</div><div style="font-size: 18px; opacity: 0.95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>`;
           } else {
-            combinedHTML = `<div style="font-size: 18px;">${displayTitle}</div>`;
+            combinedHTML = `<div style="font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>`;
           }
 
           const tr = document.createElement('tr');
@@ -952,7 +1025,7 @@
           }
 
           const td1 = document.createElement('td');
-          td1.style.padding = '11px 5px';
+          td1.style.padding = '12px 5px';
           td1.style.textAlign = 'center';
           td1.style.fontWeight = 'bold';
           td1.style.border = '2px solid #fff';
@@ -962,7 +1035,7 @@
           td1.innerText = dateStr;
 
           const td2 = document.createElement('td');
-          td2.style.padding = '11px 5px';
+          td2.style.padding = '12px 5px';
           td2.style.textAlign = 'center';
           td2.style.fontWeight = 'bold';
           td2.style.color = '#fff';
@@ -972,13 +1045,14 @@
           td2.innerText = displayTime;
 
           const td3 = document.createElement('td');
-          td3.style.padding = '9px 5px 9px 10px';
+          td3.style.padding = '10px 5px 10px 10px';
           td3.style.textAlign = 'left';
           td3.style.fontWeight = 'bold';
           td3.style.color = '#fff';
           td3.style.border = '2px solid #fff';
           td3.style.lineHeight = '1.3';
           td3.style.textShadow = darkRedShadow; 
+          td3.style.overflow = 'hidden'; 
           td3.innerHTML = combinedHTML;
 
           tr.appendChild(td1);
@@ -991,12 +1065,12 @@
       captureContainer.appendChild(table);
 
       const footerArea = document.createElement('div');
-      footerArea.style.marginTop = 'auto'; // フッター固定
-      footerArea.style.paddingBottom = '10px';
+      footerArea.style.marginTop = 'auto'; // 枠の下に固定
+      footerArea.style.paddingBottom = '5px';
 
       const copyDiv = document.createElement('div');
       copyDiv.style.textAlign = 'center';
-      copyDiv.style.fontSize = '15px';
+      copyDiv.style.fontSize = '16px'; 
       copyDiv.style.color = '#fff';
       copyDiv.style.fontWeight = 'bold';
       copyDiv.style.textShadow = blackShadow; 
@@ -1011,7 +1085,7 @@
           const canvas = await html2canvas(captureContainer, {
             scale: 2, 
             useCORS: true,
-            backgroundColor: '#111111'
+            backgroundColor: '#111111' 
           });
           
           const imgDataUrl = canvas.toDataURL('image/png');
