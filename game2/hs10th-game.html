@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>ハイスピ動員ゲーム</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #1a1025;
+    color: #eee;
+    font-family: -apple-system, "Hiragino Sans", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  #wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+  }
+  #canvasArea {
+    position: relative;
+  }
+  canvas {
+    background: #2a1f3d;
+    border-radius: 12px;
+    border: 3px solid #6b4fa0;
+    max-width: 92vw;
+    max-height: 75vh;
+    display: block;
+    aspect-ratio: 400 / 700;
+    box-shadow: 0 0 20px rgba(107, 79, 160, 0.4);
+  }
+  
+  #gameOverOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 5, 20, 0.95);
+    border-radius: 12px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-align: center;
+    padding: 10px;
+    padding-bottom: 24px;
+    box-sizing: border-box;
+    z-index: 10;
+  }
+  #gameOverOverlay.show {
+    display: flex;
+    animation: fadeIn 0.4s ease-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  #gameOverTitle {
+    font-size: 16px;
+    font-weight: bold;
+    color: #ff8fa3;
+  }
+  #gameOverScore {
+    font-size: 12px;
+    color: #d8c8ff;
+  }
+  #gameOverScoreValue {
+    font-size: 34px;
+    font-weight: bold;
+    color: #ffd75a;
+    line-height: 1.1;
+    margin-bottom: 2px;
+  }
+  #gameOverVenue {
+    font-size: 13px;
+    font-weight: bold;
+    color: #90EE90;
+    margin-bottom: 2px;
+    line-height: 1.3;
+  }
+  #nameInputContainer {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+    align-items: center;
+  }
+  #playerNameInput {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #6b4fa0;
+    background: #2a1f3d;
+    color: #eee;
+    width: 120px;
+    font-size: 12px;
+  }
+  #submitScoreButton {
+    padding: 4px 10px;
+    background: #6b4fa0;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    transition: background 0.2s;
+  }
+  #submitScoreButton:active {
+    transform: scale(0.95);
+  }
+  #submitScoreButton:disabled {
+    background: #4a3a6a;
+    color: #888;
+    cursor: not-allowed;
+    transform: none;
+  }
+  #restartButton {
+    margin-top: 4px;
+    padding: 8px 24px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #1a1025;
+    background: linear-gradient(135deg, #ffd75a, #ffaa00);
+    border: none;
+    border-radius: 999px;
+    box-shadow: 0 4px 10px rgba(255, 215, 90, 0.3);
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+  #restartButton:active {
+    transform: scale(0.95);
+  }
+  #info {
+    font-size: 12px;
+    color: #b8a8d8;
+    text-align: center;
+    line-height: 1.4;
+    margin-top: 4px;
+  }
+  #scoreLabel {
+    font-size: 12px;
+    color: #d8c8ff;
+    text-align: right;
+  }
+  #scoreValue {
+    font-size: 28px;
+    font-weight: bold;
+    color: #ffd75a;
+    text-align: right;
+    line-height: 1.1;
+    text-shadow: 0 0 12px rgba(255, 215, 90, 0.5);
+    transition: transform 0.15s ease;
+  }
+  #scoreValue.bump {
+    transform: scale(1.15);
+  }
+  
+  /* ランキング用スタイル */
+  #leaderboardArea {
+    width: 100%;
+    max-width: 280px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #6b4fa0;
+    border-radius: 8px;
+    padding: 6px;
+    margin-bottom: 4px;
+    box-sizing: border-box;
+  }
+  .leaderboard-title {
+    font-size: 12px;
+    color: #ffd75a;
+    text-align: center;
+    margin-bottom: 4px;
+    font-weight: bold;
+  }
+  #leaderboardList {
+    font-size: 11px;
+  }
+  .leaderboard-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #4a3a6a;
+    padding: 2px 0;
+  }
+  .leaderboard-row:last-child {
+    border-bottom: none;
+  }
+  .leaderboard-rank { width: 22px; text-align: center; color: #ff8fa3; font-weight: bold; }
+  .leaderboard-score { font-weight: bold; color: #fff; width: 85px; text-align: right; font-size: 11px; }
+  .leaderboard-user { flex: 1; text-align: left; padding-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #888; font-size: 10px; line-height: 1.4;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div style="width: 100%; max-width: 400px; padding: 0 15px; box-sizing: border-box;">
+    <div id="headerArea" style="display: flex; justify-content: space-between; align-items: flex-end;">
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <div style="font-size: 12px; color: #b8a8d8; font-weight: bold;">アピール数</div>
+        <div id="dropCountValue" style="font-size: 24px; font-weight: bold; color: #d8c8ff; font-variant-numeric: tabular-nums; line-height: 1.1;">0</div>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: flex-end;">
+        <div id="scoreLabel">動員数</div>
+        <div id="scoreValue">0</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="canvasArea">
+    <canvas id="game"></canvas>
+    
+    <div id="gameOverOverlay">
+      <div id="gameOverTitle">会場が満席オーバーになりました</div>
+      <div id="gameOverScore">最終動員数</div>
+      <div id="gameOverScoreValue">0</div>
+      <div id="gameOverVenue">到達：路上ライブ</div>
+      <div id="gameOverDropCount" style="font-size: 12px; color: #b8a8d8; margin-bottom: 2px;">アピール数: 0</div>
+      
+      <div style="font-size: 10px; color: #d8c8ff; margin-bottom: 2px;">ニックネーム登録でランキングに送信されます</div>
+      <div id="nameInputContainer">
+        <input type="text" id="playerNameInput" placeholder="ニックネーム入力" maxlength="15">
+        <button id="submitScoreButton">登録</button>
+      </div>
+      
+      <div id="leaderboardArea">
+        <div class="leaderboard-title">🏆 オンラインランキング 🏆</div>
+        <div id="leaderboardList"></div>
+      </div>
+      
+      <button id="restartButton">もう一度あそぶ</button>
+    </div>
+  </div>
+  <div id="info">ドラッグして指を離すと投下</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<!-- ファンサイトと同じFirebase Compat SDK (これでSyntaxErrorを回避します) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+<script src="../firebase-config.js"></script>
+
+<script>
+let database = null;
+let leaderboardData = [];
+let scoreSubmitted = false;
+
+// Firebase初期化 (ファンサイト完全互換)
+try {
+  if (typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "ここに本物のAPIキーを書いてください") {
+    if (typeof firebase !== 'undefined') {
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      database = firebase.database();
+      
+      const leaderboardRef = database.ref('merge_game/leaderboard');
+      leaderboardRef.on('value', (snapshot) => {
+        const data = [];
+        snapshot.forEach(child => {
+          data.push(child.val());
+        });
+        data.sort((a, b) => b.score - a.score);
+        leaderboardData = data.slice(0, 10);
+        renderLeaderboard();
+      });
+    }
+  } else {
+    setTimeout(renderLeaderboard, 100);
+  }
+} catch (e) {
+  console.error("Firebase初期化エラー:", e);
+}
+
+function renderLeaderboard() {
+  const listEl = document.getElementById("leaderboardList");
+  if(!listEl) return;
+  listEl.innerHTML = "";
+  
+  for (let i = 0; i < 10; i++) {
+    const item = leaderboardData[i];
+    const row = document.createElement('div');
+    row.className = 'leaderboard-row';
+    const rankIcon = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+    
+    if (item) {
+      row.innerHTML = `
+        <div class="leaderboard-rank">${rankIcon}</div>
+        <div class="leaderboard-score">${(item.score || 0).toLocaleString()} / ${item.dropCount || 0}</div>
+        <div class="leaderboard-user">${item.userName || item.userId || 'Unknown'}</div>
+      `;
+    } else {
+      row.innerHTML = `
+        <div class="leaderboard-rank">${rankIcon}</div>
+        <div class="leaderboard-score" style="color:#888;">0 / 0</div>
+        <div class="leaderboard-user" style="color:#555;">---</div>
+      `;
+    }
+    listEl.appendChild(row);
+  }
+}
+
+async function submitScoreToFirebase(score, dropCount, userName) {
+  if (!database) return;
+  try {
+    const leaderboardRef = database.ref('merge_game/leaderboard');
+    await leaderboardRef.push({
+      userName: userName,
+      score: score,
+      dropCount: dropCount,
+      timestamp: typeof firebase !== 'undefined' ? firebase.database.ServerValue.TIMESTAMP : Date.now()
+    });
+  } catch (e) {
+    console.error("Score submit error:", e);
+  }
+}
+
+document.getElementById("submitScoreButton").addEventListener("click", async () => {
+  if (scoreSubmitted) return;
+  const nameInput = document.getElementById("playerNameInput");
+  const userName = nameInput.value.trim() || "名無し";
+  const btn = document.getElementById("submitScoreButton");
+  
+  btn.disabled = true;
+  btn.textContent = "送信中...";
+  await submitScoreToFirebase(score, dropCount, userName);
+  scoreSubmitted = true;
+  btn.textContent = "登録完了";
+});
+
+let audioStarted = false;
+let synth;
+let dropSynth;
+let lastMergeSoundTime = 0;
+
+function initAudio() {
+  if (audioStarted) return;
+  Tone.start();
+  audioStarted = true;
+  
+  // マージ音用（PolySynthで複数同時再生対応、丸い音色）
+  synth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "sine" },
+    envelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.8 }
+  }).toDestination();
+  synth.volume.value = -8;
+
+  // 投下音用（短く控えめな音、ピコピコ感や低音を排除）
+  dropSynth = new Tone.NoiseSynth({
+    noise: { type: "brown" },
+    envelope: { attack: 0.001, decay: 0.015, sustain: 0, release: 0.01 }
+  }).toDestination();
+  dropSynth.volume.value = -12;
+}
+
+window.addEventListener("pointerdown", initAudio);
+window.addEventListener("keydown", initAudio);
+
+function playDropSound() { 
+  if (audioStarted && dropSynth) dropSynth.triggerAttackRelease("32n"); 
+}
+
+function playMergeSound(tier, combo) {
+  if (!audioStarted || !synth) return;
+  const now = performance.now();
+  // 同時マージによる爆音やノイズを防ぐスロットル処理
+  if (now - lastMergeSoundTime < 50) return;
+  lastMergeSoundTime = now;
+  
+  const notes = ["D3", "F3", "A3", "D4", "F4", "A4", "D5", "F5", "A5"];
+  const noteIndex = Math.min(tier + (combo - 1), notes.length - 1);
+  synth.triggerAttackRelease(notes[noteIndex], "8n");
+}
+function playFinalMergeSound() { 
+  if (audioStarted && synth) synth.triggerAttackRelease(["D4", "F4", "A4", "D5"], "2n"); 
+}
+function playGameOverSound() { 
+  if (audioStarted && synth) synth.triggerAttackRelease(["C4", "Eb4", "F#4"], "2n"); 
+}
+
+const WORLD_WIDTH = 400;
+const WORLD_HEIGHT = 700;
+const WALL_THICKNESS = 20;
+const DANGER_LINE_Y = WORLD_HEIGHT * 0.20;
+const INTERNAL_DANGER_LINE_Y = DANGER_LINE_Y - (WORLD_HEIGHT * 0.05);
+const DROP_SPAWN_Y = DANGER_LINE_Y / 2;
+
+const canvas = document.getElementById("game");
+canvas.width = WORLD_WIDTH;
+canvas.height = WORLD_HEIGHT;
+const ctx = canvas.getContext("2d");
+
+const { Engine, World, Bodies, Body } = Matter;
+const engine = Engine.create();
+engine.gravity.y = 1;
+engine.positionIterations = 10;
+engine.velocityIterations = 8;
+
+const ground = Bodies.rectangle(WORLD_WIDTH / 2, WORLD_HEIGHT + WALL_THICKNESS / 2, WORLD_WIDTH, WALL_THICKNESS, { isStatic: true, label: "ground" });
+const leftWall = Bodies.rectangle(-WALL_THICKNESS / 2, WORLD_HEIGHT / 2, WALL_THICKNESS, WORLD_HEIGHT, { isStatic: true, label: "leftWall" });
+const rightWall = Bodies.rectangle(WORLD_WIDTH + WALL_THICKNESS / 2, WORLD_HEIGHT / 2, WALL_THICKNESS, WORLD_HEIGHT, { isStatic: true, label: "rightWall" });
+World.add(engine.world, [ground, leftWall, rightWall]);
+
+const TIER_RADIUS = [30, 40, 55, 75];
+const TIER_HUE = [200, 275, 330, 45];
+
+function getTierInfo(stage) {
+  const tier = Math.floor((stage - 1) / 3);
+  const countInTier = stage - tier * 3;
+  return { tier, countInTier };
+}
+
+const STAGE_CONFIG = [null];
+for (let s = 1; s <= 10; s++) {
+  const { tier, countInTier } = getTierInfo(s);
+  STAGE_CONFIG.push({ stage: s, people: s, tier, countInTier, hue: TIER_HUE[tier] });
+}
+const MAX_STAGE = STAGE_CONFIG.length - 1;
+
+function computePersonLayout(stage) {
+  const config = STAGE_CONFIG[stage];
+  const charRadius = TIER_RADIUS[config.tier];
+  const spacing = charRadius * 1.7;
+
+  let positions;
+  if (config.countInTier === 1) positions = [{ dx: 0, dy: 0 }];
+  else if (config.countInTier === 2) positions = [{ dx: -spacing / 2, dy: 0 }, { dx: spacing / 2, dy: 0 }];
+  else positions = [{ dx: -spacing / 2, dy: spacing * 0.4 }, { dx: spacing / 2, dy: spacing * 0.4 }, { dx: 0, dy: -spacing * 0.5 }];
+
+  let boundingRadius = charRadius;
+  for (const p of positions) {
+    const d = Math.hypot(p.dx, p.dy) + charRadius;
+    if (d > boundingRadius) boundingRadius = d;
+  }
+  return { dotRadius: charRadius, positions, hue: config.hue, boundingRadius, tier: config.tier };
+}
+
+for (let s = 1; s <= MAX_STAGE; s++) {
+  STAGE_CONFIG[s].radius = computePersonLayout(s).boundingRadius;
+}
+
+const HIT_RADIUS_SCALE = 1.14;
+const balls = [];
+const ballById = new Map();
+
+function createPersonBody(x, y, stage) {
+  const layout = computePersonLayout(stage);
+  const hitRadius = layout.dotRadius * HIT_RADIUS_SCALE;
+  const parts = layout.positions.map((p) =>
+    Bodies.circle(x + p.dx, y + p.dy, hitRadius, { restitution: 0.15, friction: 0.01, frictionAir: 0.001 })
+  );
+  return Body.create({ parts, restitution: 0.15, friction: 0.01, frictionAir: 0.001, label: "person" });
+}
+
+const MERGE_DELAY_MS = 300; 
+function addBall(x, y, stage, isSpawnedFromMerge = false) {
+  const body = createPersonBody(x, y, stage);
+  World.add(engine.world, body);
+  const entry = { body, stage };
+  entry.mergeReadyTime = isSpawnedFromMerge ? performance.now() + MERGE_DELAY_MS : 0;
+  balls.push(entry);
+  ballById.set(body.id, entry);
+  return entry;
+}
+
+function removeBall(entry) {
+  World.remove(engine.world, entry.body);
+  ballById.delete(entry.body.id);
+  const idx = balls.indexOf(entry);
+  if (idx !== -1) balls.splice(idx, 1);
+}
+
+const DROP_WEIGHTS = [
+  { stage: 1, weight: 15 },
+  { stage: 2, weight: 30 },
+  { stage: 3, weight: 30 },
+  { stage: 4, weight: 15 },
+  { stage: 5, weight: 10 },
+];
+const DROP_WEIGHT_TOTAL = DROP_WEIGHTS.reduce((sum, w) => sum + w.weight, 0);
+
+function pickRandomDropStage() {
+  let r = Math.random() * DROP_WEIGHT_TOTAL;
+  for (const w of DROP_WEIGHTS) {
+    if (r < w.weight) return w.stage;
+    r -= w.weight;
+  }
+  return 1;
+}
+
+let aimX = WORLD_WIDTH / 2;
+let dragging = false;
+let lastDropTime = -Infinity;
+let nextStage = pickRandomDropStage();
+let upcomingStage = pickRandomDropStage();
+const DROP_COOLDOWN_MS = 500;
+const DROP_GRACE_MS = 500;
+let lastDroppedEntry = null;
+let dropGraceUntil = -Infinity;
+
+function clampAimX(x, radius) {
+  return Math.max(WALL_THICKNESS + radius, Math.min(WORLD_WIDTH - WALL_THICKNESS - radius, x));
+}
+function clientXToWorld(clientX) {
+  const rect = canvas.getBoundingClientRect();
+  return (clientX - rect.left) * (WORLD_WIDTH / rect.width);
+}
+function updateAimFromClientX(clientX) {
+  aimX = clampAimX(clientXToWorld(clientX), STAGE_CONFIG[nextStage].radius);
+}
+
+let dropCount = 0;
+const dropCountValueEl = document.getElementById("dropCountValue");
+let score = 0;
+const scoreValueEl = document.getElementById("scoreValue");
+
+function getVenue(currentScore) {
+  if (currentScore < 50) return "目標：路上ライブ（50人）";
+  if (currentScore < 300) return "目標：渋谷 VIDENT（300人）";
+  if (currentScore < 600) return "目標：渋谷 WWW X（600人）";
+  if (currentScore < 700) return "目標：渋谷 duo（700人）";
+  if (currentScore < 1500) return "目標：Zepp Shinjuku（1,500人）";
+  if (currentScore < 2500) return "目標：Zepp DiverCity（2,500人）";
+  if (currentScore < 5000) return "目標：東京国際フォーラム（5,000人）";
+  if (currentScore < 8000) return "目標：東京ガーデンシアター（8,000人）";
+  if (currentScore < 14000) return "目標：日本武道館（1.4万人）";
+  if (currentScore < 30000) return "目標：さいたまスーパーアリーナ（3万人）";
+  if (currentScore < 55000) return "目標：東京ドーム（5.5万人）";
+  if (currentScore < 80000) return "目標：国立競技場（8万人）";
+  if (currentScore < 200000) return "目標：渋谷エリア（20万人）";
+  if (currentScore < 300000) return "目標：6大ドームツアー（30万人）";
+  if (currentScore < 1000000) return "目標：東京ドーム20回公演（100万人）";
+  if (currentScore < 3000000) return "目標：6大ドームツアー10周（300万人）";
+  if (currentScore < 10000000) return "目標：東京23区エリア（1,000万人）";
+  if (currentScore < 120000000) return "目標：47都道府県ツアー（1.2億人）";
+  if (currentScore < 8300000000) return "目標：地球（83億人）";
+  return "👑 地球到達!!（83億人） 👑";
+}
+
+function updateScoreUI() {
+  scoreValueEl.textContent = score.toLocaleString("ja-JP");
+  scoreValueEl.classList.remove("bump");
+  void scoreValueEl.offsetWidth;
+  scoreValueEl.classList.add("bump");
+}
+
+function addScore(amount) {
+  score += amount;
+  updateScoreUI();
+}
+
+function tryDrop() {
+  if (gameState !== "playing") return;
+  const now = performance.now();
+  if (now - lastDropTime < DROP_COOLDOWN_MS) return;
+  
+  lastDropTime = now;
+  lastDroppedEntry = addBall(aimX, DROP_SPAWN_Y, nextStage, false);
+  dropGraceUntil = now + DROP_GRACE_MS;
+  
+  dropCount++;
+  dropCountValueEl.textContent = dropCount.toLocaleString("ja-JP");
+  
+  playDropSound();
+  
+  nextStage = upcomingStage;
+  upcomingStage = pickRandomDropStage();
+  aimX = clampAimX(aimX, STAGE_CONFIG[nextStage].radius);
+}
+
+canvas.addEventListener("touchstart", (e) => { e.preventDefault(); dragging = true; updateAimFromClientX(e.touches[0].clientX); }, { passive: false });
+canvas.addEventListener("touchmove", (e) => { e.preventDefault(); if (dragging) updateAimFromClientX(e.touches[0].clientX); }, { passive: false });
+canvas.addEventListener("touchend", (e) => { e.preventDefault(); if (dragging) { dragging = false; tryDrop(); } }, { passive: false });
+canvas.addEventListener("mousedown", (e) => { dragging = true; updateAimFromClientX(e.clientX); });
+window.addEventListener("mousemove", (e) => { if (dragging) updateAimFromClientX(e.clientX); });
+window.addEventListener("mouseup", () => { if (dragging) { dragging = false; tryDrop(); } });
+
+const keys = {};
+window.addEventListener("keydown", (e) => {
+  if (["ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
+  keys[e.key] = true;
+});
+window.addEventListener("keyup", (e) => { keys[e.key] = false; });
+
+function updateKeyboardAim() {
+  const KEY_SPEED = 6;
+  if (keys["ArrowLeft"]) aimX = clampAimX(aimX - KEY_SPEED, STAGE_CONFIG[nextStage].radius);
+  if (keys["ArrowRight"]) aimX = clampAimX(aimX + KEY_SPEED, STAGE_CONFIG[nextStage].radius);
+  if (keys[" "]) tryDrop();
+}
+
+class Particle {
+  constructor(x, y, hue) {
+    this.x = x;
+    this.y = y;
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 6 + 2;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.hue = hue;
+    this.life = 1.0;
+    this.size = Math.random() * 4 + 2;
+  }
+  update(delta) {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += 0.2;
+    this.life -= delta / 600;
+  }
+  draw(ctx) {
+    if (this.life <= 0) return;
+    ctx.globalAlpha = this.life;
+    ctx.fillStyle = `hsl(${this.hue}, 90%, 70%)`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+  }
+}
+
+class FloatingText {
+  constructor(x, y, text, color = "#FFD75A") {
+    this.x = x;
+    this.y = y;
+    this.text = text;
+    this.color = color;
+    this.life = 1.0;
+    this.vy = -1.2;
+  }
+  update(delta) {
+    this.y += this.vy;
+    this.life -= delta / 1000;
+  }
+  draw(ctx) {
+    if (this.life <= 0) return;
+    ctx.globalAlpha = Math.max(0, this.life);
+    ctx.font = "bold 22px 'Hiragino Sans', sans-serif";
+    ctx.fillStyle = this.color;
+    ctx.strokeStyle = "#1A1025";
+    ctx.lineWidth = 4;
+    ctx.textAlign = "center";
+    ctx.strokeText(this.text, this.x, this.y);
+    ctx.fillText(this.text, this.x, this.y);
+    ctx.globalAlpha = 1.0;
+  }
+}
+
+const particles = [];
+const floatingTexts = [];
+const finalMergeEffects = [];
+
+let currentCombo = 0;
+let lastMergeTime = 0;
+const COMBO_TIMEOUT_MS = 1500;
+
+function applyGrowthImpulse(centerX, centerY, oldStage, newStage, newEntry) {
+  const oldTier = STAGE_CONFIG[oldStage].tier;
+  const newTier = STAGE_CONFIG[newStage].tier;
+  const growth = oldTier !== newTier ? TIER_RADIUS[newTier] * 1.4 : TIER_RADIUS[oldTier] * 0.08;
+  const impulseRange = TIER_RADIUS[newTier] + growth * 3.2;
+  const kickSpeed = 0.28 * growth;
+
+  for (const other of balls) {
+    if (other === newEntry) continue;
+    const dx = other.body.position.x - centerX;
+    const dy = other.body.position.y - centerY;
+    const dist = Math.hypot(dx, dy) || 1;
+    if (dist > impulseRange) continue;
+
+    const falloff = 1 - dist / impulseRange;
+    Body.setVelocity(other.body, { x: other.body.velocity.x + (dx/dist) * kickSpeed * falloff, y: other.body.velocity.y + (dy/dist) * kickSpeed * falloff });
+    other.bounceScale = 1 + falloff * 0.35;
+    other.bounceStartTime = performance.now();
+  }
+  newEntry.bounceScale = Math.min(2.0, 1.08 + growth * 0.013);
+  newEntry.bounceStartTime = performance.now();
+}
+
+function onFinalMerge(x, y, combo) {
+  playFinalMergeSound();
+  finalMergeEffects.push({ x, y, age: 0 });
+  for(let i = 0; i < 40; i++) particles.push(new Particle(x, y, 45));
+  floatingTexts.push(new FloatingText(x, y - 60, "限界突破！！", "#FF8FA3"));
+  
+  const scoreBase = Math.pow(MAX_STAGE, 2);
+  const comboMultiplier = 1 + (combo - 1) * 0.5;
+  const appealMultiplier = 1 + (dropCount * 0.01);
+  const comboScore = Math.floor(scoreBase * comboMultiplier * appealMultiplier);
+  const finalBonus = 10000; 
+  addScore(comboScore + finalBonus);
+}
+
+Matter.Events.on(engine, "collisionStart", handleCollisions);
+Matter.Events.on(engine, "collisionActive", handleCollisions);
+
+function handleCollisions(event) {
+  const now = performance.now();
+  const consumedThisEvent = new Set();
+
+  for (const pair of event.pairs) {
+    const topA = pair.bodyA.parent || pair.bodyA;
+    const topB = pair.bodyB.parent || pair.bodyB;
+    const entryA = ballById.get(topA.id);
+    const entryB = ballById.get(topB.id);
+
+    if (!entryA || !entryB || entryA === entryB || entryA.stage !== entryB.stage) continue;
+    if (entryA.mergeReadyTime > now || entryB.mergeReadyTime > now) continue;
+    if (consumedThisEvent.has(entryA.body.id) || consumedThisEvent.has(entryB.body.id)) continue;
+
+    consumedThisEvent.add(entryA.body.id);
+    consumedThisEvent.add(entryB.body.id);
+
+    const midX = (entryA.body.position.x + entryB.body.position.x) / 2;
+    const midY = (entryA.body.position.y + entryB.body.position.y) / 2;
+
+    if (now - lastMergeTime > COMBO_TIMEOUT_MS) currentCombo = 1;
+    else currentCombo++;
+    lastMergeTime = now;
+
+    if (entryA.stage >= MAX_STAGE) {
+      removeBall(entryA);
+      removeBall(entryB);
+      onFinalMerge(midX, midY, currentCombo);
+      continue;
+    }
+
+    const newStage = entryA.stage + 1;
+    const oldStage = entryA.stage;
+    removeBall(entryA);
+    removeBall(entryB);
+    
+    const newEntry = addBall(midX, midY, newStage, true);
+    applyGrowthImpulse(midX, midY, oldStage, newStage, newEntry);
+    
+    playMergeSound(STAGE_CONFIG[newStage].tier, currentCombo);
+    for (let i = 0; i < 10 + currentCombo * 3; i++) {
+      particles.push(new Particle(midX, midY, STAGE_CONFIG[newStage].hue));
+    }
+    
+    if (currentCombo >= 2) {
+      floatingTexts.push(new FloatingText(midX, midY - 40, `${currentCombo}連鎖！`));
+    }
+    
+    const scoreBase = Math.pow(newStage, 2);
+    const comboMultiplier = 1 + (currentCombo - 1) * 0.5;
+    const appealMultiplier = 1 + (dropCount * 0.01);
+    addScore(Math.floor(scoreBase * comboMultiplier * appealMultiplier));
+  }
+}
+
+function drawPersonDot(x, y, r, hue, tier) {
+  const gradient = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.15, x, y, r * 1.05);
+  gradient.addColorStop(0, `hsl(${hue}, 75%, 72%)`);
+  gradient.addColorStop(1, `hsl(${hue}, 65%, 48%)`);
+
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, r * 0.92, 0, 0, Math.PI * 2);
+  ctx.fillStyle = gradient;
+  ctx.fill();
+  ctx.strokeStyle = `hsla(${hue}, 60%, 30%, 0.35)`;
+  ctx.lineWidth = Math.max(1, r * 0.04);
+  ctx.stroke();
+
+  if (tier === 3) {
+    const eyeOffsetX = r * 0.32;
+    const eyeOffsetY = r * -0.05;
+    const eyeR = r * 0.26;
+    for (const sign of [-1, 1]) {
+      const ex = x + sign * eyeOffsetX;
+      const ey = y + eyeOffsetY;
+      ctx.beginPath(); ctx.arc(ex, ey, eyeR, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex + sign * eyeR * 0.15, ey + eyeR * 0.25, eyeR * 0.55, 0, Math.PI * 2); ctx.fillStyle = "#1a1025"; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex + sign * eyeR * 0.35, ey - eyeR * 0.1, eyeR * 0.18, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+      
+      ctx.beginPath();
+      ctx.moveTo(ex - sign * eyeR * 1.2, ey - eyeR * 1.5);
+      ctx.lineTo(ex + sign * eyeR * 0.8, ey - eyeR * 0.8);
+      ctx.strokeStyle = "#1a1025";
+      ctx.lineWidth = r * 0.08;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+    
+    ctx.beginPath();
+    ctx.arc(x, y + r * 0.2, r * 0.25, 0, Math.PI, false);
+    ctx.strokeStyle = "#1a1025";
+    ctx.lineWidth = r * 0.05;
+    ctx.stroke();
+  } else if (tier === 2) {
+    const eyeOffsetX = r * 0.32;
+    const eyeOffsetY = r * -0.05;
+    const eyeR = r * 0.26;
+    for (const sign of [-1, 1]) {
+      const ex = x + sign * eyeOffsetX;
+      const ey = y + eyeOffsetY;
+      ctx.beginPath(); ctx.arc(ex, ey, eyeR, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex, ey + eyeR * 0.05, eyeR * 0.75, 0, Math.PI * 2); ctx.fillStyle = "#1a1025"; ctx.fill();
+      
+      const kx = ex; const ky = ey - eyeR * 0.15; const kr = eyeR * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(kx, ky - kr); ctx.quadraticCurveTo(kx, ky, kx + kr, ky);
+      ctx.quadraticCurveTo(kx, ky, kx, ky + kr); ctx.quadraticCurveTo(kx, ky, kx - kr, ky);
+      ctx.quadraticCurveTo(kx, ky, kx, ky - kr);
+      ctx.fillStyle = "#FFD75A"; ctx.fill();
+      
+      ctx.beginPath(); ctx.arc(ex + eyeR * 0.35, ey + eyeR * 0.4, eyeR * 0.15, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+    }
+  } else {
+    const eyeOffsetX = r * 0.32;
+    const eyeOffsetY = r * -0.05;
+    const eyeR = r * 0.26;
+    for (const sign of [-1, 1]) {
+      const ex = x + sign * eyeOffsetX;
+      const ey = y + eyeOffsetY;
+      ctx.beginPath(); ctx.arc(ex, ey, eyeR, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex + sign * eyeR * 0.15, ey + eyeR * 0.25, eyeR * 0.55, 0, Math.PI * 2); ctx.fillStyle = "#1a1025"; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex + sign * eyeR * 0.35, ey - eyeR * 0.1, eyeR * 0.18, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+    }
+  }
+
+  ctx.beginPath(); ctx.ellipse(x - r * 0.4, y - r * 0.45, r * 0.22, r * 0.13, -0.4, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.fill();
+
+  if (tier >= 1) {
+    ctx.fillStyle = "#90EE90"; 
+    
+    if (tier >= 2) {
+      ctx.beginPath(); ctx.ellipse(x, y - r * 0.45, r * 0.95, r * 0.26, 0, 0, Math.PI * 2); ctx.fill();
+      
+      ctx.fillStyle = "#1a1025"; 
+      // ピンク粒・王冠粒の HIGH SPIRITS の文字サイズを大きく調整
+      ctx.font = `bold ${Math.max(12, r * 0.26)}px 'Hiragino Sans', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("HIGH SPIRITS", x, y - r * 0.42, r * 1.25);
+    } else {
+      ctx.beginPath(); ctx.ellipse(x, y - r * 0.45, r * 0.82, r * 0.26, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x - r * 0.75, y - r * 0.4); ctx.lineTo(x - r * 1.2, y - r * 0.65); ctx.lineTo(x - r * 1.1, y - r * 0.15); ctx.fill();
+      
+      ctx.fillStyle = "#1a1025"; 
+      ctx.font = `bold ${Math.max(14, r * 0.4)}px 'Hiragino Sans', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("HS", x, y - r * 0.43);
+    }
+  }
+
+  if (tier === 3) {
+    ctx.fillStyle = "#FFD700";
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.6, y - r * 0.6); ctx.lineTo(x - r * 0.7, y - r * 1.4);
+    ctx.lineTo(x - r * 0.3, y - r * 0.9); ctx.lineTo(x, y - r * 1.5);
+    ctx.lineTo(x + r * 0.3, y - r * 0.9); ctx.lineTo(x + r * 0.7, y - r * 1.4);
+    ctx.lineTo(x + r * 0.6, y - r * 0.6); ctx.fill();
+    ctx.strokeStyle = "#B8860B"; ctx.lineWidth = r * 0.05; ctx.stroke();
+    ctx.fillStyle = "#EEE";
+    ctx.beginPath(); ctx.arc(x - r * 0.15, y + r * 0.3, r * 0.25, 0, Math.PI * 2); ctx.arc(x + r * 0.15, y + r * 0.3, r * 0.25, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (tier >= 2) {
+    const lightColor = tier === 2 ? "#FF8FA3" : "#32CD32"; 
+    for (const sign of [-1, 1]) {
+      const px = x + sign * r * 1.0;
+      ctx.fillStyle = "#333"; ctx.fillRect(px - r * 0.1, y, r * 0.2, r * 0.6);
+      ctx.fillStyle = lightColor; ctx.shadowColor = lightColor; ctx.shadowBlur = 15;
+      ctx.fillRect(px - r * 0.1, y - r * 0.9, r * 0.2, r * 0.9);
+      ctx.beginPath(); ctx.arc(px, y - r * 0.9, r * 0.1, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = "#FFFFFF";
+      const fontSize = Math.max(6, r * 0.14);
+      ctx.font = `bold ${fontSize}px 'Hiragino Sans', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const text = "ハイスピ";
+      const startY = y - r * 0.72;
+      const stepY = r * 0.18;
+      for (let i = 0; i < text.length; i++) {
+        ctx.fillText(text[i], px, startY + i * stepY);
+      }
+    }
+  }
+}
+
+function getBounceScale(item) {
+  if (!item.bounceStartTime) return 1;
+  const elapsed = performance.now() - item.bounceStartTime;
+  if (elapsed >= 620) { item.bounceStartTime = null; return 1; }
+  const overshoot = item.bounceScale || 1.2;
+  const undershoot = 1 - (overshoot - 1) * 0.3;
+  const overshoot2 = 1 + (overshoot - 1) * 0.15;
+  const keyframes = [{ t: 0, v: 0.8 }, { t: 0.16, v: overshoot }, { t: 0.45, v: undershoot }, { t: 0.72, v: overshoot2 }, { t: 1.0, v: 1.0 }];
+  const t = elapsed / 620;
+  for (let i = 0; i < keyframes.length - 1; i++) {
+    if (t >= keyframes[i].t && t <= keyframes[i+1].t) {
+      const localT = (t - keyframes[i].t) / (keyframes[i+1].t - keyframes[i].t);
+      return keyframes[i].v + (keyframes[i+1].v - keyframes[i].v) * (1 - Math.pow(1 - localT, 2));
+    }
+  }
+  return 1;
+}
+
+function drawPerson(x, y, angle, stage, alpha = 1, scale = 1, item = null) {
+  const config = STAGE_CONFIG[stage];
+  const layout = computePersonLayout(stage);
+  ctx.globalAlpha = alpha;
+
+  const now = performance.now();
+  let isFlashing = false;
+  if (item && item.mergeReadyTime && item.mergeReadyTime > now) {
+    const elapsedFromMerge = MERGE_DELAY_MS - (item.mergeReadyTime - now);
+    const step = MERGE_DELAY_MS / 4;
+    const phase = Math.floor(elapsedFromMerge / step);
+    if (phase === 0 || phase === 2) isFlashing = true;
+  }
+
+  if (isFlashing) ctx.filter = 'brightness(1.5)';
+  if (stage === MAX_STAGE) {
+    ctx.shadowColor = `hsl(${config.hue}, 90%, 60%)`;
+    ctx.shadowBlur = 14;
+  }
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  if (scale !== 1) ctx.scale(scale, scale);
+  
+  for (const p of layout.positions) {
+    drawPersonDot(p.dx, p.dy, layout.dotRadius, layout.hue, layout.tier);
+  }
+  ctx.restore();
+
+  ctx.shadowBlur = 0;
+  ctx.filter = 'none';
+  ctx.globalAlpha = 1;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+  ctx.fillStyle = "#241934"; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+  if (dangerTimer > 0) {
+    const dangerProgress = Math.min(1, dangerTimer / DANGER_HOLD_MS);
+    
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, WORLD_WIDTH, DANGER_LINE_Y);
+    ctx.clip();
+
+    const flashSpeed = 200 - (dangerProgress * 150);
+    const flash = (Math.floor(performance.now() / flashSpeed) % 2 === 0) ? 0.4 : 0.1;
+    ctx.fillStyle = `rgba(255, 20, 50, ${flash * dangerProgress})`;
+    ctx.fillRect(0, 0, WORLD_WIDTH, DANGER_LINE_Y);
+
+    const stripeWidth = 30;
+    const gap = stripeWidth * 2;
+    const offset = (performance.now() / 15) % gap; 
+    
+    ctx.lineWidth = stripeWidth;
+    ctx.strokeStyle = `rgba(255, 215, 0, ${0.4 + dangerProgress * 0.4})`;
+    
+    for (let i = -DANGER_LINE_Y; i < WORLD_WIDTH + DANGER_LINE_Y; i += gap) {
+      ctx.beginPath();
+      ctx.moveTo(i + offset, DANGER_LINE_Y);
+      ctx.lineTo(i + offset + DANGER_LINE_Y, 0);
+      ctx.stroke();
+    }
+    
+    ctx.restore();
+  }
+
+  ctx.strokeStyle = dangerTimer > 0 ? `rgba(255, 50, 50, ${0.5 + Math.min(1, dangerTimer/DANGER_HOLD_MS) * 0.5})` : "rgba(255, 90, 120, 0.4)";
+  ctx.setLineDash(dangerTimer > 0 ? [8, 8] : [6, 6]); 
+  ctx.lineWidth = dangerTimer > 0 ? 3 : 2;
+  ctx.beginPath(); ctx.moveTo(0, DANGER_LINE_Y); ctx.lineTo(WORLD_WIDTH, DANGER_LINE_Y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const nextBoxW = 64;
+  const nextBoxH = 70;
+  const nextBoxX = WORLD_WIDTH - nextBoxW - 12;
+  const nextBoxY = 12;
+
+  ctx.fillStyle = "rgba(26, 16, 37, 0.7)";
+  ctx.strokeStyle = "rgba(107, 79, 160, 0.5)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(nextBoxX, nextBoxY, nextBoxW, nextBoxH, 8);
+  else ctx.rect(nextBoxX, nextBoxY, nextBoxW, nextBoxH);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#d8c8ff";
+  ctx.font = "bold 11px 'Hiragino Sans', sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("NEXT", nextBoxX + nextBoxW / 2, nextBoxY + 14);
+
+  const upcomingConfig = STAGE_CONFIG[upcomingStage];
+  const maxDrawRadius = 18;
+  const fitScale = upcomingConfig.radius > maxDrawRadius ? maxDrawRadius / upcomingConfig.radius : 1;
+  drawPerson(nextBoxX + nextBoxW / 2, nextBoxY + 44, 0, upcomingStage, 1, fitScale);
+
+  ctx.fillStyle = "#4a3a6a";
+  ctx.fillRect(0, WORLD_HEIGHT - 4, WORLD_WIDTH, 4);
+  ctx.fillRect(0, 0, 4, WORLD_HEIGHT); ctx.fillRect(WORLD_WIDTH - 4, 0, 4, WORLD_HEIGHT);
+
+  const sortedForDraw = [...balls].sort((a, b) => a.body.position.y - b.body.position.y);
+  for (const item of sortedForDraw) {
+    const scale = getBounceScale(item);
+    drawPerson(item.body.position.x, item.body.position.y, item.body.angle, item.stage, 1, scale, item);
+  }
+
+  for (const p of particles) p.draw(ctx);
+  for (const t of floatingTexts) t.draw(ctx);
+
+  for (const fx of finalMergeEffects) {
+    const progress = fx.age / 400;
+    const radius = STAGE_CONFIG[MAX_STAGE].radius * (1 + progress * 1.5);
+    ctx.beginPath(); ctx.arc(fx.x, fx.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 215, 90, ${1 - progress})`; ctx.lineWidth = 4; ctx.stroke();
+  }
+
+  const cooldownRemain = DROP_COOLDOWN_MS - (performance.now() - lastDropTime);
+  const ready = cooldownRemain <= 0;
+  drawPerson(aimX, DROP_SPAWN_Y, 0, nextStage, ready ? 1 : 0.35, 1);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(aimX, DROP_SPAWN_Y + STAGE_CONFIG[nextStage].radius); ctx.lineTo(aimX, WORLD_HEIGHT); ctx.stroke();
+}
+
+const DANGER_HOLD_MS = 2500;
+let gameState = "playing";
+let dangerTimer = 0;
+const gameOverOverlay = document.getElementById("gameOverOverlay");
+const gameOverScoreValueEl = document.getElementById("gameOverScoreValue");
+const gameOverVenueEl = document.getElementById("gameOverVenue");
+
+function updateGameOverCheck(delta) {
+  if (gameState !== "playing") return;
+
+  const now = performance.now();
+  let dangerStatic = false; 
+  let dangerMoving = false; 
+
+  for (const item of balls) {
+    if (item === lastDroppedEntry && now < dropGraceUntil) continue;
+    
+    const topY = item.body.position.y - STAGE_CONFIG[item.stage].radius;
+    if (topY < INTERNAL_DANGER_LINE_Y) {
+      const speed = Math.hypot(item.body.velocity.x, item.body.velocity.y);
+      if (speed > 1.5 || item.body.velocity.y < -0.5) {
+        dangerMoving = true; 
+      } else {
+        dangerStatic = true;
+      }
+    }
+  }
+
+  if (dangerStatic) {
+    dangerTimer += delta;
+    if (dangerTimer >= DANGER_HOLD_MS) triggerGameOver();
+  } else if (dangerMoving) {
+  } else {
+    dangerTimer = 0;
+  }
+}
+
+function triggerGameOver() {
+  gameState = "gameover";
+  playGameOverSound();
+  gameOverScoreValueEl.textContent = score.toLocaleString("ja-JP");
+  
+  const venueText = getVenue(score).replace("目標：", "");
+  gameOverVenueEl.innerHTML = "最終到達：" + venueText.replace("（", "<br>（");
+  
+  document.getElementById("gameOverDropCount").textContent = `アピール数: ${dropCount.toLocaleString("ja-JP")}`;
+  
+  scoreSubmitted = false;
+  const btn = document.getElementById("submitScoreButton");
+  btn.disabled = false;
+  btn.textContent = "登録";
+  
+  renderLeaderboard();
+  gameOverOverlay.classList.add("show");
+}
+
+document.getElementById("restartButton").addEventListener("click", () => {
+  for (const item of [...balls]) removeBall(item);
+  finalMergeEffects.length = 0;
+  particles.length = 0;
+  floatingTexts.length = 0;
+  score = 0;
+  dropCount = 0; dropCountValueEl.textContent = "0";
+  updateScoreUI();
+  dangerTimer = 0; currentCombo = 0;
+  lastDroppedEntry = null; dropGraceUntil = -Infinity;
+  nextStage = pickRandomDropStage();
+  upcomingStage = pickRandomDropStage();
+  aimX = clampAimX(WORLD_WIDTH / 2, STAGE_CONFIG[nextStage].radius);
+  lastDropTime = -Infinity;
+  gameState = "playing";
+  gameOverOverlay.classList.remove("show");
+});
+
+let lastTime = performance.now();
+function loop(now) {
+  const delta = Math.min(now - lastTime, 33);
+  lastTime = now;
+
+  if (gameState === "playing") {
+    updateKeyboardAim();
+    Engine.update(engine, delta);
+  }
+  
+  if (now - lastMergeTime > COMBO_TIMEOUT_MS && currentCombo > 0) currentCombo = 0;
+
+  for (let i = finalMergeEffects.length - 1; i >= 0; i--) {
+    finalMergeEffects[i].age += delta;
+    if (finalMergeEffects[i].age >= 400) finalMergeEffects.splice(i, 1);
+  }
+  for (let i = particles.length - 1; i >= 0; i--) {
+    particles[i].update(delta);
+    if (particles[i].life <= 0) particles.splice(i, 1);
+  }
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    floatingTexts[i].update(delta);
+    if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+  }
+
+  updateGameOverCheck(delta);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
