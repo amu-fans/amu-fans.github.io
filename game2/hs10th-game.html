@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>ハイスピ動員ゲーム</title>
+<title>推し活マージゲーム - 完成版</title>
 <style>
   html, body {
     margin: 0;
@@ -244,10 +244,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-<!-- ファンサイトと同じFirebase Compat SDK (これでSyntaxErrorを回避します) -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-<script src="../firebase-config.js"></script>
+<script src="firebase-config.js"></script>
 
 <script>
 let database = null;
@@ -690,8 +689,8 @@ function onFinalMerge(x, y, combo) {
   floatingTexts.push(new FloatingText(x, y - 60, "限界突破！！", "#FF8FA3"));
   
   const scoreBase = Math.pow(MAX_STAGE, 2);
-  const comboMultiplier = 1 + (combo - 1) * 0.5;
-  const appealMultiplier = 1 + (dropCount * 0.01);
+  const comboMultiplier = 1 + (combo - 1) * 0.3;
+  const appealMultiplier = 1 + (dropCount * 0.05);
   const comboScore = Math.floor(scoreBase * comboMultiplier * appealMultiplier);
   const finalBonus = 10000; 
   addScore(comboScore + finalBonus);
@@ -749,8 +748,8 @@ function handleCollisions(event) {
     }
     
     const scoreBase = Math.pow(newStage, 2);
-    const comboMultiplier = 1 + (currentCombo - 1) * 0.5;
-    const appealMultiplier = 1 + (dropCount * 0.01);
+    const comboMultiplier = 1 + (currentCombo - 1) * 0.3;
+    const appealMultiplier = 1 + (dropCount * 0.05);
     addScore(Math.floor(scoreBase * comboMultiplier * appealMultiplier));
   }
 }
@@ -834,7 +833,6 @@ function drawPersonDot(x, y, r, hue, tier) {
       ctx.beginPath(); ctx.ellipse(x, y - r * 0.45, r * 0.95, r * 0.26, 0, 0, Math.PI * 2); ctx.fill();
       
       ctx.fillStyle = "#1a1025"; 
-      // ピンク粒・王冠粒の HIGH SPIRITS の文字サイズを大きく調整
       ctx.font = `bold ${Math.max(12, r * 0.26)}px 'Hiragino Sans', sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -944,6 +942,30 @@ function drawPerson(x, y, angle, stage, alpha = 1, scale = 1, item = null) {
 function draw() {
   ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
   ctx.fillStyle = "#241934"; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+  // 背景の透かし文字（ライブ開催告知）を描画
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgba(255, 255, 255, 0.35)"; 
+  
+  const centerX = WORLD_WIDTH / 2;
+  const baseY = WORLD_HEIGHT * 0.47; // ← 全体をグッと下に移動しました
+  const fontFamily = "'Times New Roman', 'YuMincho', 'Hiragino Mincho ProN', serif";
+
+  ctx.font = `bold 24px ${fontFamily}`;
+  ctx.fillText("2026/11/17 (火)", centerX, baseY);
+  
+  ctx.font = `bold 42px ${fontFamily}`;
+  ctx.fillText("HIGH SPIRITS", centerX, baseY + 46);
+  
+  ctx.font = `bold 32px ${fontFamily}`;
+  ctx.fillText("10th Anniversary Live", centerX, baseY + 86);
+  
+  ctx.font = `bold 26px ${fontFamily}`;
+  ctx.fillText("@渋谷WWWX", centerX, baseY + 126);
+  
+  ctx.restore();
 
   if (dangerTimer > 0) {
     const dangerProgress = Math.min(1, dangerTimer / DANGER_HOLD_MS);
