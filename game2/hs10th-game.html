@@ -244,7 +244,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
-<!-- ファンサイトと同じFirebase Compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 <script src="../firebase-config.js"></script>
@@ -254,6 +253,7 @@ let database = null;
 let leaderboardData = [];
 let scoreSubmitted = false;
 
+// Firebase初期化
 try {
   if (typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "ここに本物のAPIキーを書いてください") {
     if (typeof firebase !== 'undefined') {
@@ -360,7 +360,6 @@ function initAudio() {
 window.addEventListener("pointerdown", initAudio);
 window.addEventListener("keydown", initAudio);
 
-// 【重要修正】バックグラウンド移行時の音声エラーを握りつぶしてゲームを止めないように修正
 function playDropSound() { 
   try {
     if (audioStarted && dropSynth) dropSynth.triggerAttackRelease("32n"); 
@@ -493,13 +492,29 @@ const DROP_WEIGHTS = [
 ];
 const DROP_WEIGHT_TOTAL = DROP_WEIGHTS.reduce((sum, w) => sum + w.weight, 0);
 
+let recentDrops = [];
+
 function pickRandomDropStage() {
-  let r = Math.random() * DROP_WEIGHT_TOTAL;
-  for (const w of DROP_WEIGHTS) {
-    if (r < w.weight) return w.stage;
-    r -= w.weight;
+  let r, pickedStage;
+  while (true) {
+    r = Math.random() * DROP_WEIGHT_TOTAL;
+    pickedStage = 1;
+    for (const w of DROP_WEIGHTS) {
+      if (r < w.weight) { pickedStage = w.stage; break; }
+      r -= w.weight;
+    }
+    // 5連続が続いた場合（履歴に同じ玉が5つある場合）、次（6回目）が同じなら引き直す
+    if (recentDrops.length >= 5 && recentDrops.every(stage => stage === pickedStage)) {
+      continue;
+    }
+    break; // 違う玉なら確定してループを抜ける
   }
-  return 1;
+  
+  // 履歴を更新（最新の5回だけ保持）
+  recentDrops.push(pickedStage);
+  if (recentDrops.length > 5) recentDrops.shift();
+  
+  return pickedStage;
 }
 
 let aimX = WORLD_WIDTH / 2;
@@ -575,17 +590,18 @@ function tryDrop() {
   dropCount++;
   dropCountValueEl.textContent = dropCount.toLocaleString("ja-JP");
   
-  playDropSound();
-  
   nextStage = upcomingStage;
   upcomingStage = pickRandomDropStage();
   aimX = clampAimX(aimX, STAGE_CONFIG[nextStage].radius);
+  
+  playDropSound();
 }
 
 canvas.addEventListener("touchstart", (e) => { e.preventDefault(); dragging = true; updateAimFromClientX(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener("touchmove", (e) => { e.preventDefault(); if (dragging) updateAimFromClientX(e.touches[0].clientX); }, { passive: false });
 canvas.addEventListener("touchend", (e) => { e.preventDefault(); if (dragging) { dragging = false; tryDrop(); } }, { passive: false });
-// 【重要修正】指が画面外に出たり他のアプリを開いたときにドラッグ状態をキャンセルする
+
+// スマホで指が画面外に出たり他のアプリを開いたときにドラッグ状態をキャンセルする
 canvas.addEventListener("touchcancel", (e) => { e.preventDefault(); dragging = false; }, { passive: false });
 
 canvas.addEventListener("mousedown", (e) => { dragging = true; updateAimFromClientX(e.clientX); });
@@ -599,7 +615,7 @@ window.addEventListener("keydown", (e) => {
 });
 window.addEventListener("keyup", (e) => { keys[e.key] = false; });
 
-// 【重要修正】別のアプリから戻ってきた時に状態をリセットする
+// 別のアプリから戻ってきた時に状態をリセットする
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     dragging = false;
@@ -962,12 +978,12 @@ function draw() {
   ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
   ctx.fillStyle = "#241934"; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-  // 【重要修正】背景の透かし文字（ライブ開催告知）を描画 - ど真ん中に配置
   ctx.save();
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "rgba(255, 255, 255, 0.35)"; 
   
+  // 背景の透かし文字をプレイエリア中央に配置
   const centerX = WORLD_WIDTH / 2;
   const baseY = WORLD_HEIGHT * 0.47; 
   const fontFamily = "'Times New Roman', 'YuMincho', 'Hiragino Mincho ProN', serif";
@@ -1141,6 +1157,8 @@ document.getElementById("restartButton").addEventListener("click", () => {
   updateScoreUI();
   dangerTimer = 0; currentCombo = 0;
   lastDroppedEntry = null; dropGraceUntil = -Infinity;
+  
+  recentDrops = [];
   nextStage = pickRandomDropStage();
   upcomingStage = pickRandomDropStage();
   aimX = clampAimX(WORLD_WIDTH / 2, STAGE_CONFIG[nextStage].radius);
