@@ -724,8 +724,8 @@ function onFinalMerge(x, y, combo) {
   floatingTexts.push(new FloatingText(x, y - 60, "限界突破！！", "#FF8FA3"));
   
   const scoreBase = Math.pow(MAX_STAGE, 2);
-  const comboMultiplier = 1 + (combo - 1) * 0.5;
-  const appealMultiplier = 1 + (dropCount * 0.01);
+  const comboMultiplier = 1 + (combo - 1) * 0.3;
+  const appealMultiplier = 1 + (dropCount * 0.05);
   const comboScore = Math.floor(scoreBase * comboMultiplier * appealMultiplier);
   const finalBonus = 10000; 
   addScore(comboScore + finalBonus);
@@ -783,8 +783,8 @@ function handleCollisions(event) {
     }
     
     const scoreBase = Math.pow(newStage, 2);
-    const comboMultiplier = 1 + (currentCombo - 1) * 0.5;
-    const appealMultiplier = 1 + (dropCount * 0.01);
+    const comboMultiplier = 1 + (currentCombo - 1) * 0.3;
+    const appealMultiplier = 1 + (dropCount * 0.05);
     addScore(Math.floor(scoreBase * comboMultiplier * appealMultiplier));
   }
 }
