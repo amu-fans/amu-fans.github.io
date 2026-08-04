@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>推し活マージゲーム - 完成版</title>
+<title>ハイスピ10thワンマン宣伝ゲーム</title>
 <style>
   html, body {
     margin: 0;
@@ -244,16 +244,16 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<!-- ファンサイトと同じFirebase Compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-<script src="firebase-config.js"></script>
+<script src="../firebase-config.js"></script>
 
 <script>
 let database = null;
 let leaderboardData = [];
 let scoreSubmitted = false;
 
-// Firebase初期化 (ファンサイト完全互換)
 try {
   if (typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "ここに本物のAPIキーを書いてください") {
     if (typeof firebase !== 'undefined') {
@@ -344,14 +344,12 @@ function initAudio() {
   Tone.start();
   audioStarted = true;
   
-  // マージ音用（PolySynthで複数同時再生対応、丸い音色）
   synth = new Tone.PolySynth(Tone.Synth, {
     oscillator: { type: "sine" },
     envelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.8 }
   }).toDestination();
   synth.volume.value = -8;
 
-  // 投下音用（短く控えめな音、ピコピコ感や低音を排除）
   dropSynth = new Tone.NoiseSynth({
     noise: { type: "brown" },
     envelope: { attack: 0.001, decay: 0.015, sustain: 0, release: 0.01 }
@@ -369,7 +367,6 @@ function playDropSound() {
 function playMergeSound(tier, combo) {
   if (!audioStarted || !synth) return;
   const now = performance.now();
-  // 同時マージによる爆音やノイズを防ぐスロットル処理
   if (now - lastMergeSoundTime < 50) return;
   lastMergeSoundTime = now;
   
@@ -689,8 +686,8 @@ function onFinalMerge(x, y, combo) {
   floatingTexts.push(new FloatingText(x, y - 60, "限界突破！！", "#FF8FA3"));
   
   const scoreBase = Math.pow(MAX_STAGE, 2);
-  const comboMultiplier = 1 + (combo - 1) * 0.3;
-  const appealMultiplier = 1 + (dropCount * 0.05);
+  const comboMultiplier = 1 + (combo - 1) * 0.5;
+  const appealMultiplier = 1 + (dropCount * 0.01);
   const comboScore = Math.floor(scoreBase * comboMultiplier * appealMultiplier);
   const finalBonus = 10000; 
   addScore(comboScore + finalBonus);
@@ -748,8 +745,8 @@ function handleCollisions(event) {
     }
     
     const scoreBase = Math.pow(newStage, 2);
-    const comboMultiplier = 1 + (currentCombo - 1) * 0.3;
-    const appealMultiplier = 1 + (dropCount * 0.05);
+    const comboMultiplier = 1 + (currentCombo - 1) * 0.5;
+    const appealMultiplier = 1 + (dropCount * 0.01);
     addScore(Math.floor(scoreBase * comboMultiplier * appealMultiplier));
   }
 }
@@ -943,14 +940,14 @@ function draw() {
   ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
   ctx.fillStyle = "#241934"; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-  // 背景の透かし文字（ライブ開催告知）を描画
+  // 【追加部分】背景の透かし文字（ライブ開催告知）を描画
   ctx.save();
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "rgba(255, 255, 255, 0.35)"; 
   
   const centerX = WORLD_WIDTH / 2;
-  const baseY = WORLD_HEIGHT * 0.47; // ← 全体をグッと下に移動しました
+  const baseY = WORLD_HEIGHT * 0.47; // プレイエリアのど真ん中に移動
   const fontFamily = "'Times New Roman', 'YuMincho', 'Hiragino Mincho ProN', serif";
 
   ctx.font = `bold 24px ${fontFamily}`;
