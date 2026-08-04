@@ -584,16 +584,20 @@ function tryDrop() {
   if (now - lastDropTime < DROP_COOLDOWN_MS) return;
   
   lastDropTime = now;
+  
+  // 1. 物理演算の玉を追加
   lastDroppedEntry = addBall(aimX, DROP_SPAWN_Y, nextStage, false);
   dropGraceUntil = now + DROP_GRACE_MS;
   
   dropCount++;
   dropCountValueEl.textContent = dropCount.toLocaleString("ja-JP");
   
+  // 2. 抽選を先に行う
   nextStage = upcomingStage;
   upcomingStage = pickRandomDropStage();
   aimX = clampAimX(aimX, STAGE_CONFIG[nextStage].radius);
   
+  // 3. 音を最後に鳴らす（エラーが出ても既に抽選は終わっている）
   playDropSound();
 }
 
@@ -727,7 +731,7 @@ function onFinalMerge(x, y, combo) {
   const comboMultiplier = 1 + (combo - 1) * 0.3;
   const appealMultiplier = 1 + (dropCount * 0.05);
   const comboScore = Math.floor(scoreBase * comboMultiplier * appealMultiplier);
-  const finalBonus = 10000; 
+  const finalBonus = 100000; // 限界突破ボーナス10万点（修正箇所）
   addScore(comboScore + finalBonus);
 }
 
