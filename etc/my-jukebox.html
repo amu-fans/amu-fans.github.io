@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎵 楽曲メモ & リアル試聴 Jukebox</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f1f5f9;
+            font-family: 'Noto Sans JP', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(18, 24, 38, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .playing-row {
+            background: rgba(139, 92, 246, 0.15) !important;
+            border-left: 3px solid #a855f7 !important;
+        }
+        /* Custom progress bar */
+        .progress-bar-container {
+            cursor: pointer;
+        }
+        /* PCなどのマウス操作環境ではスクロールバーを表示し、スマホでは非表示にする */
+        @media (pointer: fine) {
+            ::-webkit-scrollbar {
+                width: 6px;
+                display: block !important;
+            }
+            ::-webkit-scrollbar-track {
+                background: rgba(11, 15, 25, 0.5);
+            }
+            ::-webkit-scrollbar-thumb {
+                background: rgba(139, 92, 246, 0.4);
+                border-radius: 3px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background: rgba(139, 92, 246, 0.7);
+            }
+        }
+        @media (pointer: coarse) {
+            ::-webkit-scrollbar {
+                display: none;
+            }
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-36 relative">
+
+    <!-- Background Canvas for Visual Effects -->
+    <canvas id="bgCanvas" class="fixed inset-0 w-full h-full z-0 pointer-events-none opacity-60"></canvas>
+
+    <!-- Main Content -->
+    <main class="relative z-10 px-3 pt-4 max-w-4xl mx-auto">
+
+        <!-- Controls (Search & Filters) -->
+        <div class="glass-card rounded-xl p-3 mb-4 space-y-3 shadow-lg">
+            
+            <!-- Search -->
+            <div class="relative w-full">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </div>
+                <input type="text" id="searchInput" placeholder="曲名・歌手・年代で検索..." 
+                    class="w-full pl-8 pr-8 py-2 bg-slate-900/80 border border-slate-700/80 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors">
+                <button id="clearSearchBtn" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 active:text-white">
+                    <i class="fa-solid fa-circle-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Filters -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 snap-x">
+                <select id="presetSelect" class="snap-start shrink-0 bg-slate-900 border border-slate-700 text-xs text-purple-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-purple-500">
+                    <option value="all">🎯 テーマ選択</option>
+                    <option value="90s-idol">🌸 90s-00s アイドル</option>
+                    <option value="90s-rock">⚡ 90s-00s J-ROCK</option>
+                    <option value="ballad">❄️ バラード名曲</option>
+                    <option value="modern-idol">🎀 10s-20s アイドル</option>
+                    <option value="anison">🎮 アニソン</option>
+                </select>
+
+                <select id="eraSelect" class="snap-start shrink-0 bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-purple-500">
+                    <option value="all">📅 年代</option>
+                    <option value="7080s">70-80年代</option>
+                    <option value="90s">1990年代</option>
+                    <option value="00s">2000年代</option>
+                    <option value="10s">2010年代</option>
+                    <option value="20s">2020年代</option>
+                </select>
+
+                <select id="sortSelect" class="snap-start shrink-0 bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-purple-500">
+                    <option value="year-desc">新しい順</option>
+                    <option value="year-asc">古い順</option>
+                    <option value="title-asc">あいうえお順</option>
+                </select>
+            </div>
+
+            <!-- Category Tabs -->
+            <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 snap-x pt-1 border-t border-slate-800/50">
+                <button data-cat="all" class="cat-tab snap-start shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 text-white transition-colors">
+                    すべて (<span id="countAll">0</span>)
+                </button>
+                <button data-cat="favorite" class="cat-tab snap-start shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 bg-slate-900 border border-slate-800 transition-colors">
+                    💖 お気に入り (<span id="countFavorite">0</span>)
+                </button>
+                <button data-cat="idol" class="cat-tab snap-start shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 bg-slate-900 border border-slate-800 transition-colors">
+                    🌸 アイドル
+                </button>
+                <button data-cat="female" class="cat-tab snap-start shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 bg-slate-900 border border-slate-800 transition-colors">
+                    👩 女性ソロ/バンド
+                </button>
+                <button data-cat="male" class="cat-tab snap-start shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 bg-slate-900 border border-slate-800 transition-colors">
+                    👨 男性ソロ/バンド
+                </button>
+            </div>
+        </div>
+
+        <!-- List Header -->
+        <div class="flex justify-between items-end mb-2 px-1 border-b border-slate-800/50 pb-2">
+            <span class="text-xs text-slate-300 font-medium tracking-wide">
+                101 SONGS <span class="text-[10px] text-slate-400 ml-1">(セルタップで試聴/ <i class="fa-brands fa-youtube text-red-500 mx-0.5"></i> でYouTube検索)</span>
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono shrink-0">表示中: <span id="currentDisplayCount" class="text-purple-400 font-bold text-xs">101</span> 件</span>
+        </div>
+
+        <!-- Song List Display Area -->
+        <section class="glass-card rounded-xl overflow-hidden mb-6 shadow-lg border border-slate-800/60">
+            <div id="songsList" class="flex flex-col">
+                <!-- Table Rows generated dynamically -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-12 px-4">
+                <i class="fa-solid fa-compact-disc text-4xl text-slate-700 mb-3 animate-pulse"></i>
+                <p class="text-slate-300 text-sm font-semibold">曲が見つかりません</p>
+                <button id="resetFiltersBtn" class="mt-4 px-4 py-2 bg-slate-800 active:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-colors border border-slate-700">
+                    フィルターをリセット
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- HTML5 Real Audio Element -->
+    <audio id="audioPlayer" preload="auto"></audio>
+
+    <!-- Bottom Player Bar (Removed YouTube Buttons) -->
+    <div id="playerBar" class="fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-purple-500/30 z-50 transition-transform duration-300 transform translate-y-full pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+        
+        <!-- Interactive Seek / Progress Bar -->
+        <div id="progressBarContainer" class="w-full h-1.5 bg-slate-800 relative progress-bar-container group hover:h-2.5 transition-all">
+            <div id="progressBar" class="h-full bg-gradient-to-r from-purple-500 to-pink-500 w-0 transition-all duration-100 relative">
+                <div class="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            </div>
+        </div>
+
+        <div class="px-4 pt-3 pb-4">
+            <!-- Song Info Row -->
+            <div class="flex items-center justify-between mb-3 gap-2">
+                <div class="flex items-center space-x-3 min-w-0 flex-1">
+                    <!-- Album Cover Art -->
+                    <div class="relative w-12 h-12 rounded bg-slate-800 overflow-hidden shrink-0 shadow-md border border-slate-700/50 flex items-center justify-center">
+                        <img id="playerArt" src="" class="w-full h-full object-cover hidden" alt="Artwork">
+                        <i id="playerArtPlaceholder" class="fa-solid fa-music text-purple-400 text-lg"></i>
+                        <div id="audioLoadingSpinner" class="hidden absolute inset-0 bg-black/60 flex items-center justify-center text-purple-400 text-sm">
+                            <i class="fa-solid fa-circle-notch animate-spin"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col min-w-0 flex-1 justify-center">
+                        <div class="flex items-center gap-1.5">
+                            <h4 id="playerTitle" class="text-sm font-bold text-white truncate">曲名</h4>
+                            <span id="previewTag" class="text-[9px] bg-purple-900/60 text-purple-300 px-1.5 py-0.5 rounded font-mono shrink-0 border border-purple-500/30">30s試聴</span>
+                        </div>
+                        <p id="playerArtist" class="text-[11px] text-slate-400 truncate mt-0.5">アーティスト <span id="playerYear" class="ml-1 text-[9px] bg-slate-800 px-1 rounded text-slate-500">1999</span></p>
+                    </div>
+                </div>
+
+                <!-- Close Button -->
+                <button id="closePlayerBtn" class="text-slate-500 hover:text-slate-300 p-2 shrink-0 transition-colors rounded-full active:bg-slate-800/80">
+                    <i class="fa-solid fa-chevron-down text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Time & Controls Row -->
+            <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono mb-1 px-1">
+                <span id="currentTime">0:00</span>
+                
+                <!-- Center Controls -->
+                <div class="flex items-center justify-center space-x-6">
+                    <button id="prevBtn" class="text-slate-400 active:text-white hover:text-slate-300 p-2 transition-colors">
+                        <i class="fa-solid fa-backward-step text-lg"></i>
+                    </button>
+                    <button id="playPauseBtn" class="w-12 h-12 rounded-full bg-purple-600 active:bg-purple-500 hover:bg-purple-500 text-white flex items-center justify-center text-xl shadow-lg shadow-purple-600/30 transition-all transform hover:scale-105 active:scale-95">
+                        <i class="fa-solid fa-play ml-0.5"></i>
+                    </button>
+                    <button id="nextBtn" class="text-slate-400 active:text-white hover:text-slate-300 p-2 transition-colors">
+                        <i class="fa-solid fa-forward-step text-lg"></i>
+                    </button>
+                </div>
+
+                <span id="durationTime">0:30</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-slate-800/95 border border-purple-500/40 text-white px-4 py-2.5 rounded-full shadow-2xl flex items-center space-x-2 -translate-y-16 opacity-0 transition-all duration-300 pointer-events-none text-xs font-medium w-max max-w-[90%] backdrop-blur-md">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-purple-400"></i>
+        <span id="toastMsg" class="truncate">通知</span>
+    </div>
+
+    <script>
+        // --- Songs Data (Full 101 Songs) ---
+        const songsData = [
+            // 女性アイドル (41)
+            { id: 1, year: 1997, title: "マジで恋する5秒前", artist: "広末涼子", category: "idol", genre: "J-POP / アイドル", rating: 5, memo: "竹内まりや提供。誰もが口ずさんだ90年代アイドルソングの金字塔。" },
+            { id: 2, year: 1997, title: "大スキ！", artist: "広末涼子", category: "idol", genre: "J-POP / アイドル", rating: 5, memo: "岡本真夜提供。ストレートでポジティブなフレーズとキャッチーなメロディが最高。" },
+            { id: 3, year: 1996, title: "Body & Soul", artist: "SPEED", category: "idol", genre: "J-POP / ダンス", rating: 5, memo: "鮮烈なデビューを飾った、パワフルでダンサブルなナンバー。" },
+            { id: 4, year: 1997, title: "White Love", artist: "SPEED", category: "idol", genre: "J-POP / バラード", rating: 5, memo: "切ないメロディと圧倒的な高音が胸に響くミリオンヒット曲。" },
+            { id: 5, year: 1994, title: "恋しさと せつなさと 心強さと", artist: "篠原涼子 with t.komuro", category: "idol", genre: "J-POP / TKサウンド", rating: 5, memo: "小室哲哉プロデュース。ダブルミリオンを記録した90年代を代表するメガヒット曲。" },
+            { id: 6, year: 1997, title: "CAN YOU CELEBRATE?", artist: "安室奈美恵", category: "idol", genre: "J-POP / バラード", rating: 5, memo: "邦楽女性ソロ史上最高売上を記録した感動のビッグヒット。" },
+            { id: 7, year: 1995, title: "太陽のSEASON", artist: "安室奈美恵", category: "idol", genre: "J-POP / ユーロビート", rating: 5, memo: "安室奈美恵のソロデビューシングル。躍動感あふれるユーロビートで一気に魅了する名曲。" },
+            { id: 8, year: 1996, title: "I'm proud", artist: "華原朋美", category: "idol", genre: "J-POP / TKサウンド", rating: 5, memo: "ドラマチックなストリングスとハイトーンボーカルの壮大な名曲。" },
+            { id: 9, year: 1999, title: "be together", artist: "鈴木あみ", category: "idol", genre: "J-POP / ダンス", rating: 5, memo: "明るく疾走感のあるリメイク。90年代末のヒットチャートを盛り上げた曲。" },
+            { id: 10, year: 2000, title: "乙女 パスタに感動", artist: "タンポポ", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "つんく♂作詞作曲。タイトルも印象的なタンポポの代表的ポップソング。" },
+            { id: 11, year: 1998, title: "サマーナイトタウン", artist: "モーニング娘。", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "初期の切なく大人っぽい雰囲気が魅力的な2ndシングル。" },
+            { id: 12, year: 2000, title: "ハッピーサマーウェディング", artist: "モーニング娘。", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "明るく賑やかなメッセージソング。両親へのセリフパートも印象的。" },
+            { id: 13, year: 2001, title: "ザ☆ピ〜ス！", artist: "モーニング娘。", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "多幸感あふれる展開とキャッチーなセリフで盛り上がる名曲。" },
+            { id: 14, year: 2003, title: "シャボン玉", artist: "モーニング娘。", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "迫力あるボーカルと熱いセリフが痺れるパワフルナンバー。" },
+            { id: 15, year: 2002, title: "ロマンティック 浮かれモード", artist: "藤本美貴", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "イントロから大盛り上がりのソロアイドル名曲。" },
+            { id: 16, year: 2001, title: "secret base ～君がくれたもの～", artist: "ZONE", category: "idol", genre: "J-POP / ガールズバンド", rating: 5, memo: "夏の終わりと別れを描いた超ロングヒットソング。" },
+            { id: 17, year: 1998, title: "Timing", artist: "ブラックビスケッツ", category: "idol", genre: "J-POP / ポップス", rating: 5, memo: "ウリナリ発の大ヒット。親しみやすいテンポとメロディ。" },
+            { id: 18, year: 1996, title: "YELLOW YELLOW HAPPY", artist: "ポケットビスケッツ", category: "idol", genre: "J-POP / ロック", rating: 5, memo: "印象的なサビとキャッチーなメロディで売れまくった一曲。" },
+            { id: 19, year: 2000, title: "SEASONS", artist: "浜崎あゆみ", category: "idol", genre: "J-POP / バラード", rating: 5, memo: "あゆ旋風の頂点。切なくも美しい季節のうつろいを歌った曲。" },
+            { id: 20, year: 2000, title: "M", artist: "浜崎あゆみ", category: "idol", genre: "J-POP / ロックバラード", rating: 5, memo: "壮大なサウンドと切ない歌詞がシンクロする平成を代表する曲。" },
+            { id: 21, year: 2006, title: "BLUE BIRD", artist: "浜崎あゆみ", category: "idol", genre: "J-POP / サマーソング", rating: 5, memo: "爽やかでキャッチーな夏の定番ナンバー。" },
+            { id: 22, year: 2010, title: "ヘビーローテーション", artist: "AKB48", category: "idol", genre: "J-POP / アイドル", rating: 5, memo: "カラオケ定番、国民的大ヒットアイドルナンバー。" },
+            { id: 23, year: 2013, title: "恋するフォーチュンクッキー", artist: "AKB48", category: "idol", genre: "J-POP / ディスコ", rating: 5, memo: "誰もが踊れるキャッチーなダンスと温かいメッセージソング。" },
+            { id: 24, year: 2007, title: "チョコレイト・ディスコ", artist: "Perfume", category: "idol", genre: "J-POP / テクノポップ", rating: 5, memo: "キャッチーなフレーズと電子音がクセになるブレイクソング。" },
+            { id: 25, year: 2013, title: "ガールズルール", artist: "乃木坂46", category: "idol", genre: "J-POP / 夏ソング", rating: 5, memo: "白石麻衣初センター。ライブで超盛り上がる王道夏ソング。" },
+            { id: 26, year: 2018, title: "ジコチューで行こう！", artist: "乃木坂46", category: "idol", genre: "J-POP / 夏ソング", rating: 5, memo: "爽やかで解放感あふれる開放的な夏ナンバー。" },
+            { id: 27, year: 2019, title: "黒い羊", artist: "欅坂46", category: "idol", genre: "J-POP / メッセージ", rating: 5, memo: "強い孤独と葛藤を描いた重厚でエモーショナルな名曲。" },
+            { id: 28, year: 2017, title: "不協和音", artist: "欅坂46", category: "idol", genre: "J-POP / ダンス", rating: 5, memo: "激しいダンスと強い意志を感じさせるメッセージソング。" },
+            { id: 29, year: 2017, title: "危なっかしい計画", artist: "欅坂46", category: "idol", genre: "J-POP / アッパー", rating: 5, memo: "ライブのボルテージを最高潮に引き上げる爆発的タオル曲。" },
+            { id: 30, year: 2023, title: "夏の近道", artist: "櫻坂46", category: "idol", genre: "J-POP / 青春", rating: 5, memo: "三期生曲。勢いと青春感あふれる疾走ポップナンバー。" },
+            { id: 31, year: 2020, title: "なぜ 恋をして来なかったんだろう？", artist: "櫻坂46", category: "idol", genre: "J-POP / ダンス", rating: 5, memo: "藤吉夏鈴センター。しなやかで叙情的な世界観が魅力。" },
+            { id: 32, year: 2019, title: "ドレミソラシド", artist: "日向坂46", category: "idol", genre: "J-POP / 爽やか", rating: 5, memo: "夏の爽快感とハッピーオーラが溢れる王道ポップス。" },
+            { id: 33, year: 2016, title: "オーケストラ", artist: "BiSH", category: "idol", genre: "アニメ・ロック", rating: 5, memo: "感情を揺さぶる美しいメロディと切ない歌詞の代表曲。" },
+            { id: 34, year: 2015, title: "Road of Resistance", artist: "BABYMETAL", category: "idol", genre: "メタル", rating: 5, memo: "ドラゴンフォースコラボ。疾走感と壮大なスケールが圧巻。" },
+            { id: 35, year: 2014, title: "ギミチョコ！！", artist: "BABYMETAL", category: "idol", genre: "メタル / ポップ", rating: 5, memo: "世界的ブームを巻き起こした中毒性抜群のメタルポップ。" },
+            { id: 36, year: 2021, title: "青春群像", artist: "タイトル未定", category: "idol", genre: "J-POP / 青春", rating: 5, memo: "北海道発アイドル。儚く切ないメロディラインと青春感が光る名曲。" },
+            { id: 37, year: 2024, title: "初恋シンデレラ", artist: "≒JOY", category: "idol", genre: "J-POP / 青春", rating: 5, memo: "指原莉乃プロデュース。ピュアなときめきを描いた王道アイドルラブソング。" },
+            { id: 38, year: 2012, title: "初恋サイダー", artist: "Buono!", category: "idol", genre: "J-POP / ポップロック", rating: 5, memo: "イントロのソロボーカルから一気に引き込まれるアイドル界の不朽の名曲。" },
+            { id: 39, year: 2024, title: "コヨーテが鳴いている", artist: "WHITE SCORPION", category: "idol", genre: "J-POP", rating: 5, memo: "秋元康プロデュース。静寂と切なさが漂う叙情派アイドルソング。" },
+            { id: 40, year: 2010, title: "Snow halation", artist: "μ's", category: "idol", genre: "アニソン / アイドル", rating: 5, memo: "『ラブライブ！』を代表する名曲。冬の切なさと疾走感が最高のラブソング。" },
+            { id: 41, year: 2014, title: "それは僕たちの奇跡", artist: "μ's", category: "idol", genre: "アニソン / アイドル", rating: 5, memo: "『ラブライブ！』TVアニメ2期OP。輝く希望とエネルギーにあふれた王道ソング。" },
+
+            // 女性（ソロ・バンド） (17)
+            { id: 42, year: 1996, title: "DEPARTURES", artist: "globe", category: "female", genre: "J-POP / TKサウンド", rating: 5, memo: "切ない雪の情景と疾走感あふれるハイトーンボイスが最高。" },
+            { id: 43, year: 1997, title: "1/2", artist: "川本真琴", category: "female", genre: "J-POP / アニメ", rating: 5, memo: "アニメ『るろうに剣心』OP。独特の言葉紡ぎと疾走するメロディが心地よい。" },
+            { id: 44, year: 1995, title: "夢見る少女じゃいられない", artist: "相川七瀬", category: "female", genre: "J-POP / ロック", rating: 5, memo: "織田哲郎プロデュース。パワフルなボーカルと疾走感が最高。" },
+            { id: 45, year: 1999, title: "春〜spring〜", artist: "Hysteric Blue", category: "female", genre: "J-POP / ポップロック", rating: 5, memo: "キャッチーな旋律と春の訪れを感じさせるブレイクナンバー。" },
+            { id: 46, year: 1998, title: "There will be love there －愛のある場所－", artist: "the brilliant green", category: "female", genre: "J-POP / ロック", rating: 5, memo: "ドラマ『ラブ・アゲイン』主題歌。UKロック調の哀愁あるサウンドとボーカルが魅力。" },
+            { id: 47, year: 1995, title: "Over Drive", artist: "JUDY AND MARY", category: "female", genre: "J-POP / ロック", rating: 5, memo: "ジュディマリの明るさと疾走感が全開のポップロック。" },
+            { id: 48, year: 1996, title: "そばかす", artist: "JUDY AND MARY", category: "female", genre: "J-POP / アニメソング", rating: 5, memo: "アニメ『るろうに剣心』OP。キャッチーでパワフルな1stミリオン。" },
+            { id: 49, year: 2003, title: "雪の華", artist: "中島美嘉", category: "female", genre: "J-POP / バラード", rating: 5, memo: "圧倒的な透明感と情緒あふれる冬の名曲。" },
+            { id: 50, year: 1995, title: "Hello, Again 〜昔からある場所〜", artist: "MY LITTLE LOVER", category: "female", genre: "J-POP / バラード", rating: 5, memo: "切なく美しいメロディと透き通るボーカルが心に深く染みる名曲。" },
+            { id: 51, year: 1995, title: "Man & Woman", artist: "MY LITTLE LOVER", category: "female", genre: "J-POP", rating: 5, memo: "鮮烈なデビュー曲。洗練されたポップサウンドと歌声が最高。" },
+            { id: 52, year: 1995, title: "白いカイト", artist: "MY LITTLE LOVER", category: "female", genre: "J-POP", rating: 5, memo: "風が走り抜けるような爽快感とキャッチーなサビが魅力的。" },
+            { id: 53, year: 2015, title: "トリセツ", artist: "西野カナ", category: "female", genre: "J-POP / ラブソング", rating: 5, memo: "乙女心を取扱説明書になぞらえて歌ったポップでキュートな大ヒット曲。" },
+            { id: 54, year: 2007, title: "CHE.R.RY", artist: "YUI", category: "female", genre: "J-POP / ポップロック", rating: 5, memo: "「恋しちゃったんだ」のキャッチーなフレーズが印象的な甘酸っぱい恋愛ソング。" },
+            { id: 55, year: 2009, title: "ふわふわ時間", artist: "放課後ティータイム", category: "female", genre: "アニソン / ガールズバンド", rating: 5, memo: "アニメ『けいおん！』劇中歌。可愛らしさとキャッチーなロックサウンドが詰まった名曲。" },
+            { id: 56, year: 2006, title: "God knows...", artist: "涼宮ハルヒ（平野綾）", category: "female", genre: "アニソン / ロック", rating: 5, memo: "『涼宮ハルヒの憂鬱』挿入歌。超絶なギターリフと力強いボーカルが神がかっているアニソンの名曲。" },
+            { id: 57, year: 2009, title: "君の知らない物語", artist: "supercell", category: "female", genre: "アニソン / ポップロック", rating: 5, memo: "『化物語』EDテーマ。ドラマチックなメロディと物語のような歌詞が心に刺さる大ヒット曲。" },
+            { id: 58, year: 2017, title: "君はロックを聴かない", artist: "あいみょん", category: "female", genre: "J-POP / ロック", rating: 5, memo: "あいみょんのブレイクのきっかけとなった名曲。ノスタルジックなサウンドと切ない歌詞が魅力。" },
+
+            // 男性（ソロ・バンド） (43)
+            { id: 59, year: 1995, title: "WOW WAR TONIGHT", artist: "H Jungle with t", category: "male", genre: "J-POP / 応援歌", rating: 5, memo: "働く大人たちの背中を押すフレーズが心に刺さるメガヒット曲。" },
+            { id: 60, year: 1997, title: "愛なんだ", artist: "V6", category: "male", genre: "J-POP", rating: 5, memo: "玉置浩二作曲。キャッチーで元気が湧いてくる90年代ジャニーズの名曲。" },
+            { id: 61, year: 2002, title: "大切なもの", artist: "ロードオブメジャー", category: "male", genre: "J-POP / 青春パンク", rating: 5, memo: "番組企画発のメガヒット。疾走感あふれるサウンドと熱いメッセージが心に刺さる。" },
+            { id: 62, year: 2004, title: "花", artist: "ORANGE RANGE", category: "male", genre: "J-POP / バラード", rating: 5, memo: "映画『いま、会いにゆきます』主題歌。切なく美しいメロディとラップの対比が心に染みる名曲。" },
+            { id: 63, year: 2007, title: "イケナイ太陽", artist: "ORANGE RANGE", category: "male", genre: "J-POP / アッパー", rating: 5, memo: "ドラマ『花ざかりの君たちへ』主題歌。夏のテンションを最高潮に引き上げるアッパーチューン。" },
+            { id: 64, year: 2007, title: "愛唄", artist: "GReeeeN", category: "male", genre: "J-POP / ラブソング", rating: 5, memo: "まっすぐでピュアな愛を歌ったGReeeeNの大ヒットラブソング。" },
+            { id: 65, year: 2008, title: "キセキ", artist: "GReeeeN", category: "male", genre: "J-POP / 応援歌", rating: 5, memo: "ドラマ『ROOKIES』主題歌。世代を超えて歌い継がれるメガヒットナンバー。" },
+            { id: 66, year: 1993, title: "君が思い出になる前に", artist: "スピッツ", category: "male", genre: "J-POP / バラード", rating: 5, memo: "切なく美しいメロディラインと歌詞が心に染みる初期の名曲。" },
+            { id: 67, year: 1994, title: "空も飛べるはず", artist: "スピッツ", category: "male", genre: "J-POP", rating: 5, memo: "『白線流し』でもおなじみ。世代を超えて歌い継がれる名曲。" },
+            { id: 68, year: 1996, title: "名もなき詩", artist: "Mr.Children", category: "male", genre: "J-POP / ロック", rating: 5, memo: "畳み掛けるような早口のフレーズと情熱的なメッセージが最高。" },
+            { id: 69, year: 1995, title: "シーソーゲーム", artist: "Mr.Children", category: "male", genre: "J-POP / ロック", rating: 5, memo: "圧倒的な勢いとテンションで聴く人を元気にさせるミリオンヒット。" },
+            { id: 70, year: 1996, title: "グロリアス", artist: "GLAY", category: "male", genre: "J-POP / ポップロック", rating: 5, memo: "イントロからアゲてくれるキャッチーなメロディと爽快感が最高の1曲。" },
+            { id: 71, year: 1997, title: "HOWEVER", artist: "GLAY", category: "male", genre: "J-POP / バラード", rating: 5, memo: "珠玉のメロディと熱いボーカルが胸を打つGLAYの金字塔。" },
+            { id: 72, year: 1999, title: "Winter, again", artist: "GLAY", category: "male", genre: "J-POP / バラード", rating: 5, memo: "北海道の情景が浮かぶスケールの大きな冬のラヴソング。" },
+            { id: 73, year: 1998, title: "HONEY", artist: "L'Arc〜en〜Ciel", category: "male", genre: "J-POP / ロック", rating: 5, memo: "イントロのギターから最高にカッコいいラルクの代表曲。" },
+            { id: 74, year: 2000, title: "ミュージック・アワー", artist: "ポルノグラフィティ", category: "male", genre: "J-POP / ラテンポップ", rating: 5, memo: "夏のドライブにぴったりなラジオDJ風のテンション上がる曲。" },
+            { id: 75, year: 1998, title: "POISON", artist: "反町隆史", category: "male", genre: "J-POP / ロック", rating: 5, memo: "『GTO』主題歌。「言いたい事も言えない」フレーズが頭から離れない名曲。" },
+            { id: 76, year: 1999, title: "あの紙ヒコーキ くもり空わって", artist: "19", category: "male", genre: "J-POP / フォーク", rating: 5, memo: "青く切ない歌詞とキャッチーなメロディで大流行したヒットナンバー。" },
+            { id: 77, year: 1998, title: "HOT LIMIT", artist: "T.M.Revolution", category: "male", genre: "J-POP / アッパー", rating: 5, memo: "圧倒的な勢いとインパクトで夏を盛り上げたポップチューン。" },
+            { id: 78, year: 2001, title: "天体観測", artist: "BUMP OF CHICKEN", category: "male", genre: "J-POP / ロック", rating: 5, memo: "ドラマチックなメロディとストーリーでロックシーンを塗り替えた1曲。" },
+            { id: 79, year: 1996, title: "青い稲妻", artist: "SMAP", category: "male", genre: "J-POP / ファンク", rating: 5, memo: "林田健司のカバー。ダンサブルなサウンドと木村拓哉の「Get you!」が鮮烈。" },
+            { id: 80, year: 2000, title: "オレンジ", artist: "SMAP", category: "male", genre: "J-POP / バラード", rating: 5, memo: "切ない夕焼けの別れを描いた名曲カップリングナンバー。" },
+            { id: 81, year: 2000, title: "桜坂", artist: "福山雅治", category: "male", genre: "J-POP / バラード", rating: 5, memo: "低音のやさしい歌声が染みわたるメガヒットソング。" },
+            { id: 82, year: 2005, title: "POP STAR", artist: "平井堅", category: "male", genre: "J-POP / ダンサブル", rating: 5, memo: "聴くだけで気分がぱっと明るくなるハッピーポップ。" },
+            { id: 83, year: 1997, title: "1/3の純情な感情", artist: "SIAM SHADE", category: "male", genre: "J-POP / アニメ・ロック", rating: 5, memo: "アニソン史・90年代ロック史に残る最高にクールな楽曲。" },
+            { id: 84, year: 1996, title: "田園", artist: "玉置浩二", category: "male", genre: "J-POP / 応援歌", rating: 5, memo: "力強い歌声と「生きていくんだ」のフレーズに背中を押される。" },
+            { id: 85, year: 2005, title: "ただ・・・逢いたくて", artist: "EXILE", category: "male", genre: "J-POP / バラード", rating: 5, memo: "切ない別れを描いたヒットバラード。美しいハーモニーと圧倒的な歌声が響く。" },
+            { id: 86, year: 2007, title: "Lovers Again", artist: "EXILE", category: "male", genre: "J-POP / R&B", rating: 5, memo: "哀愁あふれる旋律と切ない歌詞が魅力の、平成を代表する冬の定番ソング。" },
+            { id: 87, year: 1988, title: "Runner", artist: "爆風スランプ", category: "male", genre: "J-POP / ロック", rating: 5, memo: "「走る走る俺たち」のフレーズが胸を熱くさせる不朽の応援ソング。" },
+            { id: 88, year: 1995, title: "ガッツだぜ!!", artist: "ウルフルズ", category: "male", genre: "J-POP / ファンク", rating: 5, memo: "パワフルで陽気なリズムとディスコファンクサウンドが最高に元気をくれる1曲。" },
+            { id: 89, year: 1996, title: "バンザイ", artist: "ウルフルズ", category: "male", genre: "J-POP / ラブソング", rating: 5, memo: "ストレートで熱い愛の言葉が心に深く響く大ヒットナンバー。" },
+            { id: 90, year: 1994, title: "シングルベッド", artist: "シャ乱Q", category: "male", genre: "J-POP / バラード", rating: 5, memo: "ロングヒットでミリオン達成。切ない歌詞とキャッチーなメロディが染みる大名曲。" },
+            { id: 91, year: 1996, title: "DAN DAN 心ひかれてく", artist: "FIELD OF VIEW", category: "male", genre: "J-POP / アニメ", rating: 5, memo: "アニメ『ドラゴンボールGT』OP。作詞・坂井泉水、作曲・織田哲郎の黄金コンビ。" },
+            { id: 92, year: 1979, title: "贈る言葉", artist: "海援隊", category: "male", genre: "J-POP / 卒業", rating: 5, memo: "『3年B組金八先生』主題歌。心に深く染みる永遠の卒業ソング。" },
+            { id: 93, year: 2005, title: "等身大のラブソング", artist: "Aqua Timez", category: "male", genre: "J-POP / ラブソング", rating: 5, memo: "インディーズ発の大ヒット。等身大な言葉で伝える最高のラヴソング。" },
+            { id: 94, year: 2005, title: "全力少年", artist: "スキマスイッチ", category: "male", genre: "J-POP / 応援歌", rating: 5, memo: "前向きなフレーズと弾けるサウンドが元気をくれる代表曲。" },
+            { id: 95, year: 2013, title: "RPG", artist: "SEKAI NO OWARI", category: "male", genre: "J-POP / ファンタジー", rating: 5, memo: "冒険に出かけたくなるような行進曲調のポップナンバー。" },
+            { id: 96, year: 2014, title: "Dragon Night", artist: "SEKAI NO OWARI", category: "male", genre: "J-POP / EDM", rating: 5, memo: "キャッチーな旋律とEDMサウンドで一世を風靡したヒット曲。" },
+            { id: 97, year: 2022, title: "愛とか恋とか", artist: "Novelbright", category: "male", genre: "J-POP / ラブソング", rating: 5, memo: "温かくやさしい言葉とメロディが心に染み渡るウエディング＆ポップナンバー。" },
+            { id: 98, year: 2018, title: "Walking with you", artist: "Novelbright", category: "male", genre: "J-POP / ロック", rating: 5, memo: "ストリーミングからメガヒット。圧倒的な歌唱力とキャッチーなサビが光る1曲。" },
+            { id: 99, year: 2021, title: "レオ", artist: "優里", category: "male", genre: "J-POP / バラード", rating: 5, memo: "犬と飼い主の絆を描いた切なく涙を誘う大ヒットバラード。" },
+            { id: 100, year: 2009, title: "春夏秋冬", artist: "Hilcrhyme", category: "male", genre: "J-POP / ヒップホップ", rating: 5, memo: "四季の情景と大切な人への思いを歌った2000年代末の大ヒット着うたソング。" },
+            { id: 101, year: 2018, title: "青と夏", artist: "Mrs. GREEN APPLE", category: "male", genre: "J-POP / 夏ソング", rating: 5, memo: "映画主題歌。圧倒的清涼感と爽快なメロディが駆け抜ける令和を代表する夏の青空ソング。" }
+        ];
+
+        // --- App State ---
+        let favorites = JSON.parse(localStorage.getItem('music_favorites_mobile') || '[]');
+        let currentCat = 'all';
+        let currentEra = 'all';
+        let currentPreset = 'all';
+        let currentSort = 'year-desc'; // Default: Newest first
+        let currentSearchQuery = '';
+
+        // Audio State
+        let currentPlaylist = [];
+        let currentPlayingIndex = -1;
+        let isPlaying = false;
+        
+        // Cache fetched iTunes track URLs to avoid redundant requests
+        const audioCache = {};
+
+        const presetSongIds = {
+            '90s-idol': [1, 2, 3, 4, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+            '90s-rock': [44, 45, 46, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 47, 48, 74, 75, 76, 77, 78, 83, 50, 51, 52, 87, 88, 89, 90, 91],
+            'ballad': [92, 79, 60, 43, 80, 81, 82, 49, 84, 85, 86],
+            'modern-idol': [22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 55, 56, 57, 40, 41],
+            'anison': [40, 41, 43, 48, 55, 56, 57, 83, 91]
+        };
+
+        // DOM Elements
+        const DOM = {
+            audioPlayer: document.getElementById('audioPlayer'),
+            searchInput: document.getElementById('searchInput'),
+            clearSearchBtn: document.getElementById('clearSearchBtn'),
+            presetSelect: document.getElementById('presetSelect'),
+            eraSelect: document.getElementById('eraSelect'),
+            sortSelect: document.getElementById('sortSelect'),
+            songsList: document.getElementById('songsList'),
+            emptyState: document.getElementById('emptyState'),
+            playerBar: document.getElementById('playerBar'),
+            playerTitle: document.getElementById('playerTitle'),
+            playerArtist: document.getElementById('playerArtist'),
+            playerArt: document.getElementById('playerArt'),
+            playerArtPlaceholder: document.getElementById('playerArtPlaceholder'),
+            audioLoadingSpinner: document.getElementById('audioLoadingSpinner'),
+            playPauseBtn: document.getElementById('playPauseBtn'),
+            prevBtn: document.getElementById('prevBtn'),
+            nextBtn: document.getElementById('nextBtn'),
+            progressBar: document.getElementById('progressBar'),
+            progressBarContainer: document.getElementById('progressBarContainer'),
+            currentTimeEl: document.getElementById('currentTime'),
+            durationTimeEl: document.getElementById('durationTime'),
+            toast: document.getElementById('toast'),
+            toastMsg: document.getElementById('toastMsg')
+        };
+
+        // --- STREAMING_CHUNK:Setting up Canvas Visualizer... ---
+        // Canvas Background Animation Logic
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        let animationFrameId;
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * height; // initial random spread
+            }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = height + Math.random() * 100;
+                this.size = Math.random() * 2 + 0.5;
+                this.baseSpeed = Math.random() * 0.5 + 0.1;
+                this.speed = this.baseSpeed;
+                this.opacity = Math.random() * 0.5 + 0.1;
+            }
+            update(isMusicPlaying) {
+                // Accelerate if playing
+                this.speed = isMusicPlaying ? this.baseSpeed * 4 : this.baseSpeed;
+                this.y -= this.speed;
+                this.x += Math.sin(this.y * 0.01) * 0.5; // slight sway
+
+                if (this.y < -10) this.reset();
+            }
+            draw() {
+                ctx.fillStyle = `rgba(167, 139, 250, ${this.opacity})`; // Purple tint
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 50; i++) particles.push(new Particle());
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw audio wave effect at bottom if playing
+            if (isPlaying) {
+                ctx.beginPath();
+                ctx.moveTo(0, height);
+                for (let i = 0; i < width; i += 20) {
+                    let waveHeight = Math.random() * 40 + 10;
+                    ctx.lineTo(i, height - waveHeight);
+                }
+                ctx.lineTo(width, height);
+                ctx.fillStyle = 'rgba(139, 92, 246, 0.05)';
+                ctx.fill();
+            }
+
+            particles.forEach(p => {
+                p.update(isPlaying);
+                p.draw();
+            });
+            animationFrameId = requestAnimationFrame(animateCanvas);
+        }
+        animateCanvas();
+
+        // --- STREAMING_CHUNK:Implementing Player Logic... ---
+        // Helper: Toast Notifications
+        function showToast(msg) {
+            DOM.toastMsg.innerText = msg;
+            DOM.toast.classList.remove('-translate-y-16', 'opacity-0');
+            DOM.toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                DOM.toast.classList.remove('translate-y-0', 'opacity-100');
+                DOM.toast.classList.add('-translate-y-16', 'opacity-0');
+            }, 2200);
+        }
+
+        // Helper: Format Time in seconds -> mm:ss
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "0:00";
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        // Toggle Favorites
+        function toggleFavorite(id, e) {
+            if (e) e.stopPropagation();
+            if (favorites.includes(id)) {
+                favorites = favorites.filter(fId => fId !== id);
+                showToast("お気に入りから削除しました");
+            } else {
+                favorites.push(id);
+                showToast("お気に入りに追加 💖");
+            }
+            localStorage.setItem('music_favorites_mobile', JSON.stringify(favorites));
+            updateCategoryCounts();
+            renderList();
+        }
+
+        function updateCategoryCounts() {
+            document.getElementById('countAll').innerText = songsData.length;
+            document.getElementById('countFavorite').innerText = favorites.length;
+        }
+
+        function getFilteredList() {
+            return songsData.filter(song => {
+                if (currentCat === 'idol' && song.category !== 'idol') return false;
+                if (currentCat === 'female' && song.category !== 'female') return false;
+                if (currentCat === 'male' && song.category !== 'male') return false;
+                if (currentCat === 'favorite' && !favorites.includes(song.id)) return false;
+
+                if (currentPreset !== 'all' && presetSongIds[currentPreset]) {
+                    if (!presetSongIds[currentPreset].includes(song.id)) return false;
+                }
+
+                if (currentEra === '7080s' && (song.year < 1970 || song.year >= 1990)) return false;
+                if (currentEra === '90s' && (song.year < 1990 || song.year >= 2000)) return false;
+                if (currentEra === '00s' && (song.year < 2000 || song.year >= 2010)) return false;
+                if (currentEra === '10s' && (song.year < 2010 || song.year >= 2020)) return false;
+                if (currentEra === '20s' && song.year < 2020) return false;
+
+                if (currentSearchQuery.trim() !== '') {
+                    const q = currentSearchQuery.toLowerCase();
+                    const matchTitle = song.title.toLowerCase().includes(q);
+                    const matchArtist = song.artist.toLowerCase().includes(q);
+                    if (!matchTitle && !matchArtist) return false;
+                }
+
+                return true;
+            }).sort((a, b) => {
+                if (currentSort === 'year-asc') return a.year - b.year;
+                if (currentSort === 'year-desc') return b.year - a.year;
+                if (currentSort === 'title-asc') return a.title.localeCompare(b.title, 'ja');
+                return 0;
+            });
+        }
+
+        // --- Core Audio API Integration ---
+        async function fetchPreview(song) {
+            const cacheKey = `${song.title}_${song.artist}`;
+            if (audioCache[cacheKey]) return audioCache[cacheKey];
+
+            try {
+                const query = encodeURIComponent(`${song.artist} ${song.title}`);
+                const res = await fetch(`https://itunes.apple.com/search?term=${query}&country=JP&media=music&limit=1`);
+                const data = await res.json();
+
+                if (data.results && data.results.length > 0) {
+                    const result = data.results[0];
+                    const info = {
+                        audioUrl: result.previewUrl,
+                        artworkUrl: result.artworkUrl100 ? result.artworkUrl100.replace('100x100bb', '300x300bb') : null
+                    };
+                    audioCache[cacheKey] = info;
+                    return info;
+                }
+            } catch (err) {
+                console.warn("API Error:", err);
+            }
+            return null;
+        }
+
+        async function playIndex(index) {
+            if (index < 0 || index >= currentPlaylist.length) return;
+            currentPlayingIndex = index;
+            const s = currentPlaylist[currentPlayingIndex];
+
+            // Setup UI
+            DOM.playerTitle.innerText = s.title;
+            DOM.playerArtist.innerHTML = `${s.artist} <span class="ml-1 text-[9px] bg-slate-800 px-1 rounded text-slate-500">${s.year}年</span>`;
+            
+            DOM.playerBar.classList.remove('translate-y-full');
+            DOM.audioLoadingSpinner.classList.remove('hidden');
+            DOM.playerArt.classList.add('hidden');
+            DOM.playerArtPlaceholder.classList.remove('hidden');
+
+            const preview = await fetchPreview(s);
+            DOM.audioLoadingSpinner.classList.add('hidden');
+
+            if (preview && preview.audioUrl) {
+                DOM.audioPlayer.src = preview.audioUrl;
+                if (preview.artworkUrl) {
+                    DOM.playerArt.src = preview.artworkUrl;
+                    DOM.playerArt.classList.remove('hidden');
+                    DOM.playerArtPlaceholder.classList.add('hidden');
+                }
+
+                try {
+                    await DOM.audioPlayer.play();
+                    isPlaying = true;
+                    updatePlayUI(true);
+                    showToast(`🎵 「${s.title}」再生中`);
+                } catch (e) {
+                    showToast("再生できませんでした。");
+                }
+            } else {
+                showToast(`⚠️ 試聴音源が見つかりません`);
+                DOM.audioPlayer.src = "";
+                isPlaying = false;
+                updatePlayUI(false);
+            }
+            renderList();
+        }
+
+        window.playSongById = function(id) {
+            currentPlaylist = getFilteredList();
+            let idx = currentPlaylist.findIndex(s => s.id === id);
+            if (idx === -1) {
+                const s = songsData.find(x => x.id === id);
+                if (s) { currentPlaylist = [s]; idx = 0; }
+            }
+            if (idx !== -1) playIndex(idx);
+        }
+
+        function updatePlayUI(playing) {
+            if (playing) {
+                DOM.playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            } else {
+                DOM.playPauseBtn.innerHTML = '<i class="fa-solid fa-play ml-0.5"></i>';
+            }
+        }
+
+        // --- STREAMING_CHUNK:Attaching Event Listeners... ---
+        DOM.audioPlayer.addEventListener('timeupdate', () => {
+            if (DOM.audioPlayer.duration) {
+                const pct = (DOM.audioPlayer.currentTime / DOM.audioPlayer.duration) * 100;
+                DOM.progressBar.style.width = `${pct}%`;
+                DOM.currentTimeEl.innerText = formatTime(DOM.audioPlayer.currentTime);
+                DOM.durationTimeEl.innerText = formatTime(DOM.audioPlayer.duration);
+            }
+        });
+
+        DOM.audioPlayer.addEventListener('ended', () => {
+            if (currentPlayingIndex < currentPlaylist.length - 1) playIndex(currentPlayingIndex + 1);
+            else { isPlaying = false; updatePlayUI(false); }
+        });
+
+        DOM.progressBarContainer.addEventListener('click', (e) => {
+            if (!DOM.audioPlayer.duration) return;
+            const rect = DOM.progressBarContainer.getBoundingClientRect();
+            const clickPos = (e.clientX - rect.left) / rect.width;
+            DOM.audioPlayer.currentTime = clickPos * DOM.audioPlayer.duration;
+        });
+
+        DOM.playPauseBtn.addEventListener('click', () => {
+            if (!DOM.audioPlayer.src) return;
+            if (isPlaying) { DOM.audioPlayer.pause(); isPlaying = false; updatePlayUI(false); }
+            else { DOM.audioPlayer.play(); isPlaying = true; updatePlayUI(true); }
+        });
+
+        DOM.prevBtn.addEventListener('click', () => {
+            if (currentPlayingIndex > 0) playIndex(currentPlayingIndex - 1);
+            else playIndex(currentPlaylist.length - 1);
+        });
+
+        DOM.nextBtn.addEventListener('click', () => {
+            if (currentPlayingIndex < currentPlaylist.length - 1) playIndex(currentPlayingIndex + 1);
+            else playIndex(0);
+        });
+
+        document.getElementById('closePlayerBtn').addEventListener('click', () => {
+            DOM.playerBar.classList.add('translate-y-full');
+            DOM.audioPlayer.pause(); DOM.audioPlayer.src = ""; 
+            isPlaying = false; currentPlayingIndex = -1; updatePlayUI(false); renderList();
+        });
+
+        DOM.searchInput.addEventListener('input', (e) => {
+            currentSearchQuery = e.target.value;
+            DOM.clearSearchBtn.classList.toggle('hidden', !currentSearchQuery);
+            renderList();
+        });
+
+        DOM.clearSearchBtn.addEventListener('click', () => {
+            DOM.searchInput.value = ''; currentSearchQuery = '';
+            DOM.clearSearchBtn.classList.add('hidden'); renderList();
+        });
+
+        document.querySelectorAll('.cat-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.cat-tab').forEach(t => {
+                    t.classList.remove('bg-purple-600', 'text-white');
+                    t.classList.add('text-slate-400', 'bg-slate-900');
+                });
+                tab.classList.add('bg-purple-600', 'text-white');
+                tab.classList.remove('text-slate-400', 'bg-slate-900');
+                currentCat = tab.getAttribute('data-cat');
+                renderList();
+            });
+        });
+
+        DOM.presetSelect.addEventListener('change', (e) => { currentPreset = e.target.value; renderList(); });
+        DOM.eraSelect.addEventListener('change', (e) => { currentEra = e.target.value; renderList(); });
+        DOM.sortSelect.addEventListener('change', (e) => { currentSort = e.target.value; renderList(); });
+
+        document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+            currentCat = 'all'; currentEra = 'all'; currentPreset = 'all';
+            currentSearchQuery = ''; DOM.searchInput.value = '';
+            DOM.presetSelect.value = 'all'; DOM.eraSelect.value = 'all'; DOM.sortSelect.value = 'year-desc';
+
+            document.querySelectorAll('.cat-tab').forEach(t => {
+                t.classList.remove('bg-purple-600', 'text-white');
+                t.classList.add('text-slate-400', 'bg-slate-900');
+            });
+            document.querySelector('.cat-tab[data-cat="all"]').classList.add('bg-purple-600', 'text-white');
+            renderList();
+        });
+
+        // --- STREAMING_CHUNK:Rendering the Dynamic List... ---
+        function renderList() {
+            const list = getFilteredList();
+            document.getElementById('currentDisplayCount').innerText = list.length;
+
+            if (list.length === 0) {
+                DOM.songsList.innerHTML = '';
+                DOM.emptyState.classList.remove('hidden');
+                return;
+            }
+            DOM.emptyState.classList.add('hidden');
+
+            const currentPlayingId = (currentPlayingIndex >= 0 && currentPlaylist[currentPlayingIndex]) ? currentPlaylist[currentPlayingIndex].id : null;
+
+            let html = '';
+            list.forEach((song, index) => {
+                const isFav = favorites.includes(song.id);
+                const isNowPlaying = currentPlayingId === song.id;
+                const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(song.title + ' ' + song.artist)}`;
+
+                html += `
+                <div class="px-2 sm:px-3 py-3 grid grid-cols-[20px_26px_160px_1fr_32px] gap-2 items-center border-b border-slate-800/80 active:bg-slate-800/60 transition-colors cursor-pointer ${isNowPlaying ? 'playing-row' : ''}" onclick="playSongById(${song.id})">
+                    
+                    <!-- 1: Number -->
+                    <div class="text-center shrink-0 ${isNowPlaying ? 'text-pink-400' : 'text-slate-500 font-mono text-xs'}">
+                        ${isNowPlaying && isPlaying ? '<i class="fa-solid fa-volume-high animate-pulse text-sm"></i>' : (isNowPlaying ? '<i class="fa-solid fa-play text-sm"></i>' : index + 1)}
+                    </div>
+                    
+                    <!-- 2: YouTube Search Icon -->
+                    <a href="${ytUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="text-slate-500 hover:text-red-500 active:text-red-500 transition-colors flex justify-center items-center">
+                        <i class="fa-brands fa-youtube text-[17px]"></i>
+                    </a>
+
+                    <!-- 3: Info (Title & Artist) - 完全固定幅 -->
+                    <div class="w-[160px] min-w-[160px] max-w-[160px] pr-2 border-r border-slate-700/50">
+                        <h4 class="text-sm font-bold text-white truncate mb-0.5 leading-tight">${song.title}</h4>
+                        <p class="text-[10px] text-slate-400 truncate leading-tight">${song.artist} <span class="ml-0.5 opacity-60">(${song.year})</span></p>
+                    </div>
+
+                    <!-- 4: Memo - 残りの幅を埋める (はみ出る分は省略) -->
+                    <div class="min-w-0 pl-1">
+                        <p class="text-[9.5px] sm:text-[10px] text-slate-400 line-clamp-2 leading-relaxed opacity-90">${song.memo}</p>
+                    </div>
+
+                    <!-- 5: Favorite -->
+                    <div class="flex items-center justify-end">
+                        <button onclick="toggleFavorite(${song.id}, event)" class="p-2 -m-2 rounded-full active:bg-slate-800 text-slate-500 transition-colors ${isFav ? 'text-red-400' : ''}">
+                            <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart text-[15px]"></i>
+                        </button>
+                    </div>
+                </div>
+                `;
+            });
+            DOM.songsList.innerHTML = html;
+        }
+
+        // Init
+        window.addEventListener('DOMContentLoaded', () => {
+            updateCategoryCounts();
+            renderList();
+        });
+    </script>
+</body>
+</html>
