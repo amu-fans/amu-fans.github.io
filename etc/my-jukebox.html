@@ -45,53 +45,22 @@
             background: rgba(139, 92, 246, 0.15) !important;
             border-left: 3px solid #a855f7 !important;
         }
-        /* Custom progress bar */
-        .progress-bar-container {
-            cursor: pointer;
-        }
-        /* PCなどのマウス操作環境ではスクロールバーを表示し、スマホでは非表示にする */
+        .progress-bar-container { cursor: pointer; }
         @media (pointer: fine) {
-            ::-webkit-scrollbar {
-                width: 6px;
-                display: block !important;
-            }
-            ::-webkit-scrollbar-track {
-                background: rgba(11, 15, 25, 0.5);
-            }
-            ::-webkit-scrollbar-thumb {
-                background: rgba(139, 92, 246, 0.4);
-                border-radius: 3px;
-            }
-            ::-webkit-scrollbar-thumb:hover {
-                background: rgba(139, 92, 246, 0.7);
-            }
+            ::-webkit-scrollbar { width: 6px; display: block !important; }
+            ::-webkit-scrollbar-track { background: rgba(11, 15, 25, 0.5); }
+            ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.4); border-radius: 3px; }
         }
-        @media (pointer: coarse) {
-            ::-webkit-scrollbar {
-                display: none;
-            }
-        }
-
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
+        @media (pointer: coarse) { ::-webkit-scrollbar { display: none; } }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
 <body class="min-h-screen pb-36 relative">
 
-    <!-- Background Canvas for Visual Effects -->
     <canvas id="bgCanvas" class="fixed inset-0 w-full h-full z-0 pointer-events-none opacity-60"></canvas>
 
-    <!-- Main Content -->
     <main class="relative z-10 px-3 pt-4 max-w-4xl mx-auto">
-
-        <!-- Controls (Search & Filters) -->
         <div class="glass-card rounded-xl p-3 mb-4 space-y-3 shadow-lg">
-            
-            <!-- Search -->
             <div class="relative w-full">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
@@ -103,7 +72,6 @@
                 </button>
             </div>
 
-            <!-- Filters -->
             <div class="flex items-center gap-2 overflow-x-auto pb-1 snap-x">
                 <select id="presetSelect" class="snap-start shrink-0 bg-slate-900 border border-slate-700 text-xs text-purple-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-purple-500">
                     <option value="all">🎯 テーマ選択</option>
@@ -113,7 +81,6 @@
                     <option value="modern-idol">🎀 10s-20s アイドル</option>
                     <option value="anison">🎮 アニソン</option>
                 </select>
-
                 <select id="eraSelect" class="snap-start shrink-0 bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-purple-500">
                     <option value="all">📅 年代</option>
                     <option value="7080s">70-80年代</option>
@@ -122,7 +89,6 @@
                     <option value="10s">2010年代</option>
                     <option value="20s">2020年代</option>
                 </select>
-
                 <select id="sortSelect" class="snap-start shrink-0 bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none focus:border-purple-500">
                     <option value="year-desc">新しい順</option>
                     <option value="year-asc">古い順</option>
@@ -130,7 +96,6 @@
                 </select>
             </div>
 
-            <!-- Category Tabs -->
             <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 snap-x pt-1 border-t border-slate-800/50">
                 <button data-cat="all" class="cat-tab snap-start shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 text-white transition-colors">
                     すべて (<span id="countAll">0</span>)
@@ -150,7 +115,6 @@
             </div>
         </div>
 
-        <!-- List Header -->
         <div class="flex justify-between items-end mb-2 px-1 border-b border-slate-800/50 pb-2">
             <span class="text-xs text-slate-300 font-medium tracking-wide">
                 101 SONGS <span class="text-[10px] text-slate-400 ml-1">(セルタップで試聴/ <i class="fa-brands fa-youtube text-red-500 mx-0.5"></i> でYouTube検索)</span>
@@ -158,13 +122,8 @@
             <span class="text-[10px] text-slate-500 font-mono shrink-0">表示中: <span id="currentDisplayCount" class="text-purple-400 font-bold text-xs">101</span> 件</span>
         </div>
 
-        <!-- Song List Display Area -->
         <section class="glass-card rounded-xl overflow-hidden mb-6 shadow-lg border border-slate-800/60">
-            <div id="songsList" class="flex flex-col">
-                <!-- Table Rows generated dynamically -->
-            </div>
-
-            <!-- Empty State -->
+            <div id="songsList" class="flex flex-col"></div>
             <div id="emptyState" class="hidden text-center py-12 px-4">
                 <i class="fa-solid fa-compact-disc text-4xl text-slate-700 mb-3 animate-pulse"></i>
                 <p class="text-slate-300 text-sm font-semibold">曲が見つかりません</p>
@@ -173,35 +132,24 @@
                 </button>
             </div>
         </section>
-
     </main>
 
     <!-- HTML5 Real Audio Element -->
     <audio id="audioPlayer" preload="auto"></audio>
 
-    <!-- Bottom Player Bar (Removed YouTube Buttons) -->
     <div id="playerBar" class="fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-purple-500/30 z-50 transition-transform duration-300 transform translate-y-full pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-        
-        <!-- Interactive Seek / Progress Bar -->
         <div id="progressBarContainer" class="w-full h-1.5 bg-slate-800 relative progress-bar-container group hover:h-2.5 transition-all">
             <div id="progressBar" class="h-full bg-gradient-to-r from-purple-500 to-pink-500 w-0 transition-all duration-100 relative">
                 <div class="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </div>
         </div>
-
         <div class="px-4 pt-3 pb-4">
-            <!-- Song Info Row -->
             <div class="flex items-center justify-between mb-3 gap-2">
                 <div class="flex items-center space-x-3 min-w-0 flex-1">
-                    <!-- Album Cover Art -->
                     <div class="relative w-12 h-12 rounded bg-slate-800 overflow-hidden shrink-0 shadow-md border border-slate-700/50 flex items-center justify-center">
                         <img id="playerArt" src="" class="w-full h-full object-cover hidden" alt="Artwork">
                         <i id="playerArtPlaceholder" class="fa-solid fa-music text-purple-400 text-lg"></i>
-                        <div id="audioLoadingSpinner" class="hidden absolute inset-0 bg-black/60 flex items-center justify-center text-purple-400 text-sm">
-                            <i class="fa-solid fa-circle-notch animate-spin"></i>
-                        </div>
                     </div>
-                    
                     <div class="flex flex-col min-w-0 flex-1 justify-center">
                         <div class="flex items-center gap-1.5">
                             <h4 id="playerTitle" class="text-sm font-bold text-white truncate">曲名</h4>
@@ -210,18 +158,12 @@
                         <p id="playerArtist" class="text-[11px] text-slate-400 truncate mt-0.5">アーティスト <span id="playerYear" class="ml-1 text-[9px] bg-slate-800 px-1 rounded text-slate-500">1999</span></p>
                     </div>
                 </div>
-
-                <!-- Close Button -->
                 <button id="closePlayerBtn" class="text-slate-500 hover:text-slate-300 p-2 shrink-0 transition-colors rounded-full active:bg-slate-800/80">
                     <i class="fa-solid fa-chevron-down text-sm"></i>
                 </button>
             </div>
-
-            <!-- Time & Controls Row -->
             <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono mb-1 px-1">
                 <span id="currentTime">0:00</span>
-                
-                <!-- Center Controls -->
                 <div class="flex items-center justify-center space-x-6">
                     <button id="prevBtn" class="text-slate-400 active:text-white hover:text-slate-300 p-2 transition-colors">
                         <i class="fa-solid fa-backward-step text-lg"></i>
@@ -233,144 +175,1236 @@
                         <i class="fa-solid fa-forward-step text-lg"></i>
                     </button>
                 </div>
-
                 <span id="durationTime">0:30</span>
             </div>
         </div>
     </div>
 
-    <!-- Toast -->
     <div id="toast" class="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-slate-800/95 border border-purple-500/40 text-white px-4 py-2.5 rounded-full shadow-2xl flex items-center space-x-2 -translate-y-16 opacity-0 transition-all duration-300 pointer-events-none text-xs font-medium w-max max-w-[90%] backdrop-blur-md">
         <i id="toastIcon" class="fa-solid fa-circle-check text-purple-400"></i>
         <span id="toastMsg" class="truncate">通知</span>
     </div>
 
     <script>
-        // --- Songs Data (Full 101 Songs) ---
+        // ★★★ ツールで生成された、試聴URL組み込み済みのデータ ★★★
         const songsData = [
-            // 女性アイドル (41)
-            { id: 1, year: 1997, title: "マジで恋する5秒前", artist: "広末涼子", category: "idol", genre: "J-POP / アイドル", rating: 5, memo: "竹内まりや提供。誰もが口ずさんだ90年代アイドルソングの金字塔。" },
-            { id: 2, year: 1997, title: "大スキ！", artist: "広末涼子", category: "idol", genre: "J-POP / アイドル", rating: 5, memo: "岡本真夜提供。ストレートでポジティブなフレーズとキャッチーなメロディが最高。" },
-            { id: 3, year: 1996, title: "Body & Soul", artist: "SPEED", category: "idol", genre: "J-POP / ダンス", rating: 5, memo: "鮮烈なデビューを飾った、パワフルでダンサブルなナンバー。" },
-            { id: 4, year: 1997, title: "White Love", artist: "SPEED", category: "idol", genre: "J-POP / バラード", rating: 5, memo: "切ないメロディと圧倒的な高音が胸に響くミリオンヒット曲。" },
-            { id: 5, year: 1994, title: "恋しさと せつなさと 心強さと", artist: "篠原涼子 with t.komuro", category: "idol", genre: "J-POP / TKサウンド", rating: 5, memo: "小室哲哉プロデュース。ダブルミリオンを記録した90年代を代表するメガヒット曲。" },
-            { id: 6, year: 1997, title: "CAN YOU CELEBRATE?", artist: "安室奈美恵", category: "idol", genre: "J-POP / バラード", rating: 5, memo: "邦楽女性ソロ史上最高売上を記録した感動のビッグヒット。" },
-            { id: 7, year: 1995, title: "太陽のSEASON", artist: "安室奈美恵", category: "idol", genre: "J-POP / ユーロビート", rating: 5, memo: "安室奈美恵のソロデビューシングル。躍動感あふれるユーロビートで一気に魅了する名曲。" },
-            { id: 8, year: 1996, title: "I'm proud", artist: "華原朋美", category: "idol", genre: "J-POP / TKサウンド", rating: 5, memo: "ドラマチックなストリングスとハイトーンボーカルの壮大な名曲。" },
-            { id: 9, year: 1999, title: "be together", artist: "鈴木あみ", category: "idol", genre: "J-POP / ダンス", rating: 5, memo: "明るく疾走感のあるリメイク。90年代末のヒットチャートを盛り上げた曲。" },
-            { id: 10, year: 2000, title: "乙女 パスタに感動", artist: "タンポポ", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "つんく♂作詞作曲。タイトルも印象的なタンポポの代表的ポップソング。" },
-            { id: 11, year: 1998, title: "サマーナイトタウン", artist: "モーニング娘。", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "初期の切なく大人っぽい雰囲気が魅力的な2ndシングル。" },
-            { id: 12, year: 2000, title: "ハッピーサマーウェディング", artist: "モーニング娘。", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "明るく賑やかなメッセージソング。両親へのセリフパートも印象的。" },
-            { id: 13, year: 2001, title: "ザ☆ピ〜ス！", artist: "モーニング娘。", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "多幸感あふれる展開とキャッチーなセリフで盛り上がる名曲。" },
-            { id: 14, year: 2003, title: "シャボン玉", artist: "モーニング娘。", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "迫力あるボーカルと熱いセリフが痺れるパワフルナンバー。" },
-            { id: 15, year: 2002, title: "ロマンティック 浮かれモード", artist: "藤本美貴", category: "idol", genre: "J-POP / ハロプロ", rating: 5, memo: "イントロから大盛り上がりのソロアイドル名曲。" },
-            { id: 16, year: 2001, title: "secret base ～君がくれたもの～", artist: "ZONE", category: "idol", genre: "J-POP / ガールズバンド", rating: 5, memo: "夏の終わりと別れを描いた超ロングヒットソング。" },
-            { id: 17, year: 1998, title: "Timing", artist: "ブラックビスケッツ", category: "idol", genre: "J-POP / ポップス", rating: 5, memo: "ウリナリ発の大ヒット。親しみやすいテンポとメロディ。" },
-            { id: 18, year: 1996, title: "YELLOW YELLOW HAPPY", artist: "ポケットビスケッツ", category: "idol", genre: "J-POP / ロック", rating: 5, memo: "印象的なサビとキャッチーなメロディで売れまくった一曲。" },
-            { id: 19, year: 2000, title: "SEASONS", artist: "浜崎あゆみ", category: "idol", genre: "J-POP / バラード", rating: 5, memo: "あゆ旋風の頂点。切なくも美しい季節のうつろいを歌った曲。" },
-            { id: 20, year: 2000, title: "M", artist: "浜崎あゆみ", category: "idol", genre: "J-POP / ロックバラード", rating: 5, memo: "壮大なサウンドと切ない歌詞がシンクロする平成を代表する曲。" },
-            { id: 21, year: 2006, title: "BLUE BIRD", artist: "浜崎あゆみ", category: "idol", genre: "J-POP / サマーソング", rating: 5, memo: "爽やかでキャッチーな夏の定番ナンバー。" },
-            { id: 22, year: 2010, title: "ヘビーローテーション", artist: "AKB48", category: "idol", genre: "J-POP / アイドル", rating: 5, memo: "カラオケ定番、国民的大ヒットアイドルナンバー。" },
-            { id: 23, year: 2013, title: "恋するフォーチュンクッキー", artist: "AKB48", category: "idol", genre: "J-POP / ディスコ", rating: 5, memo: "誰もが踊れるキャッチーなダンスと温かいメッセージソング。" },
-            { id: 24, year: 2007, title: "チョコレイト・ディスコ", artist: "Perfume", category: "idol", genre: "J-POP / テクノポップ", rating: 5, memo: "キャッチーなフレーズと電子音がクセになるブレイクソング。" },
-            { id: 25, year: 2013, title: "ガールズルール", artist: "乃木坂46", category: "idol", genre: "J-POP / 夏ソング", rating: 5, memo: "白石麻衣初センター。ライブで超盛り上がる王道夏ソング。" },
-            { id: 26, year: 2018, title: "ジコチューで行こう！", artist: "乃木坂46", category: "idol", genre: "J-POP / 夏ソング", rating: 5, memo: "爽やかで解放感あふれる開放的な夏ナンバー。" },
-            { id: 27, year: 2019, title: "黒い羊", artist: "欅坂46", category: "idol", genre: "J-POP / メッセージ", rating: 5, memo: "強い孤独と葛藤を描いた重厚でエモーショナルな名曲。" },
-            { id: 28, year: 2017, title: "不協和音", artist: "欅坂46", category: "idol", genre: "J-POP / ダンス", rating: 5, memo: "激しいダンスと強い意志を感じさせるメッセージソング。" },
-            { id: 29, year: 2017, title: "危なっかしい計画", artist: "欅坂46", category: "idol", genre: "J-POP / アッパー", rating: 5, memo: "ライブのボルテージを最高潮に引き上げる爆発的タオル曲。" },
-            { id: 30, year: 2023, title: "夏の近道", artist: "櫻坂46", category: "idol", genre: "J-POP / 青春", rating: 5, memo: "三期生曲。勢いと青春感あふれる疾走ポップナンバー。" },
-            { id: 31, year: 2020, title: "なぜ 恋をして来なかったんだろう？", artist: "櫻坂46", category: "idol", genre: "J-POP / ダンス", rating: 5, memo: "藤吉夏鈴センター。しなやかで叙情的な世界観が魅力。" },
-            { id: 32, year: 2019, title: "ドレミソラシド", artist: "日向坂46", category: "idol", genre: "J-POP / 爽やか", rating: 5, memo: "夏の爽快感とハッピーオーラが溢れる王道ポップス。" },
-            { id: 33, year: 2016, title: "オーケストラ", artist: "BiSH", category: "idol", genre: "アニメ・ロック", rating: 5, memo: "感情を揺さぶる美しいメロディと切ない歌詞の代表曲。" },
-            { id: 34, year: 2015, title: "Road of Resistance", artist: "BABYMETAL", category: "idol", genre: "メタル", rating: 5, memo: "ドラゴンフォースコラボ。疾走感と壮大なスケールが圧巻。" },
-            { id: 35, year: 2014, title: "ギミチョコ！！", artist: "BABYMETAL", category: "idol", genre: "メタル / ポップ", rating: 5, memo: "世界的ブームを巻き起こした中毒性抜群のメタルポップ。" },
-            { id: 36, year: 2021, title: "青春群像", artist: "タイトル未定", category: "idol", genre: "J-POP / 青春", rating: 5, memo: "北海道発アイドル。儚く切ないメロディラインと青春感が光る名曲。" },
-            { id: 37, year: 2024, title: "初恋シンデレラ", artist: "≒JOY", category: "idol", genre: "J-POP / 青春", rating: 5, memo: "指原莉乃プロデュース。ピュアなときめきを描いた王道アイドルラブソング。" },
-            { id: 38, year: 2012, title: "初恋サイダー", artist: "Buono!", category: "idol", genre: "J-POP / ポップロック", rating: 5, memo: "イントロのソロボーカルから一気に引き込まれるアイドル界の不朽の名曲。" },
-            { id: 39, year: 2024, title: "コヨーテが鳴いている", artist: "WHITE SCORPION", category: "idol", genre: "J-POP", rating: 5, memo: "秋元康プロデュース。静寂と切なさが漂う叙情派アイドルソング。" },
-            { id: 40, year: 2010, title: "Snow halation", artist: "μ's", category: "idol", genre: "アニソン / アイドル", rating: 5, memo: "『ラブライブ！』を代表する名曲。冬の切なさと疾走感が最高のラブソング。" },
-            { id: 41, year: 2014, title: "それは僕たちの奇跡", artist: "μ's", category: "idol", genre: "アニソン / アイドル", rating: 5, memo: "『ラブライブ！』TVアニメ2期OP。輝く希望とエネルギーにあふれた王道ソング。" },
+    {
+        "id": 1,
+        "year": 1997,
+        "title": "マジで恋する5秒前",
+        "artist": "広末涼子",
+        "category": "idol",
+        "genre": "J-POP / アイドル",
+        "rating": 5,
+        "memo": "竹内まりや提供。誰もが口ずさんだ90年代アイドルソングの金字塔。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f0/6d/97/f06d97c8-06f2-bf2d-80ce-a155275b5772/mzaf_17106056657787487273.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/77/ce/39/77ce39c5-6b14-d0f5-2ac0-3fcf9f05ce23/4500000061019.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 2,
+        "year": 1997,
+        "title": "大スキ！",
+        "artist": "広末涼子",
+        "category": "idol",
+        "genre": "J-POP / アイドル",
+        "rating": 5,
+        "memo": "岡本真夜提供。ストレートでポジティブなフレーズとキャッチーなメロディが最高。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/40/91/7c/40917c09-89fd-5aa7-5e91-ea0e43787fe6/mzaf_10587815820744274831.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/ac/6c/e1/ac6ce1ca-3762-4d74-76c3-3e4565d1087d/825646402458.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 3,
+        "year": 1996,
+        "title": "Body & Soul",
+        "artist": "SPEED",
+        "category": "idol",
+        "genre": "J-POP / ダンス",
+        "rating": 5,
+        "memo": "鮮烈なデビューを飾った、パワフルでダンサブルなナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/7d/8b/03/7d8b03a9-be37-b719-dfd7-6f8880b96a7e/mzaf_2771110569066439910.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/79/e2/0d/79e20d1b-d075-8891-0cef-06b41b5ffd78/mzi.pohobzdm.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 4,
+        "year": 1997,
+        "title": "White Love",
+        "artist": "SPEED",
+        "category": "idol",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "切ないメロディと圧倒的な高音が胸に響くミリオンヒット曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/56/bc/8e/56bc8ea8-1787-b5f7-e205-88adc2324a57/mzaf_2844686041006823932.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/75/d1/d2/75d1d207-3630-5542-c4a5-cb7d1ed37334/mzi.espabyyv.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 5,
+        "year": 1994,
+        "title": "恋しさと せつなさと 心強さと",
+        "artist": "篠原涼子 with t.komuro",
+        "category": "idol",
+        "genre": "J-POP / TKサウンド",
+        "rating": 5,
+        "memo": "小室哲哉プロデュース。ダブルミリオンを記録した90年代を代表するメガヒット曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/c8/cc/ef/c8ccefe4-a53d-ba27-a5aa-2318fe9d9620/mzaf_665717904688077103.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/95/d1/3c/95d13cfa-e621-5f74-e370-2818a8d84b87/jacket_MHXX00498B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 6,
+        "year": 1997,
+        "title": "CAN YOU CELEBRATE?",
+        "artist": "安室奈美恵",
+        "category": "idol",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "邦楽女性ソロ史上最高売上を記録した感動のビッグヒット。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/48/a3/10/48a310ce-f9e5-ad56-3bfa-75052c52ee67/mzaf_13684850627893217812.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/e5/d8/54/e5d8545e-0b74-e343-b0f0-36afccde5517/00028945097886.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 7,
+        "year": 1995,
+        "title": "太陽のSEASON",
+        "artist": "安室奈美恵",
+        "category": "idol",
+        "genre": "J-POP / ユーロビート",
+        "rating": 5,
+        "memo": "安室奈美恵のソロデビューシングル。躍動感あふれるユーロビートで一気に魅了する名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c8/7c/1b/c87c1bb6-3850-e997-ad39-d598cdb12558/mzaf_18002512033468749988.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/71/79/b4/7179b4f0-3818-ef88-13d3-8f56af90d5a6/DLOW-747_48.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 8,
+        "year": 1996,
+        "title": "I'm proud",
+        "artist": "華原朋美",
+        "category": "idol",
+        "genre": "J-POP / TKサウンド",
+        "rating": 5,
+        "memo": "ドラマチックなストリングスとハイトーンボーカルの壮大な名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/4f/5d/3e/4f5d3e0e-9014-68ef-a0b1-a04ffa035de9/mzaf_4891472241126950651.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/26/49/8a/26498a65-8f25-5281-40aa-41108fbf2ae3/00600406313911.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 9,
+        "year": 1999,
+        "title": "be together",
+        "artist": "鈴木あみ",
+        "category": "idol",
+        "genre": "J-POP / ダンス",
+        "rating": 5,
+        "memo": "明るく疾走感のあるリメイク。90年代末のヒットチャートを盛り上げた曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/68/40/b8/6840b839-8848-acd5-d0aa-f50df6518edf/mzaf_17746316509809198984.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/c3/2b/6c/c32b6c93-4f61-2473-a2ac-1025dc17e5dd/jacket_MHXX00192B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 10,
+        "year": 2000,
+        "title": "乙女 パスタに感動",
+        "artist": "タンポポ",
+        "category": "idol",
+        "genre": "J-POP / ハロプロ",
+        "rating": 5,
+        "memo": "つんく♂作詞作曲。タイトルも印象的なタンポポの代表的ポップソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0e/cc/64/0ecc64b1-ab38-b49e-a664-5b501cc806a2/mzaf_14627076698712683136.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/d2/8d/fc/d28dfc78-4914-aa86-46f4-b41c15acfb32/EPCE-5060.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 11,
+        "year": 1998,
+        "title": "サマーナイトタウン",
+        "artist": "モーニング娘。",
+        "category": "idol",
+        "genre": "J-POP / ハロプロ",
+        "rating": 5,
+        "memo": "初期の切なく大人っぽい雰囲気が魅力的な2ndシングル。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/7b/da/81/7bda816e-ec16-676b-5507-0360b378ebf7/mzaf_9719003949463905932.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/69/27/0c/mzi.diahdrui.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 12,
+        "year": 2000,
+        "title": "ハッピーサマーウェディング",
+        "artist": "モーニング娘。",
+        "category": "idol",
+        "genre": "J-POP / ハロプロ",
+        "rating": 5,
+        "memo": "明るく賑やかなメッセージソング。両親へのセリフパートも印象的。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/80/7b/c3/807bc371-bdcc-fe0a-be31-6624667f29c2/mzaf_2069769224430918723.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/f3/6f/66/mzi.yodrcfrr.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 13,
+        "year": 2001,
+        "title": "ザ☆ピ〜ス！",
+        "artist": "モーニング娘。",
+        "category": "idol",
+        "genre": "J-POP / ハロプロ",
+        "rating": 5,
+        "memo": "多幸感あふれる展開とキャッチーなセリフで盛り上がる名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/d3/6e/24/d36e249c-19ce-ac9f-d1e0-27a6de7ca1aa/mzaf_17904281272773844318.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/9c/1a/9c/9c1a9cb9-bc3d-529c-4e61-fcdbd56ddbd4/ticket.xclufafz.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 14,
+        "year": 2003,
+        "title": "シャボン玉",
+        "artist": "モーニング娘。",
+        "category": "idol",
+        "genre": "J-POP / ハロプロ",
+        "rating": 5,
+        "memo": "迫力あるボーカルと熱いセリフが痺れるパワフルナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview71/v4/52/3d/c8/523dc8c3-7969-ff35-d2d3-446615291477/mzaf_7250460982229314022.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ab/77/6f/ab776f0b-e879-8218-3066-8c769393cfb3/ticket.vidxhcap.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 15,
+        "year": 2002,
+        "title": "ロマンティック 浮かれモード",
+        "artist": "藤本美貴",
+        "category": "idol",
+        "genre": "J-POP / ハロプロ",
+        "rating": 5,
+        "memo": "イントロから大盛り上がりのソロアイドル名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/Music/v4/3e/00/9b/3e009bd7-4d02-f639-35b1-a851310e2196/mzaf_4018532288150293117.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/d8/23/df/mzi.mmqswgds.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 16,
+        "year": 2001,
+        "title": "secret base ～君がくれたもの～",
+        "artist": "ZONE",
+        "category": "idol",
+        "genre": "J-POP / ガールズバンド",
+        "rating": 5,
+        "memo": "夏の終わりと別れを描いた超ロングヒットソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/13/df/a3/13dfa3a6-f218-9d62-245d-11712e00e271/mzaf_10053442299064172122.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/47/e8/6c/47e86cf7-c586-654b-fd8e-680b8cc0c7c3/4560427467238.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 17,
+        "year": 1998,
+        "title": "Timing",
+        "artist": "ブラックビスケッツ",
+        "category": "idol",
+        "genre": "J-POP / ポップス",
+        "rating": 5,
+        "memo": "ウリナリ発の大ヒット。親しみやすいテンポとメロディ。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview112/v4/01/a1/ce/01a1ce3a-ecf6-f44d-c97f-148cea389059/mzaf_14771505890641537367.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/cf/8f/d6/cf8fd6e7-c7cd-5fa1-c8e7-ede67a3c70e2/4547366596274.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 18,
+        "year": 1996,
+        "title": "YELLOW YELLOW HAPPY",
+        "artist": "ポケットビスケッツ",
+        "category": "idol",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "印象的なサビとキャッチーなメロディで売れまくった一曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/6d/79/5e/6d795e40-12b3-2cb1-1610-993692c2b48e/mzaf_6060216136999024618.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/62/f5/0f/62f50f0d-7f24-41bf-a081-0b90b9f94280/00600406830883.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 19,
+        "year": 2000,
+        "title": "SEASONS",
+        "artist": "浜崎あゆみ",
+        "category": "idol",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "あゆ旋風の頂点。切なくも美しい季節のうつろいを歌った曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ed/cb/01/edcb01aa-fe1e-4691-7113-5cd840629f7d/mzaf_8401848350747784549.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/16/28/3b/16283b11-f09b-29e6-7828-7b12366f2781/dj.dfyzybtf.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 20,
+        "year": 2000,
+        "title": "M",
+        "artist": "浜崎あゆみ",
+        "category": "idol",
+        "genre": "J-POP / ロックバラード",
+        "rating": 5,
+        "memo": "壮大なサウンドと切ない歌詞がシンクロする平成を代表する曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/c6/f6/57/c6f657d8-2566-2903-91d9-8437df371d32/mzaf_9415247204551132159.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music1/v4/59/ec/f9/59ecf9fc-9140-1842-420b-da2d65e1921a/ANTCD-15019.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 21,
+        "year": 2006,
+        "title": "BLUE BIRD",
+        "artist": "浜崎あゆみ",
+        "category": "idol",
+        "genre": "J-POP / サマーソング",
+        "rating": 5,
+        "memo": "爽やかでキャッチーな夏の定番ナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d5/12/d7/d512d718-b874-23a5-83be-d1cb98b18e5f/mzaf_8050667231872891279.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music62/v4/c8/ae/00/c8ae0006-1ec7-f33c-fd5b-a81b5629bfab/ANTCD-18707.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 22,
+        "year": 2010,
+        "title": "ヘビーローテーション",
+        "artist": "AKB48",
+        "category": "idol",
+        "genre": "J-POP / アイドル",
+        "rating": 5,
+        "memo": "カラオケ定番、国民的大ヒットアイドルナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ef/05/16/ef05164c-4504-ae77-73f0-cefaac8d6403/mzaf_6709354033076389427.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/97/fe/1c/97fe1c4c-88e3-e739-d70e-d1b7762e55b6/mzi.eenpnigo.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 23,
+        "year": 2013,
+        "title": "恋するフォーチュンクッキー",
+        "artist": "AKB48",
+        "category": "idol",
+        "genre": "J-POP / ディスコ",
+        "rating": 5,
+        "memo": "誰もが踊れるキャッチーなダンスと温かいメッセージソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/dd/9b/f2/dd9bf212-7b32-efdd-c1fd-7c3f5218f9fe/mzaf_8589342471419547158.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/9f/cd/1b/9fcd1ba8-a012-6e0f-a8f4-bcb204261a8e/AKB48_5thALBUM_TypeA_shokai.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 24,
+        "year": 2007,
+        "title": "チョコレイト・ディスコ",
+        "artist": "Perfume",
+        "category": "idol",
+        "genre": "J-POP / テクノポップ",
+        "rating": 5,
+        "memo": "キャッチーなフレーズと電子音がクセになるブレイクソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/21/4c/64/214c64f7-9369-3291-c52f-77d966b6819c/mzaf_6695966432853260713.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/4d/6e/36/4d6e3651-20a1-93b9-1f43-3fa5860e64e9/TKCA-73325.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 25,
+        "year": 2013,
+        "title": "ガールズルール",
+        "artist": "乃木坂46",
+        "category": "idol",
+        "genre": "J-POP / 夏ソング",
+        "rating": 5,
+        "memo": "白石麻衣初センター。ライブで超盛り上がる王道夏ソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/c2/06/3b/c2063b61-89f9-c187-825c-6c2cf1e24967/mzaf_8159343614567441445.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/b5/26/4e/b5264edc-91d1-9d8e-907c-2c3bb0dbb34a/4547366542042.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 26,
+        "year": 2018,
+        "title": "ジコチューで行こう！",
+        "artist": "乃木坂46",
+        "category": "idol",
+        "genre": "J-POP / 夏ソング",
+        "rating": 5,
+        "memo": "爽やかで解放感あふれる開放的な夏ナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/f8/aa/e7/f8aae7bc-a09f-7cc3-8c52-fc999821fe2e/mzaf_17935577463401047782.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/94/1a/fc/941afc60-3969-ce2d-461b-5304d9d6fa85/jacket_SRXX02837B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 27,
+        "year": 2019,
+        "title": "黒い羊",
+        "artist": "欅坂46",
+        "category": "idol",
+        "genre": "J-POP / メッセージ",
+        "rating": 5,
+        "memo": "強い孤独と葛藤を描いた重厚でエモーショナルな名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/4e/d2/b0/4ed2b097-34f6-7c18-0e8c-f105a4bd7770/mzaf_6654747259177388157.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/4f/3f/93/4f3f9336-86f2-44fb-8c66-d38d2da7ec7a/jacket_SRXX03028B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 28,
+        "year": 2017,
+        "title": "不協和音",
+        "artist": "欅坂46",
+        "category": "idol",
+        "genre": "J-POP / ダンス",
+        "rating": 5,
+        "memo": "激しいダンスと強い意志を感じさせるメッセージソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview112/v4/e2/be/47/e2be4749-3de8-fe2b-51fb-22a9eb194f88/mzaf_10979755220519206659.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/e1/e6/5b/e1e65bb7-c29a-ed9e-323d-a853ee3fc144/jacket_SRXX02386B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 29,
+        "year": 2017,
+        "title": "危なっかしい計画",
+        "artist": "欅坂46",
+        "category": "idol",
+        "genre": "J-POP / アッパー",
+        "rating": 5,
+        "memo": "ライブのボルテージを最高潮に引き上げる爆発的タオル曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/84/be/9d/84be9d32-adb0-4787-cf45-6019bc62dbb4/mzaf_346584117221272854.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/e1/e6/5b/e1e65bb7-c29a-ed9e-323d-a853ee3fc144/jacket_SRXX02386B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 30,
+        "year": 2023,
+        "title": "夏の近道",
+        "artist": "櫻坂46",
+        "category": "idol",
+        "genre": "J-POP / 青春",
+        "rating": 5,
+        "memo": "三期生曲。勢いと青春感あふれる疾走ポップナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/23/41/dc/2341dc46-fbaf-c9b5-97ad-4f3dbc0048d3/mzaf_17133536585481588404.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/46/bc/8d/46bc8d78-a70a-a371-2449-1cbee8e1a8c9/4547366607239.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 31,
+        "year": 2020,
+        "title": "なぜ 恋をして来なかったんだろう？",
+        "artist": "櫻坂46",
+        "category": "idol",
+        "genre": "J-POP / ダンス",
+        "rating": 5,
+        "memo": "藤吉夏鈴センター。しなやかで叙情的な世界観が魅力。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/56/8c/8d/568c8ddf-f63b-44db-bd04-cc10c3c4bc9e/mzaf_14638827814696253607.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/36/1c/e5/361ce506-7948-1d49-6765-7335cbfc4b2f/4547366487862.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 32,
+        "year": 2019,
+        "title": "ドレミソラシド",
+        "artist": "日向坂46",
+        "category": "idol",
+        "genre": "J-POP / 爽やか",
+        "rating": 5,
+        "memo": "夏の爽快感とハッピーオーラが溢れる王道ポップス。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/f1/91/2c/f1912c4d-eced-25c2-321a-7fd55ca48dc6/mzaf_14837192602135863408.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/1d/c0/3a/1dc03a4c-6b76-a396-ad32-2bf4b6723644/jacket_SRXX03175B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 33,
+        "year": 2016,
+        "title": "オーケストラ",
+        "artist": "BiSH",
+        "category": "idol",
+        "genre": "アニメ・ロック",
+        "rating": 5,
+        "memo": "感情を揺さぶる美しいメロディと切ない歌詞の代表曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/40/ca/15/40ca15f0-fb4d-0b83-7267-3303791e409a/mzaf_1781275929882463713.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music62/v4/10/29/78/10297851-2256-e918-f667-e278b697b430/ANTCD-19184.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 34,
+        "year": 2015,
+        "title": "Road of Resistance",
+        "artist": "BABYMETAL",
+        "category": "idol",
+        "genre": "メタル",
+        "rating": 5,
+        "memo": "ドラゴンフォースコラボ。疾走感と壮大なスケールが圧巻。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/4a/aa/b2/4aaab238-8a89-57d2-78d2-700ca4cc73c2/mzaf_14344421965058408506.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music69/v4/c2/2b/48/c22b48c6-9297-5144-752a-ecf139e0a867/dj.ttplgjmb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 35,
+        "year": 2014,
+        "title": "ギミチョコ！！",
+        "artist": "BABYMETAL",
+        "category": "idol",
+        "genre": "メタル / ポップ",
+        "rating": 5,
+        "memo": "世界的ブームを巻き起こした中毒性抜群のメタルポップ。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/03/27/ad/0327ada0-22b6-ce4a-b4a3-255fb4561f32/mzaf_3911040283573246871.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/e8/f6/a5/e8f6a58c-40ed-34df-d4ee-242e533955f9/BABYMETAL.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 36,
+        "year": 2021,
+        "title": "青春群像",
+        "artist": "タイトル未定",
+        "category": "idol",
+        "genre": "J-POP / 青春",
+        "rating": 5,
+        "memo": "北海道発アイドル。儚く切ないメロディラインと青春感が光る名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/03/ea/f6/03eaf628-2264-2a2b-469b-d73c20b593b1/mzaf_12205392407005722241.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/c7/79/ca/c779ca47-b6b2-34fe-492f-8c8e9e2ce162/3617221799100_cover.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 37,
+        "year": 2024,
+        "title": "初恋シンデレラ",
+        "artist": "≒JOY",
+        "category": "idol",
+        "genre": "J-POP / 青春",
+        "rating": 5,
+        "memo": "指原莉乃プロデュース。ピュアなときめきを描いた王道アイドルラブソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/88/20/8f/88208f35-a246-c69f-33c4-62003d4ed59b/mzaf_11601038011390716230.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/94/d3/fa/94d3fad7-80ef-342e-d754-6c1f888acacb/4547366705195.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 38,
+        "year": 2012,
+        "title": "初恋サイダー",
+        "artist": "Buono!",
+        "category": "idol",
+        "genre": "J-POP / ポップロック",
+        "rating": 5,
+        "memo": "イントロのソロボーカルから一気に引き込まれるアイドル界の不朽の名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/d0/d8/ce/d0d8ce3c-759b-c6ab-cb66-086659359234/mzaf_16964657032709284935.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music113/v4/ef/54/ad/ef54ad1f-0420-83c0-cad7-4e4c877f3352/dj.fsuckhqp.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 39,
+        "year": 2024,
+        "title": "コヨーテが鳴いている",
+        "artist": "WHITE SCORPION",
+        "category": "idol",
+        "genre": "J-POP",
+        "rating": 5,
+        "memo": "秋元康プロデュース。静寂と切なさが漂う叙情派アイドルソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/0e/86/7f/0e867f4d-911e-de64-806d-8276f2c18c25/mzaf_13041959010463945938.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/d9/f5/17/d9f517de-5866-4fc9-d626-03f1380d7f53/NOPA-5540.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 40,
+        "year": 2010,
+        "title": "Snow halation",
+        "artist": "μ's",
+        "category": "idol",
+        "genre": "アニソン / アイドル",
+        "rating": 5,
+        "memo": "『ラブライブ！』を代表する名曲。冬の切なさと疾走感が最高のラブソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/27/39/46/273946b9-a1c2-ed47-261a-9526ccddcfd0/mzaf_17393330119886053432.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/53/0e/24/530e24f8-cd49-fd12-80ed-49a00b826837/4540774407743.png/300x300bb.jpg"
+    },
+    {
+        "id": 41,
+        "year": 2014,
+        "title": "それは僕たちの奇跡",
+        "artist": "μ's",
+        "category": "idol",
+        "genre": "アニソン / アイドル",
+        "rating": 5,
+        "memo": "『ラブライブ！』TVアニメ2期OP。輝く希望とエネルギーにあふれた王道ソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/15/2b/6e/152b6e50-061a-4a8e-e931-54b208a30589/mzaf_12685972663562030088.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/6e/0b/5a/6e0b5afc-0ef0-583d-572d-f81b219a7506/4540774142200.png/300x300bb.jpg"
+    },
+    {
+        "id": 42,
+        "year": 1996,
+        "title": "DEPARTURES",
+        "artist": "globe",
+        "category": "female",
+        "genre": "J-POP / TKサウンド",
+        "rating": 5,
+        "memo": "切ない雪の情景と疾走感あふれるハイトーンボイスが最高。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4b/a5/f6/4ba5f6b2-dbe9-8f97-763d-37e2bf5b6525/mzaf_6922425895598880254.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/f5/c8/2d/f5c82d29-6c5c-b257-ea79-ade98601ee0f/s05.tbydvsua.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 43,
+        "year": 1997,
+        "title": "1/2",
+        "artist": "川本真琴",
+        "category": "female",
+        "genre": "J-POP / アニメ",
+        "rating": 5,
+        "memo": "アニメ『るろうに剣心』OP。独特の言葉紡ぎと疾走するメロディが心地よい。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/eb/a6/05/eba6054f-20fe-adc2-1463-947dda5b6f08/mzaf_8157535764765321449.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/b4/49/ac/b449ac61-84a2-1f13-242f-99b74c0b23df/4547366548655.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 44,
+        "year": 1995,
+        "title": "夢見る少女じゃいられない",
+        "artist": "相川七瀬",
+        "category": "female",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "織田哲郎プロデュース。パワフルなボーカルと疾走感が最高。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/1d/cc/af/1dccaf78-b83a-85c2-2ba8-41e1277b7cdf/mzaf_2134184019418817281.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/45/c7/c7/mzi.rsozesdb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 45,
+        "year": 1999,
+        "title": "春〜spring〜",
+        "artist": "Hysteric Blue",
+        "category": "female",
+        "genre": "J-POP / ポップロック",
+        "rating": 5,
+        "memo": "キャッチーな旋律と春の訪れを感じさせるブレイクナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/42/3d/b2/423db254-b2dc-b7f6-4d5f-664f8724e583/mzaf_12735880340124417689.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/ed/4c/45/ed4c4542-edfc-e0e8-e803-d80630e38424/BIG_VENUS_Jpho.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 46,
+        "year": 1998,
+        "title": "There will be love there －愛のある場所－",
+        "artist": "the brilliant green",
+        "category": "female",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "ドラマ『ラブ・アゲイン』主題歌。UKロック調の哀愁あるサウンドとボーカルが魅力。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/de/98/bf/de98bf20-27f8-90cd-36ef-9390c4a26be5/mzaf_11984121836352277940.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/13/5c/f8/135cf844-4e9f-3757-2e83-811a9b065333/4560429773191.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 47,
+        "year": 1995,
+        "title": "Over Drive",
+        "artist": "JUDY AND MARY",
+        "category": "female",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "ジュディマリの明るさと疾走感が全開のポップロック。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/35/1e/68/351e6886-25d1-79fb-84fd-d4a6dac9c53a/mzaf_5667884075541893699.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/b4/06/59/b4065918-c416-d59e-f564-7dfbfa1df92c/jacket_ESCB02230B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 48,
+        "year": 1996,
+        "title": "そばかす",
+        "artist": "JUDY AND MARY",
+        "category": "female",
+        "genre": "J-POP / アニメソング",
+        "rating": 5,
+        "memo": "アニメ『るろうに剣心』OP。キャッチーでパワフルな1stミリオン。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/b2/8a/f9/b28af998-a1b8-5f03-f7fc-25219c35075a/mzaf_12991669694645552645.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/b4/06/59/b4065918-c416-d59e-f564-7dfbfa1df92c/jacket_ESCB02230B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 49,
+        "year": 2003,
+        "title": "雪の華",
+        "artist": "中島美嘉",
+        "category": "female",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "圧倒的な透明感と情緒あふれる冬の名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/ec/11/29/ec112980-e643-9b2f-4410-513426886aec/mzaf_1834146232976901049.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/7d/1d/81/7d1d818e-d062-6c58-b977-8c389d1388c3/jacket_AICL01494B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 50,
+        "year": 1995,
+        "title": "Hello, Again 〜昔からある場所〜",
+        "artist": "MY LITTLE LOVER",
+        "category": "female",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "切なく美しいメロディと透き通るボーカルが心に深く染みる名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/3a/10/b4/3a10b46d-cbdd-0b28-7740-f92f956d03e8/mzaf_10835181132326665759.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/ea/2e/ec/ea2eec81-2eb9-3305-f010-5a9e868741af/4988061280370.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 51,
+        "year": 1995,
+        "title": "Man & Woman",
+        "artist": "MY LITTLE LOVER",
+        "category": "female",
+        "genre": "J-POP",
+        "rating": 5,
+        "memo": "鮮烈なデビュー曲。洗練されたポップサウンドと歌声が最高。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/82/b5/36/82b536c7-4ca6-e7e7-5088-c0d5bc4f0e30/mzaf_12704496785001446403.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/57/d5/c3/57d5c305-b2da-1543-f2c8-c019d58087ea/4988064236077.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 52,
+        "year": 1995,
+        "title": "白いカイト",
+        "artist": "MY LITTLE LOVER",
+        "category": "female",
+        "genre": "J-POP",
+        "rating": 5,
+        "memo": "風が走り抜けるような爽快感とキャッチーなサビが魅力的。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/e8/bf/e7/e8bfe73b-ff49-10d1-36f6-64851a8f64cc/mzaf_2994402854163896649.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music118/v4/57/d5/c3/57d5c305-b2da-1543-f2c8-c019d58087ea/4988064236077.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 53,
+        "year": 2015,
+        "title": "トリセツ",
+        "artist": "西野カナ",
+        "category": "female",
+        "genre": "J-POP / ラブソング",
+        "rating": 5,
+        "memo": "乙女心を取扱説明書になぞらえて歌ったポップでキュートな大ヒット曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/06/10/55/061055e9-dab8-afb9-0fda-13ae41e232b5/mzaf_10291559783673345260.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/29/bf/97/29bf97b1-6510-a340-2a60-2d76d921ccc0/jacket_SECL01770B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 54,
+        "year": 2007,
+        "title": "CHE.R.RY",
+        "artist": "YUI",
+        "category": "female",
+        "genre": "J-POP / ポップロック",
+        "rating": 5,
+        "memo": "「恋しちゃったんだ」のキャッチーなフレーズが印象的な甘酸っぱい恋愛ソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/01/66/b8/0166b866-8453-f626-9e59-0e2dfd411003/mzaf_1587967592452511455.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/3d/74/e1/3d74e128-f2dd-4f87-51a1-19adf2958112/jacket_SRCL08200B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 55,
+        "year": 2009,
+        "title": "ふわふわ時間",
+        "artist": "放課後ティータイム",
+        "category": "female",
+        "genre": "アニソン / ガールズバンド",
+        "rating": 5,
+        "memo": "アニメ『けいおん！』劇中歌。可愛らしさとキャッチーなロックサウンドが詰まった名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/bd/c1/a9/bdc1a99a-f91a-2789-b07c-826f0fb1c180/mzaf_12316294532715885393.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/4c/b5/dc/4cb5dc1b-ff8f-f3f6-a38c-4e9170d821b5/mzi.ghthbcgp.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 56,
+        "year": 2006,
+        "title": "God knows...",
+        "artist": "涼宮ハルヒ（平野綾）",
+        "category": "female",
+        "genre": "アニソン / ロック",
+        "rating": 5,
+        "memo": "『涼宮ハルヒの憂鬱』挿入歌。超絶なギターリフと力強いボーカルが神がかっているアニソンの名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/50/4e/d7/504ed7f5-664e-73d9-fa04-229f752a6233/mzaf_5200352635369671079.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ea/22/66/ea22667a-8f09-d36d-ec80-b8672f003071/4540774402687.png/300x300bb.jpg"
+    },
+    {
+        "id": 57,
+        "year": 2009,
+        "title": "君の知らない物語",
+        "artist": "supercell",
+        "category": "female",
+        "genre": "アニソン / ポップロック",
+        "rating": 5,
+        "memo": "『化物語』EDテーマ。ドラマチックなメロディと物語のような歌詞が心に刺さる大ヒット曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/5d/79/1a/5d791a2a-93ad-1261-6b3b-ca3c90ca775c/mzaf_14069078112245066001.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/85/2f/f4/852ff4e5-5bc3-e6fb-0799-17eae5df785a/26UMGIM98547.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 58,
+        "year": 2017,
+        "title": "君はロックを聴かない",
+        "artist": "あいみょん",
+        "category": "female",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "あいみょんのブレイクのきっかけとなった名曲。ノスタルジックなサウンドと切ない歌詞が魅力。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/86/8d/fa/868dfa0a-d089-da7a-5e99-83a8856e120c/mzaf_4759522904729634920.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/d8/7b/7c/d87b7cfd-c88c-1003-bc5d-883882043e33/190295747138.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 59,
+        "year": 1995,
+        "title": "WOW WAR TONIGHT",
+        "artist": "H Jungle with t",
+        "category": "male",
+        "genre": "J-POP / 応援歌",
+        "rating": 5,
+        "memo": "働く大人たちの背中を押すフレーズが心に刺さるメガヒット曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/d5/45/e8/d545e8c9-8c20-38ba-e96e-8a2e8678b47c/mzaf_9938829193665901010.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/14/ca/7e/14ca7e80-fc56-9990-e887-62c9d11c08d8/ANTCD-23398.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 60,
+        "year": 1997,
+        "title": "愛なんだ",
+        "artist": "V6",
+        "category": "male",
+        "genre": "J-POP",
+        "rating": 5,
+        "memo": "玉置浩二作曲。キャッチーで元気が湧いてくる90年代ジャニーズの名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c9/b9/4e/c9b94efc-150d-00b5-aebb-4ed18b3b0a93/mzaf_8498170459597499967.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/7d/d5/97/7dd597d7-09d3-9a58-0d48-b0b7e073b5cd/ANTCD-A0000018207.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 61,
+        "year": 2002,
+        "title": "大切なもの",
+        "artist": "ロードオブメジャー",
+        "category": "male",
+        "genre": "J-POP / 青春パンク",
+        "rating": 5,
+        "memo": "番組企画発のメガヒット。疾走感あふれるサウンドと熱いメッセージが心に刺さる。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/cc/f2/44/ccf24451-ecbd-8d3b-fd7f-daa21e7e8ba2/mzaf_17252390879804849639.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/c4/d5/f7/c4d5f701-243b-7e89-b16d-cac9cbfbfde7/mzi.spprdkdw.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 62,
+        "year": 2004,
+        "title": "花",
+        "artist": "ORANGE RANGE",
+        "category": "male",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "映画『いま、会いにゆきます』主題歌。切なく美しいメロディとラップの対比が心に染みる名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b2/f3/0f/b2f30fa3-1f28-2b85-de41-eea6789b3bf9/mzaf_1200788929537410663.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/6b/50/9c/6b509c4b-6550-40f7-2086-008eaed86c5f/jacket_SRCL07315B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 63,
+        "year": 2007,
+        "title": "イケナイ太陽",
+        "artist": "ORANGE RANGE",
+        "category": "male",
+        "genre": "J-POP / アッパー",
+        "rating": 5,
+        "memo": "ドラマ『花ざかりの君たちへ』主題歌。夏のテンションを最高潮に引き上げるアッパーチューン。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/9a/68/d7/9a68d7d2-b3eb-cbfb-90d5-9cfee4b2d56e/mzaf_5617073003192433548.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/05/9d/f2/059df254-f389-2b79-133d-6a0ed2fadbdb/jacket_SRCL06599B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 64,
+        "year": 2007,
+        "title": "愛唄",
+        "artist": "GReeeeN",
+        "category": "male",
+        "genre": "J-POP / ラブソング",
+        "rating": 5,
+        "memo": "まっすぐでピュアな愛を歌ったGReeeeNの大ヒットラブソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/2e/c3/ed/2ec3ed60-d6d0-c741-3f5b-0076020e43a2/mzaf_15401745259424207018.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/d5/d2/6d/d5d26d86-26db-367e-5f6a-ace2e0a9e9ff/00028945075099.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 65,
+        "year": 2008,
+        "title": "キセキ",
+        "artist": "GReeeeN",
+        "category": "male",
+        "genre": "J-POP / 応援歌",
+        "rating": 5,
+        "memo": "ドラマ『ROOKIES』主題歌。世代を超えて歌い継がれるメガヒットナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/49/c9/17/49c917f0-2334-6d1e-b385-9cb86fa997a5/mzaf_7741239823966968217.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/59/71/a5/5971a58d-9b81-1c64-195e-9e896c804d06/00044002897312.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 66,
+        "year": 1993,
+        "title": "君が思い出になる前に",
+        "artist": "スピッツ",
+        "category": "male",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "切なく美しいメロディラインと歌詞が心に染みる初期の名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/d8/52/0f/d8520fef-e663-2593-5213-e1f98d6c20b2/mzaf_2310659077874029303.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/9a/26/3b/9a263bc6-cebd-04df-c362-2a0868d277dd/00602557728743.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 67,
+        "year": 1994,
+        "title": "空も飛べるはず",
+        "artist": "スピッツ",
+        "category": "male",
+        "genre": "J-POP",
+        "rating": 5,
+        "memo": "『白線流し』でもおなじみ。世代を超えて歌い継がれる名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/30/65/25/306525ad-9b67-ffb8-45e7-e6bf9342eabc/mzaf_4737194456465200077.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/9a/26/3b/9a263bc6-cebd-04df-c362-2a0868d277dd/00602557728743.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 68,
+        "year": 1996,
+        "title": "名もなき詩",
+        "artist": "Mr.Children",
+        "category": "male",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "畳み掛けるような早口のフレーズと情熱的なメッセージが最高。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview128/v4/b7/c1/95/b7c195f9-7602-6180-1144-3cb39cecbd03/mzaf_5002117576284837057.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/9b/7e/5e/9b7e5e86-e4fa-722c-58ec-2a46f4da5445/dj.toijfdmn.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 69,
+        "year": 1995,
+        "title": "シーソーゲーム",
+        "artist": "Mr.Children",
+        "category": "male",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "圧倒的な勢いとテンションで聴く人を元気にさせるミリオンヒット。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview118/v4/b4/1f/68/b41f6874-e8e0-9b66-48e0-644cde66d716/mzaf_578253370804528979.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/ed/39/d8/ed39d801-38a2-21b5-49e5-5e326a8ee7fa/dj.xeliymez.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 70,
+        "year": 1996,
+        "title": "グロリアス",
+        "artist": "GLAY",
+        "category": "male",
+        "genre": "J-POP / ポップロック",
+        "rating": 5,
+        "memo": "イントロからアゲてくれるキャッチーなメロディと爽快感が最高の1曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/d0/c3/4a/d0c34ac9-0d9b-cbb1-6247-ded4561a155b/mzaf_8835714332171404379.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music6/v4/b2/5a/fd/b25afdf3-27be-265f-dea4-ddbc7e57e9ab/itunes.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 71,
+        "year": 1997,
+        "title": "HOWEVER",
+        "artist": "GLAY",
+        "category": "male",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "珠玉のメロディと熱いボーカルが胸を打つGLAYの金字塔。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/b5/a8/88/b5a8886c-9796-1a01-5ae0-2dc67a7570ed/mzaf_5101319268255955074.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music7/v4/99/b6/af/99b6af9f-2d9a-c0c8-ec22-3c626e5d3d34/HOWEVER_itunes.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 72,
+        "year": 1999,
+        "title": "Winter, again",
+        "artist": "GLAY",
+        "category": "male",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "北海道の情景が浮かぶスケールの大きな冬のラヴソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/a0/53/98/a05398d6-cd10-a281-e781-982e2c12523f/mzaf_4701021005148307135.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music5/v4/de/de/1b/dede1b84-ba47-110c-13f5-1ae75b6aa00e/16.THE_GREAT_VACATION_vol2_itunes.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 73,
+        "year": 1998,
+        "title": "HONEY",
+        "artist": "L'Arc〜en〜Ciel",
+        "category": "male",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "イントロのギターから最高にカッコいいラルクの代表曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/ef/79/01/ef7901de-bfa5-40fd-4d9e-7b094fbe21ee/mzaf_539906382099963323.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/d3/54/52/d35452c9-86d1-c0b6-83cc-0dd2f9557405/jacket_KSCL01031B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 74,
+        "year": 2000,
+        "title": "ミュージック・アワー",
+        "artist": "ポルノグラフィティ",
+        "category": "male",
+        "genre": "J-POP / ラテンポップ",
+        "rating": 5,
+        "memo": "夏のドライブにぴったりなラジオDJ風のテンション上がる曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b2/22/e3/b222e3ef-9806-1e48-c14d-ea7cb827387c/mzaf_11344812574088353128.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/74/3f/9c/743f9c6d-873f-07b5-6dd9-b1e3e87cee7e/jacket_SEXX00739B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 75,
+        "year": 1998,
+        "title": "POISON",
+        "artist": "反町隆史",
+        "category": "male",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "『GTO』主題歌。「言いたい事も言えない」フレーズが頭から離れない名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/62/f6/77/62f6771e-f61e-8925-2508-01f66089bd5c/mzaf_13710833158490270365.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/1b/90/d0/1b90d011-8dfd-ecc0-b8d8-afa6ee116574/22UM1IM36923.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 76,
+        "year": 1999,
+        "title": "あの紙ヒコーキ くもり空わって",
+        "artist": "19",
+        "category": "male",
+        "genre": "J-POP / フォーク",
+        "rating": 5,
+        "memo": "青く切ない歌詞とキャッチーなメロディで大流行したヒットナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/c4/f0/57/c4f057f6-6a5c-7f34-3d33-a210ae13a2a1/mzaf_1042243509891268101.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/db/97/7a/db977a96-37e7-725e-1ed4-6aba294af49b/VICL-60901.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 77,
+        "year": 1998,
+        "title": "HOT LIMIT",
+        "artist": "T.M.Revolution",
+        "category": "male",
+        "genre": "J-POP / アッパー",
+        "rating": 5,
+        "memo": "圧倒的な勢いとインパクトで夏を盛り上げたポップチューン。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/aa/57/ba/aa57bac5-c696-b10c-ece3-cbad21e92c47/mzaf_16988019087816378481.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/a7/80/a7/a780a7a8-a1a0-ba3b-a77d-5c1e50f92217/jacket_ESCL03187B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 78,
+        "year": 2001,
+        "title": "天体観測",
+        "artist": "BUMP OF CHICKEN",
+        "category": "male",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "ドラマチックなメロディとストーリーでロックシーンを塗り替えた1曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/84/db/83/84db832b-aa37-8242-d395-137e40f1f3ca/mzaf_15981689182250988877.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/50/85/26/50852674-2973-742b-d4ea-8d0bae94f344/TFCC-87080WW.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 79,
+        "year": 1996,
+        "title": "青い稲妻",
+        "artist": "SMAP",
+        "category": "male",
+        "genre": "J-POP / ファンク",
+        "rating": 5,
+        "memo": "林田健司のカバー。ダンサブルなサウンドと木村拓哉の「Get you!」が鮮烈。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/1d/58/01/1d580105-157f-da15-a459-d18e5f7b3e2a/mzaf_1371024634241676714.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/f8/06/95/f80695fb-7d2d-d971-4195-5a7b31292afa/mzi.amilwnjh.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 80,
+        "year": 2000,
+        "title": "オレンジ",
+        "artist": "SMAP",
+        "category": "male",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "切ない夕焼けの別れを描いた名曲カップリングナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/c4/40/1c/c4401c84-748b-2c9e-ff9d-d384b131e2b4/mzaf_5883139471637114261.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/f8/06/95/f80695fb-7d2d-d971-4195-5a7b31292afa/mzi.amilwnjh.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 81,
+        "year": 2000,
+        "title": "桜坂",
+        "artist": "福山雅治",
+        "category": "male",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "低音のやさしい歌声が染みわたるメガヒットソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/66/5d/6c/665d6c46-ab32-378e-bfec-021b4a704f6b/mzaf_7371441291402741266.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music128/v4/98/91/c0/9891c01f-b519-6459-fd43-9c8ece05957f/00600406445964.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 82,
+        "year": 2005,
+        "title": "POP STAR",
+        "artist": "平井堅",
+        "category": "male",
+        "genre": "J-POP / ダンサブル",
+        "rating": 5,
+        "memo": "聴くだけで気分がぱっと明るくなるハッピーポップ。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/e4/4d/7f/e44d7f95-f5e2-85e1-95a2-31c0ce1f3d62/mzaf_9866089579905503130.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/18/e5/6c/18e56cec-4094-df2e-bbb0-ae001cdc8bdf/jacket_DFCL01500B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 83,
+        "year": 1997,
+        "title": "1/3の純情な感情",
+        "artist": "SIAM SHADE",
+        "category": "male",
+        "genre": "J-POP / アニメ・ロック",
+        "rating": 5,
+        "memo": "アニソン史・90年代ロック史に残る最高にクールな楽曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/1c/85/22/1c852274-3106-904a-6e0a-3f455d8267c0/mzaf_4550910115893326451.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/10/0d/51/100d51cb-dd48-a318-f723-f37d3b0c1dca/jacket_SECL00540B00Y_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 84,
+        "year": 1996,
+        "title": "田園",
+        "artist": "玉置浩二",
+        "category": "male",
+        "genre": "J-POP / 応援歌",
+        "rating": 5,
+        "memo": "力強い歌声と「生きていくんだ」のフレーズに背中を押される。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/50/01/8a/50018a8a-20e4-a670-2ec3-2f6b97b3c754/mzaf_70674419428977194.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/01/4f/a0/014fa0fb-6eb2-ac01-c0b3-3eeb4ab2cf47/jacket_SRCL04423B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 85,
+        "year": 2005,
+        "title": "ただ・・・逢いたくて",
+        "artist": "EXILE",
+        "category": "male",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "切ない別れを描いたヒットバラード。美しいハーモニーと圧倒的な歌声が響く。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/44/8d/96/448d9675-f4e0-d86d-be89-33e9d8d8143a/mzaf_13928283459935157010.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/09/cb/80/09cb80f9-8584-b1d6-eede-158434fef781/RZCD-86179.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 86,
+        "year": 2007,
+        "title": "Lovers Again",
+        "artist": "EXILE",
+        "category": "male",
+        "genre": "J-POP / R&B",
+        "rating": 5,
+        "memo": "哀愁あふれる旋律と切ない歌詞が魅力の、平成を代表する冬の定番ソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/e7/9e/27/e79e2760-30f1-4007-539c-27e161d35847/mzaf_5582538386435039696.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/1f/1f/ca/1f1fca27-0fa7-1c3a-fcc1-366c040e5ca0/mzi.fsjbavke.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 87,
+        "year": 1988,
+        "title": "Runner",
+        "artist": "爆風スランプ",
+        "category": "male",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "「走る走る俺たち」のフレーズが胸を熱くさせる不朽の応援ソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/65/b0/a1/65b0a1da-6b22-7ba9-f546-2d8e711ee2e6/mzaf_10958292935181649695.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/06/45/6f/06456f34-d8b5-443f-9e5a-8f02dea7f7e6/jacket_MHCL01573B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 88,
+        "year": 1995,
+        "title": "ガッツだぜ!!",
+        "artist": "ウルフルズ",
+        "category": "male",
+        "genre": "J-POP / ファンク",
+        "rating": 5,
+        "memo": "パワフルで陽気なリズムとディスコファンクサウンドが最高に元気をくれる1曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/8b/9e/3c/8b9e3c99-e988-f16e-c3b7-b4e98ac3957d/mzaf_8113973126190803821.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/65/c0/61/65c061fb-9d85-d814-a4d3-88564e7460e5/16UMGIM31169.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 89,
+        "year": 1996,
+        "title": "バンザイ",
+        "artist": "ウルフルズ",
+        "category": "male",
+        "genre": "J-POP / ラブソング",
+        "rating": 5,
+        "memo": "ストレートで熱い愛の言葉が心に深く響く大ヒットナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/5d/12/be/5d12be99-acac-2203-521a-0592723fcb4f/mzaf_9892743012927624268.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/00/57/98/0057983f-4255-8a35-10d9-96ab2ddf1ae8/16UMGIM33178.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 90,
+        "year": 1994,
+        "title": "シングルベッド",
+        "artist": "シャ乱Q",
+        "category": "male",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "ロングヒットでミリオン達成。切ない歌詞とキャッチーなメロディが染みる大名曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/e2/04/f2/e204f29b-a796-6888-9a44-43f8aa8ad20a/mzaf_10083176135460015037.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/aa/d3/a4/aad3a4c4-b574-ed2d-416c-821773e3ed07/jacket_MHCL30151B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 91,
+        "year": 1996,
+        "title": "DAN DAN 心ひかれてく",
+        "artist": "FIELD OF VIEW",
+        "category": "male",
+        "genre": "J-POP / アニメ",
+        "rating": 5,
+        "memo": "アニメ『ドラゴンボールGT』OP。作詞・坂井泉水、作曲・織田哲郎の黄金コンビ。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/15/c4/35/15c43537-5ee6-7cd7-3b63-641c5a2b332f/mzaf_15950901996695626347.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/cd/81/7f/cd817f5e-8bbd-0020-61ca-2a66be1ffe3b/4562350465749_cover.png/300x300bb.jpg"
+    },
+    {
+        "id": 92,
+        "year": 1979,
+        "title": "贈る言葉",
+        "artist": "海援隊",
+        "category": "male",
+        "genre": "J-POP / 卒業",
+        "rating": 5,
+        "memo": "『3年B組金八先生』主題歌。心に深く染みる永遠の卒業ソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/c9/dd/7c/c9dd7ca1-7b15-21fd-825d-7033afe85cab/mzaf_1419334404852854188.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/c7/d7/08/c7d708a7-ccc8-f11c-fe66-2150493d0cb2/00044002867384.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 93,
+        "year": 2005,
+        "title": "等身大のラブソング",
+        "artist": "Aqua Timez",
+        "category": "male",
+        "genre": "J-POP / ラブソング",
+        "rating": 5,
+        "memo": "インディーズ発の大ヒット。等身大な言葉で伝える最高のラヴソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/40/69/b5/4069b512-51d6-75ac-89fc-075edd05886d/mzaf_2189205683125168144.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/e2/60/cd/e260cd46-1a2d-eb1f-d558-85235a78f259/jacket_ESXX01199B00Z_550.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 94,
+        "year": 2005,
+        "title": "全力少年",
+        "artist": "スキマスイッチ",
+        "category": "male",
+        "genre": "J-POP / 応援歌",
+        "rating": 5,
+        "memo": "前向きなフレーズと弾けるサウンドが元気をくれる代表曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/40/15/a1/4015a1a7-66a1-05c5-0d39-04b326b5ed59/mzaf_6521203087910428744.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ac/92/75/ac927558-a99e-2850-0d84-71f102c27e6b/17UMGIM81728.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 95,
+        "year": 2013,
+        "title": "RPG",
+        "artist": "SEKAI NO OWARI",
+        "category": "male",
+        "genre": "J-POP / ファンタジー",
+        "rating": 5,
+        "memo": "冒険に出かけたくなるような行進曲調のポップナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/7a/e1/e5/7ae1e57e-5efa-8a52-950b-9252381561f6/mzaf_15305068195644777220.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/7a/4a/b5/7a4ab533-77cd-368a-38ae-f5ab77487c13/TFCC-89428.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 96,
+        "year": 2014,
+        "title": "Dragon Night",
+        "artist": "SEKAI NO OWARI",
+        "category": "male",
+        "genre": "J-POP / EDM",
+        "rating": 5,
+        "memo": "キャッチーな旋律とEDMサウンドで一世を風靡したヒット曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/6e/cc/4a/6ecc4ab9-386a-22c0-4f83-680a691b2267/mzaf_2547117515493192872.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music3/v4/07/46/dd/0746dd80-255e-7c83-5247-d9592d25ba9d/TFCC-86501.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 97,
+        "year": 2022,
+        "title": "愛とか恋とか",
+        "artist": "Novelbright",
+        "category": "male",
+        "genre": "J-POP / ラブソング",
+        "rating": 5,
+        "memo": "温かくやさしい言葉とメロディが心に染み渡るウエディング＆ポップナンバー。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/06/17/1a/06171a8a-3d54-fcba-9dbb-40bf5fcf4903/mzaf_14019629773222528245.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/b4/0d/e0/b40de0c9-a327-6063-3bd1-cd11acd72c44/22UMGIM31002.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 98,
+        "year": 2018,
+        "title": "Walking with you",
+        "artist": "Novelbright",
+        "category": "male",
+        "genre": "J-POP / ロック",
+        "rating": 5,
+        "memo": "ストリーミングからメガヒット。圧倒的な歌唱力とキャッチーなサビが光る1曲。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/8e/cf/9b/8ecf9bf0-ad2b-1fbd-5579-ac176eeb9fef/mzaf_2791229362541040591.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/3a/0a/ca/3a0aca57-45c1-7aca-1be1-9755d549ffb9/EPM-10001.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 99,
+        "year": 2021,
+        "title": "レオ",
+        "artist": "優里",
+        "category": "male",
+        "genre": "J-POP / バラード",
+        "rating": 5,
+        "memo": "犬と飼い主の絆を描いた切なく涙を誘う大ヒットバラード。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/be/6d/b1/be6db110-416a-6947-7bb2-1351db2cd6f3/mzaf_8985955062526393411.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/d9/de/51/d9de5146-6d3a-2002-bc8f-77e2e47c1c3b/4547366544138.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 100,
+        "year": 2009,
+        "title": "春夏秋冬",
+        "artist": "Hilcrhyme",
+        "category": "male",
+        "genre": "J-POP / ヒップホップ",
+        "rating": 5,
+        "memo": "四季の情景と大切な人への思いを歌った2000年代末の大ヒット着うたソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/eb/d7/05/ebd705e1-7eb8-f7c1-3862-e5117c16da66/mzaf_6407552879729536705.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/c9/e8/d8/c9e8d8d2-467f-5eb1-1b9b-c0a0a5e99661/18UMGIM49424.rgb.jpg/300x300bb.jpg"
+    },
+    {
+        "id": 101,
+        "year": 2018,
+        "title": "青と夏",
+        "artist": "Mrs. GREEN APPLE",
+        "category": "male",
+        "genre": "J-POP / 夏ソング",
+        "rating": 5,
+        "memo": "映画主題歌。圧倒的清涼感と爽快なメロディが駆け抜ける令和を代表する夏の青空ソング。",
+        "audioUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/f5/3b/d0/f53bd0e2-b10f-c1f6-41c4-743fa1d042de/mzaf_18355465102728204177.plus.aac.p.m4a",
+        "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/34/27/08/3427087f-2d39-4847-9b19-052dd3589014/18UMGIM36633.rgb.jpg/300x300bb.jpg"
+    }
+];
 
-            // 女性（ソロ・バンド） (17)
-            { id: 42, year: 1996, title: "DEPARTURES", artist: "globe", category: "female", genre: "J-POP / TKサウンド", rating: 5, memo: "切ない雪の情景と疾走感あふれるハイトーンボイスが最高。" },
-            { id: 43, year: 1997, title: "1/2", artist: "川本真琴", category: "female", genre: "J-POP / アニメ", rating: 5, memo: "アニメ『るろうに剣心』OP。独特の言葉紡ぎと疾走するメロディが心地よい。" },
-            { id: 44, year: 1995, title: "夢見る少女じゃいられない", artist: "相川七瀬", category: "female", genre: "J-POP / ロック", rating: 5, memo: "織田哲郎プロデュース。パワフルなボーカルと疾走感が最高。" },
-            { id: 45, year: 1999, title: "春〜spring〜", artist: "Hysteric Blue", category: "female", genre: "J-POP / ポップロック", rating: 5, memo: "キャッチーな旋律と春の訪れを感じさせるブレイクナンバー。" },
-            { id: 46, year: 1998, title: "There will be love there －愛のある場所－", artist: "the brilliant green", category: "female", genre: "J-POP / ロック", rating: 5, memo: "ドラマ『ラブ・アゲイン』主題歌。UKロック調の哀愁あるサウンドとボーカルが魅力。" },
-            { id: 47, year: 1995, title: "Over Drive", artist: "JUDY AND MARY", category: "female", genre: "J-POP / ロック", rating: 5, memo: "ジュディマリの明るさと疾走感が全開のポップロック。" },
-            { id: 48, year: 1996, title: "そばかす", artist: "JUDY AND MARY", category: "female", genre: "J-POP / アニメソング", rating: 5, memo: "アニメ『るろうに剣心』OP。キャッチーでパワフルな1stミリオン。" },
-            { id: 49, year: 2003, title: "雪の華", artist: "中島美嘉", category: "female", genre: "J-POP / バラード", rating: 5, memo: "圧倒的な透明感と情緒あふれる冬の名曲。" },
-            { id: 50, year: 1995, title: "Hello, Again 〜昔からある場所〜", artist: "MY LITTLE LOVER", category: "female", genre: "J-POP / バラード", rating: 5, memo: "切なく美しいメロディと透き通るボーカルが心に深く染みる名曲。" },
-            { id: 51, year: 1995, title: "Man & Woman", artist: "MY LITTLE LOVER", category: "female", genre: "J-POP", rating: 5, memo: "鮮烈なデビュー曲。洗練されたポップサウンドと歌声が最高。" },
-            { id: 52, year: 1995, title: "白いカイト", artist: "MY LITTLE LOVER", category: "female", genre: "J-POP", rating: 5, memo: "風が走り抜けるような爽快感とキャッチーなサビが魅力的。" },
-            { id: 53, year: 2015, title: "トリセツ", artist: "西野カナ", category: "female", genre: "J-POP / ラブソング", rating: 5, memo: "乙女心を取扱説明書になぞらえて歌ったポップでキュートな大ヒット曲。" },
-            { id: 54, year: 2007, title: "CHE.R.RY", artist: "YUI", category: "female", genre: "J-POP / ポップロック", rating: 5, memo: "「恋しちゃったんだ」のキャッチーなフレーズが印象的な甘酸っぱい恋愛ソング。" },
-            { id: 55, year: 2009, title: "ふわふわ時間", artist: "放課後ティータイム", category: "female", genre: "アニソン / ガールズバンド", rating: 5, memo: "アニメ『けいおん！』劇中歌。可愛らしさとキャッチーなロックサウンドが詰まった名曲。" },
-            { id: 56, year: 2006, title: "God knows...", artist: "涼宮ハルヒ（平野綾）", category: "female", genre: "アニソン / ロック", rating: 5, memo: "『涼宮ハルヒの憂鬱』挿入歌。超絶なギターリフと力強いボーカルが神がかっているアニソンの名曲。" },
-            { id: 57, year: 2009, title: "君の知らない物語", artist: "supercell", category: "female", genre: "アニソン / ポップロック", rating: 5, memo: "『化物語』EDテーマ。ドラマチックなメロディと物語のような歌詞が心に刺さる大ヒット曲。" },
-            { id: 58, year: 2017, title: "君はロックを聴かない", artist: "あいみょん", category: "female", genre: "J-POP / ロック", rating: 5, memo: "あいみょんのブレイクのきっかけとなった名曲。ノスタルジックなサウンドと切ない歌詞が魅力。" },
-
-            // 男性（ソロ・バンド） (43)
-            { id: 59, year: 1995, title: "WOW WAR TONIGHT", artist: "H Jungle with t", category: "male", genre: "J-POP / 応援歌", rating: 5, memo: "働く大人たちの背中を押すフレーズが心に刺さるメガヒット曲。" },
-            { id: 60, year: 1997, title: "愛なんだ", artist: "V6", category: "male", genre: "J-POP", rating: 5, memo: "玉置浩二作曲。キャッチーで元気が湧いてくる90年代ジャニーズの名曲。" },
-            { id: 61, year: 2002, title: "大切なもの", artist: "ロードオブメジャー", category: "male", genre: "J-POP / 青春パンク", rating: 5, memo: "番組企画発のメガヒット。疾走感あふれるサウンドと熱いメッセージが心に刺さる。" },
-            { id: 62, year: 2004, title: "花", artist: "ORANGE RANGE", category: "male", genre: "J-POP / バラード", rating: 5, memo: "映画『いま、会いにゆきます』主題歌。切なく美しいメロディとラップの対比が心に染みる名曲。" },
-            { id: 63, year: 2007, title: "イケナイ太陽", artist: "ORANGE RANGE", category: "male", genre: "J-POP / アッパー", rating: 5, memo: "ドラマ『花ざかりの君たちへ』主題歌。夏のテンションを最高潮に引き上げるアッパーチューン。" },
-            { id: 64, year: 2007, title: "愛唄", artist: "GReeeeN", category: "male", genre: "J-POP / ラブソング", rating: 5, memo: "まっすぐでピュアな愛を歌ったGReeeeNの大ヒットラブソング。" },
-            { id: 65, year: 2008, title: "キセキ", artist: "GReeeeN", category: "male", genre: "J-POP / 応援歌", rating: 5, memo: "ドラマ『ROOKIES』主題歌。世代を超えて歌い継がれるメガヒットナンバー。" },
-            { id: 66, year: 1993, title: "君が思い出になる前に", artist: "スピッツ", category: "male", genre: "J-POP / バラード", rating: 5, memo: "切なく美しいメロディラインと歌詞が心に染みる初期の名曲。" },
-            { id: 67, year: 1994, title: "空も飛べるはず", artist: "スピッツ", category: "male", genre: "J-POP", rating: 5, memo: "『白線流し』でもおなじみ。世代を超えて歌い継がれる名曲。" },
-            { id: 68, year: 1996, title: "名もなき詩", artist: "Mr.Children", category: "male", genre: "J-POP / ロック", rating: 5, memo: "畳み掛けるような早口のフレーズと情熱的なメッセージが最高。" },
-            { id: 69, year: 1995, title: "シーソーゲーム", artist: "Mr.Children", category: "male", genre: "J-POP / ロック", rating: 5, memo: "圧倒的な勢いとテンションで聴く人を元気にさせるミリオンヒット。" },
-            { id: 70, year: 1996, title: "グロリアス", artist: "GLAY", category: "male", genre: "J-POP / ポップロック", rating: 5, memo: "イントロからアゲてくれるキャッチーなメロディと爽快感が最高の1曲。" },
-            { id: 71, year: 1997, title: "HOWEVER", artist: "GLAY", category: "male", genre: "J-POP / バラード", rating: 5, memo: "珠玉のメロディと熱いボーカルが胸を打つGLAYの金字塔。" },
-            { id: 72, year: 1999, title: "Winter, again", artist: "GLAY", category: "male", genre: "J-POP / バラード", rating: 5, memo: "北海道の情景が浮かぶスケールの大きな冬のラヴソング。" },
-            { id: 73, year: 1998, title: "HONEY", artist: "L'Arc〜en〜Ciel", category: "male", genre: "J-POP / ロック", rating: 5, memo: "イントロのギターから最高にカッコいいラルクの代表曲。" },
-            { id: 74, year: 2000, title: "ミュージック・アワー", artist: "ポルノグラフィティ", category: "male", genre: "J-POP / ラテンポップ", rating: 5, memo: "夏のドライブにぴったりなラジオDJ風のテンション上がる曲。" },
-            { id: 75, year: 1998, title: "POISON", artist: "反町隆史", category: "male", genre: "J-POP / ロック", rating: 5, memo: "『GTO』主題歌。「言いたい事も言えない」フレーズが頭から離れない名曲。" },
-            { id: 76, year: 1999, title: "あの紙ヒコーキ くもり空わって", artist: "19", category: "male", genre: "J-POP / フォーク", rating: 5, memo: "青く切ない歌詞とキャッチーなメロディで大流行したヒットナンバー。" },
-            { id: 77, year: 1998, title: "HOT LIMIT", artist: "T.M.Revolution", category: "male", genre: "J-POP / アッパー", rating: 5, memo: "圧倒的な勢いとインパクトで夏を盛り上げたポップチューン。" },
-            { id: 78, year: 2001, title: "天体観測", artist: "BUMP OF CHICKEN", category: "male", genre: "J-POP / ロック", rating: 5, memo: "ドラマチックなメロディとストーリーでロックシーンを塗り替えた1曲。" },
-            { id: 79, year: 1996, title: "青い稲妻", artist: "SMAP", category: "male", genre: "J-POP / ファンク", rating: 5, memo: "林田健司のカバー。ダンサブルなサウンドと木村拓哉の「Get you!」が鮮烈。" },
-            { id: 80, year: 2000, title: "オレンジ", artist: "SMAP", category: "male", genre: "J-POP / バラード", rating: 5, memo: "切ない夕焼けの別れを描いた名曲カップリングナンバー。" },
-            { id: 81, year: 2000, title: "桜坂", artist: "福山雅治", category: "male", genre: "J-POP / バラード", rating: 5, memo: "低音のやさしい歌声が染みわたるメガヒットソング。" },
-            { id: 82, year: 2005, title: "POP STAR", artist: "平井堅", category: "male", genre: "J-POP / ダンサブル", rating: 5, memo: "聴くだけで気分がぱっと明るくなるハッピーポップ。" },
-            { id: 83, year: 1997, title: "1/3の純情な感情", artist: "SIAM SHADE", category: "male", genre: "J-POP / アニメ・ロック", rating: 5, memo: "アニソン史・90年代ロック史に残る最高にクールな楽曲。" },
-            { id: 84, year: 1996, title: "田園", artist: "玉置浩二", category: "male", genre: "J-POP / 応援歌", rating: 5, memo: "力強い歌声と「生きていくんだ」のフレーズに背中を押される。" },
-            { id: 85, year: 2005, title: "ただ・・・逢いたくて", artist: "EXILE", category: "male", genre: "J-POP / バラード", rating: 5, memo: "切ない別れを描いたヒットバラード。美しいハーモニーと圧倒的な歌声が響く。" },
-            { id: 86, year: 2007, title: "Lovers Again", artist: "EXILE", category: "male", genre: "J-POP / R&B", rating: 5, memo: "哀愁あふれる旋律と切ない歌詞が魅力の、平成を代表する冬の定番ソング。" },
-            { id: 87, year: 1988, title: "Runner", artist: "爆風スランプ", category: "male", genre: "J-POP / ロック", rating: 5, memo: "「走る走る俺たち」のフレーズが胸を熱くさせる不朽の応援ソング。" },
-            { id: 88, year: 1995, title: "ガッツだぜ!!", artist: "ウルフルズ", category: "male", genre: "J-POP / ファンク", rating: 5, memo: "パワフルで陽気なリズムとディスコファンクサウンドが最高に元気をくれる1曲。" },
-            { id: 89, year: 1996, title: "バンザイ", artist: "ウルフルズ", category: "male", genre: "J-POP / ラブソング", rating: 5, memo: "ストレートで熱い愛の言葉が心に深く響く大ヒットナンバー。" },
-            { id: 90, year: 1994, title: "シングルベッド", artist: "シャ乱Q", category: "male", genre: "J-POP / バラード", rating: 5, memo: "ロングヒットでミリオン達成。切ない歌詞とキャッチーなメロディが染みる大名曲。" },
-            { id: 91, year: 1996, title: "DAN DAN 心ひかれてく", artist: "FIELD OF VIEW", category: "male", genre: "J-POP / アニメ", rating: 5, memo: "アニメ『ドラゴンボールGT』OP。作詞・坂井泉水、作曲・織田哲郎の黄金コンビ。" },
-            { id: 92, year: 1979, title: "贈る言葉", artist: "海援隊", category: "male", genre: "J-POP / 卒業", rating: 5, memo: "『3年B組金八先生』主題歌。心に深く染みる永遠の卒業ソング。" },
-            { id: 93, year: 2005, title: "等身大のラブソング", artist: "Aqua Timez", category: "male", genre: "J-POP / ラブソング", rating: 5, memo: "インディーズ発の大ヒット。等身大な言葉で伝える最高のラヴソング。" },
-            { id: 94, year: 2005, title: "全力少年", artist: "スキマスイッチ", category: "male", genre: "J-POP / 応援歌", rating: 5, memo: "前向きなフレーズと弾けるサウンドが元気をくれる代表曲。" },
-            { id: 95, year: 2013, title: "RPG", artist: "SEKAI NO OWARI", category: "male", genre: "J-POP / ファンタジー", rating: 5, memo: "冒険に出かけたくなるような行進曲調のポップナンバー。" },
-            { id: 96, year: 2014, title: "Dragon Night", artist: "SEKAI NO OWARI", category: "male", genre: "J-POP / EDM", rating: 5, memo: "キャッチーな旋律とEDMサウンドで一世を風靡したヒット曲。" },
-            { id: 97, year: 2022, title: "愛とか恋とか", artist: "Novelbright", category: "male", genre: "J-POP / ラブソング", rating: 5, memo: "温かくやさしい言葉とメロディが心に染み渡るウエディング＆ポップナンバー。" },
-            { id: 98, year: 2018, title: "Walking with you", artist: "Novelbright", category: "male", genre: "J-POP / ロック", rating: 5, memo: "ストリーミングからメガヒット。圧倒的な歌唱力とキャッチーなサビが光る1曲。" },
-            { id: 99, year: 2021, title: "レオ", artist: "優里", category: "male", genre: "J-POP / バラード", rating: 5, memo: "犬と飼い主の絆を描いた切なく涙を誘う大ヒットバラード。" },
-            { id: 100, year: 2009, title: "春夏秋冬", artist: "Hilcrhyme", category: "male", genre: "J-POP / ヒップホップ", rating: 5, memo: "四季の情景と大切な人への思いを歌った2000年代末の大ヒット着うたソング。" },
-            { id: 101, year: 2018, title: "青と夏", artist: "Mrs. GREEN APPLE", category: "male", genre: "J-POP / 夏ソング", rating: 5, memo: "映画主題歌。圧倒的清涼感と爽快なメロディが駆け抜ける令和を代表する夏の青空ソング。" }
-        ];
-
-        // --- App State ---
         let favorites = JSON.parse(localStorage.getItem('music_favorites_mobile') || '[]');
-        let currentCat = 'all';
-        let currentEra = 'all';
-        let currentPreset = 'all';
-        let currentSort = 'year-desc'; // Default: Newest first
-        let currentSearchQuery = '';
-
-        // Audio State
-        let currentPlaylist = [];
-        let currentPlayingIndex = -1;
-        let isPlaying = false;
-        
-        // Cache fetched iTunes track URLs to avoid redundant requests
-        const audioCache = {};
+        let currentCat = 'all', currentEra = 'all', currentPreset = 'all', currentSort = 'year-desc', currentSearchQuery = '';
+        let currentPlaylist = [], currentPlayingIndex = -1, isPlaying = false;
 
         const presetSongIds = {
             '90s-idol': [1, 2, 3, 4, 7, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
@@ -380,7 +1414,6 @@
             'anison': [40, 41, 43, 48, 55, 56, 57, 83, 91]
         };
 
-        // DOM Elements
         const DOM = {
             audioPlayer: document.getElementById('audioPlayer'),
             searchInput: document.getElementById('searchInput'),
@@ -395,7 +1428,6 @@
             playerArtist: document.getElementById('playerArtist'),
             playerArt: document.getElementById('playerArt'),
             playerArtPlaceholder: document.getElementById('playerArtPlaceholder'),
-            audioLoadingSpinner: document.getElementById('audioLoadingSpinner'),
             playPauseBtn: document.getElementById('playPauseBtn'),
             prevBtn: document.getElementById('prevBtn'),
             nextBtn: document.getElementById('nextBtn'),
@@ -407,140 +1439,67 @@
             toastMsg: document.getElementById('toastMsg')
         };
 
-        // --- STREAMING_CHUNK:Setting up Canvas Visualizer... ---
-        // Canvas Background Animation Logic
         const canvas = document.getElementById('bgCanvas');
         const ctx = canvas.getContext('2d');
-        let width, height;
-        let particles = [];
-        let animationFrameId;
-
-        function resizeCanvas() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        let width, height, particles = [];
+        function resizeCanvas() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
         class Particle {
-            constructor() {
-                this.reset();
-                this.y = Math.random() * height; // initial random spread
-            }
-            reset() {
-                this.x = Math.random() * width;
-                this.y = height + Math.random() * 100;
-                this.size = Math.random() * 2 + 0.5;
-                this.baseSpeed = Math.random() * 0.5 + 0.1;
-                this.speed = this.baseSpeed;
-                this.opacity = Math.random() * 0.5 + 0.1;
-            }
-            update(isMusicPlaying) {
-                // Accelerate if playing
-                this.speed = isMusicPlaying ? this.baseSpeed * 4 : this.baseSpeed;
-                this.y -= this.speed;
-                this.x += Math.sin(this.y * 0.01) * 0.5; // slight sway
-
-                if (this.y < -10) this.reset();
-            }
-            draw() {
-                ctx.fillStyle = `rgba(167, 139, 250, ${this.opacity})`; // Purple tint
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
+            constructor() { this.reset(); this.y = Math.random() * height; }
+            reset() { this.x = Math.random() * width; this.y = height + Math.random() * 100; this.size = Math.random() * 2 + 0.5; this.baseSpeed = Math.random() * 0.5 + 0.1; this.speed = this.baseSpeed; this.opacity = Math.random() * 0.5 + 0.1; }
+            update(isMusicPlaying) { this.speed = isMusicPlaying ? this.baseSpeed * 4 : this.baseSpeed; this.y -= this.speed; this.x += Math.sin(this.y * 0.01) * 0.5; if (this.y < -10) this.reset(); }
+            draw() { ctx.fillStyle = `rgba(167, 139, 250, ${this.opacity})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); }
         }
-
         for (let i = 0; i < 50; i++) particles.push(new Particle());
 
         function animateCanvas() {
             ctx.clearRect(0, 0, width, height);
-
-            // Draw audio wave effect at bottom if playing
             if (isPlaying) {
-                ctx.beginPath();
-                ctx.moveTo(0, height);
-                for (let i = 0; i < width; i += 20) {
-                    let waveHeight = Math.random() * 40 + 10;
-                    ctx.lineTo(i, height - waveHeight);
-                }
-                ctx.lineTo(width, height);
-                ctx.fillStyle = 'rgba(139, 92, 246, 0.05)';
-                ctx.fill();
+                ctx.beginPath(); ctx.moveTo(0, height);
+                for (let i = 0; i < width; i += 20) { ctx.lineTo(i, height - (Math.random() * 40 + 10)); }
+                ctx.lineTo(width, height); ctx.fillStyle = 'rgba(139, 92, 246, 0.05)'; ctx.fill();
             }
-
-            particles.forEach(p => {
-                p.update(isPlaying);
-                p.draw();
-            });
-            animationFrameId = requestAnimationFrame(animateCanvas);
+            particles.forEach(p => { p.update(isPlaying); p.draw(); });
+            requestAnimationFrame(animateCanvas);
         }
         animateCanvas();
 
-        // --- STREAMING_CHUNK:Implementing Player Logic... ---
-        // Helper: Toast Notifications
         function showToast(msg) {
             DOM.toastMsg.innerText = msg;
-            DOM.toast.classList.remove('-translate-y-16', 'opacity-0');
-            DOM.toast.classList.add('translate-y-0', 'opacity-100');
-            setTimeout(() => {
-                DOM.toast.classList.remove('translate-y-0', 'opacity-100');
-                DOM.toast.classList.add('-translate-y-16', 'opacity-0');
-            }, 2200);
+            DOM.toast.classList.remove('-translate-y-16', 'opacity-0'); DOM.toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => { DOM.toast.classList.remove('translate-y-0', 'opacity-100'); DOM.toast.classList.add('-translate-y-16', 'opacity-0'); }, 2200);
         }
 
-        // Helper: Format Time in seconds -> mm:ss
         function formatTime(seconds) {
             if (isNaN(seconds)) return "0:00";
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
+            const mins = Math.floor(seconds / 60), secs = Math.floor(seconds % 60);
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
 
-        // Toggle Favorites
         function toggleFavorite(id, e) {
             if (e) e.stopPropagation();
-            if (favorites.includes(id)) {
-                favorites = favorites.filter(fId => fId !== id);
-                showToast("お気に入りから削除しました");
-            } else {
-                favorites.push(id);
-                showToast("お気に入りに追加 💖");
-            }
+            if (favorites.includes(id)) { favorites = favorites.filter(fId => fId !== id); showToast("お気に入りから削除しました"); }
+            else { favorites.push(id); showToast("お気に入りに追加 💖"); }
             localStorage.setItem('music_favorites_mobile', JSON.stringify(favorites));
-            updateCategoryCounts();
-            renderList();
-        }
-
-        function updateCategoryCounts() {
-            document.getElementById('countAll').innerText = songsData.length;
             document.getElementById('countFavorite').innerText = favorites.length;
+            renderList();
         }
 
         function getFilteredList() {
             return songsData.filter(song => {
-                if (currentCat === 'idol' && song.category !== 'idol') return false;
-                if (currentCat === 'female' && song.category !== 'female') return false;
-                if (currentCat === 'male' && song.category !== 'male') return false;
+                if (currentCat !== 'all' && currentCat !== 'favorite' && song.category !== currentCat) return false;
                 if (currentCat === 'favorite' && !favorites.includes(song.id)) return false;
-
-                if (currentPreset !== 'all' && presetSongIds[currentPreset]) {
-                    if (!presetSongIds[currentPreset].includes(song.id)) return false;
-                }
-
+                if (currentPreset !== 'all' && presetSongIds[currentPreset] && !presetSongIds[currentPreset].includes(song.id)) return false;
                 if (currentEra === '7080s' && (song.year < 1970 || song.year >= 1990)) return false;
                 if (currentEra === '90s' && (song.year < 1990 || song.year >= 2000)) return false;
                 if (currentEra === '00s' && (song.year < 2000 || song.year >= 2010)) return false;
                 if (currentEra === '10s' && (song.year < 2010 || song.year >= 2020)) return false;
                 if (currentEra === '20s' && song.year < 2020) return false;
-
                 if (currentSearchQuery.trim() !== '') {
                     const q = currentSearchQuery.toLowerCase();
-                    const matchTitle = song.title.toLowerCase().includes(q);
-                    const matchArtist = song.artist.toLowerCase().includes(q);
-                    if (!matchTitle && !matchArtist) return false;
+                    if (!song.title.toLowerCase().includes(q) && !song.artist.toLowerCase().includes(q)) return false;
                 }
-
                 return true;
             }).sort((a, b) => {
                 if (currentSort === 'year-asc') return a.year - b.year;
@@ -550,71 +1509,41 @@
             });
         }
 
-        // --- Core Audio API Integration ---
-        async function fetchPreview(song) {
-            const cacheKey = `${song.title}_${song.artist}`;
-            if (audioCache[cacheKey]) return audioCache[cacheKey];
-
-            try {
-                const query = encodeURIComponent(`${song.artist} ${song.title}`);
-                const res = await fetch(`https://itunes.apple.com/search?term=${query}&country=JP&media=music&limit=1`);
-                const data = await res.json();
-
-                if (data.results && data.results.length > 0) {
-                    const result = data.results[0];
-                    const info = {
-                        audioUrl: result.previewUrl,
-                        artworkUrl: result.artworkUrl100 ? result.artworkUrl100.replace('100x100bb', '300x300bb') : null
-                    };
-                    audioCache[cacheKey] = info;
-                    return info;
-                }
-            } catch (err) {
-                console.warn("API Error:", err);
-            }
-            return null;
-        }
-
+        // ★ API通信なし。最初から持っているURLをそのままセットするだけ ★
         async function playIndex(index) {
             if (index < 0 || index >= currentPlaylist.length) return;
+            
             currentPlayingIndex = index;
             const s = currentPlaylist[currentPlayingIndex];
 
-            // Setup UI
             DOM.playerTitle.innerText = s.title;
             DOM.playerArtist.innerHTML = `${s.artist} <span class="ml-1 text-[9px] bg-slate-800 px-1 rounded text-slate-500">${s.year}年</span>`;
-            
             DOM.playerBar.classList.remove('translate-y-full');
-            DOM.audioLoadingSpinner.classList.remove('hidden');
-            DOM.playerArt.classList.add('hidden');
-            DOM.playerArtPlaceholder.classList.remove('hidden');
+            renderList();
 
-            const preview = await fetchPreview(s);
-            DOM.audioLoadingSpinner.classList.add('hidden');
-
-            if (preview && preview.audioUrl) {
-                DOM.audioPlayer.src = preview.audioUrl;
-                if (preview.artworkUrl) {
-                    DOM.playerArt.src = preview.artworkUrl;
+            if (s.audioUrl) {
+                // 通信を待たずに即座に src をセットして play() を呼ぶため、スマホでもブロックされない
+                DOM.audioPlayer.src = s.audioUrl;
+                if (s.artworkUrl) {
+                    DOM.playerArt.src = s.artworkUrl;
                     DOM.playerArt.classList.remove('hidden');
                     DOM.playerArtPlaceholder.classList.add('hidden');
+                } else {
+                    DOM.playerArt.classList.add('hidden');
+                    DOM.playerArtPlaceholder.classList.remove('hidden');
                 }
 
                 try {
                     await DOM.audioPlayer.play();
-                    isPlaying = true;
-                    updatePlayUI(true);
-                    showToast(`🎵 「${s.title}」再生中`);
+                    isPlaying = true; updatePlayUI(true); showToast(`🎵 「${s.title}」再生中`);
                 } catch (e) {
-                    showToast("再生できませんでした。");
+                    showToast("再生できませんでした"); isPlaying = false; updatePlayUI(false);
                 }
             } else {
-                showToast(`⚠️ 試聴音源が見つかりません`);
-                DOM.audioPlayer.src = "";
-                isPlaying = false;
-                updatePlayUI(false);
+                showToast(`⚠️ この楽曲は試聴がありません`);
+                DOM.audioPlayer.src = ""; DOM.playerArt.classList.add('hidden'); DOM.playerArtPlaceholder.classList.remove('hidden');
+                isPlaying = false; updatePlayUI(false);
             }
-            renderList();
         }
 
         window.playSongById = function(id) {
@@ -628,112 +1557,66 @@
         }
 
         function updatePlayUI(playing) {
-            if (playing) {
-                DOM.playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-            } else {
-                DOM.playPauseBtn.innerHTML = '<i class="fa-solid fa-play ml-0.5"></i>';
-            }
+            DOM.playPauseBtn.innerHTML = playing ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play ml-0.5"></i>';
         }
 
-        // --- STREAMING_CHUNK:Attaching Event Listeners... ---
         DOM.audioPlayer.addEventListener('timeupdate', () => {
             if (DOM.audioPlayer.duration) {
-                const pct = (DOM.audioPlayer.currentTime / DOM.audioPlayer.duration) * 100;
-                DOM.progressBar.style.width = `${pct}%`;
+                DOM.progressBar.style.width = `${(DOM.audioPlayer.currentTime / DOM.audioPlayer.duration) * 100}%`;
                 DOM.currentTimeEl.innerText = formatTime(DOM.audioPlayer.currentTime);
                 DOM.durationTimeEl.innerText = formatTime(DOM.audioPlayer.duration);
             }
         });
-
         DOM.audioPlayer.addEventListener('ended', () => {
             if (currentPlayingIndex < currentPlaylist.length - 1) playIndex(currentPlayingIndex + 1);
             else { isPlaying = false; updatePlayUI(false); }
         });
-
         DOM.progressBarContainer.addEventListener('click', (e) => {
             if (!DOM.audioPlayer.duration) return;
-            const rect = DOM.progressBarContainer.getBoundingClientRect();
-            const clickPos = (e.clientX - rect.left) / rect.width;
-            DOM.audioPlayer.currentTime = clickPos * DOM.audioPlayer.duration;
+            DOM.audioPlayer.currentTime = ((e.clientX - DOM.progressBarContainer.getBoundingClientRect().left) / DOM.progressBarContainer.getBoundingClientRect().width) * DOM.audioPlayer.duration;
         });
-
         DOM.playPauseBtn.addEventListener('click', () => {
             if (!DOM.audioPlayer.src) return;
             if (isPlaying) { DOM.audioPlayer.pause(); isPlaying = false; updatePlayUI(false); }
             else { DOM.audioPlayer.play(); isPlaying = true; updatePlayUI(true); }
         });
-
         DOM.prevBtn.addEventListener('click', () => {
-            if (currentPlayingIndex > 0) playIndex(currentPlayingIndex - 1);
-            else playIndex(currentPlaylist.length - 1);
+            if (currentPlayingIndex > 0) playIndex(currentPlayingIndex - 1); else playIndex(currentPlaylist.length - 1);
         });
-
         DOM.nextBtn.addEventListener('click', () => {
-            if (currentPlayingIndex < currentPlaylist.length - 1) playIndex(currentPlayingIndex + 1);
-            else playIndex(0);
+            if (currentPlayingIndex < currentPlaylist.length - 1) playIndex(currentPlayingIndex + 1); else playIndex(0);
         });
-
         document.getElementById('closePlayerBtn').addEventListener('click', () => {
-            DOM.playerBar.classList.add('translate-y-full');
-            DOM.audioPlayer.pause(); DOM.audioPlayer.src = ""; 
+            DOM.playerBar.classList.add('translate-y-full'); DOM.audioPlayer.pause(); DOM.audioPlayer.src = ""; 
             isPlaying = false; currentPlayingIndex = -1; updatePlayUI(false); renderList();
         });
 
-        DOM.searchInput.addEventListener('input', (e) => {
-            currentSearchQuery = e.target.value;
-            DOM.clearSearchBtn.classList.toggle('hidden', !currentSearchQuery);
-            renderList();
-        });
-
-        DOM.clearSearchBtn.addEventListener('click', () => {
-            DOM.searchInput.value = ''; currentSearchQuery = '';
-            DOM.clearSearchBtn.classList.add('hidden'); renderList();
-        });
-
+        DOM.searchInput.addEventListener('input', (e) => { currentSearchQuery = e.target.value; DOM.clearSearchBtn.classList.toggle('hidden', !currentSearchQuery); renderList(); });
+        DOM.clearSearchBtn.addEventListener('click', () => { DOM.searchInput.value = ''; currentSearchQuery = ''; DOM.clearSearchBtn.classList.add('hidden'); renderList(); });
         document.querySelectorAll('.cat-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                document.querySelectorAll('.cat-tab').forEach(t => {
-                    t.classList.remove('bg-purple-600', 'text-white');
-                    t.classList.add('text-slate-400', 'bg-slate-900');
-                });
-                tab.classList.add('bg-purple-600', 'text-white');
-                tab.classList.remove('text-slate-400', 'bg-slate-900');
-                currentCat = tab.getAttribute('data-cat');
-                renderList();
+                document.querySelectorAll('.cat-tab').forEach(t => { t.classList.remove('bg-purple-600', 'text-white'); t.classList.add('text-slate-400', 'bg-slate-900'); });
+                tab.classList.add('bg-purple-600', 'text-white'); tab.classList.remove('text-slate-400', 'bg-slate-900');
+                currentCat = tab.getAttribute('data-cat'); renderList();
             });
         });
-
         DOM.presetSelect.addEventListener('change', (e) => { currentPreset = e.target.value; renderList(); });
         DOM.eraSelect.addEventListener('change', (e) => { currentEra = e.target.value; renderList(); });
         DOM.sortSelect.addEventListener('change', (e) => { currentSort = e.target.value; renderList(); });
-
         document.getElementById('resetFiltersBtn').addEventListener('click', () => {
-            currentCat = 'all'; currentEra = 'all'; currentPreset = 'all';
-            currentSearchQuery = ''; DOM.searchInput.value = '';
+            currentCat = 'all'; currentEra = 'all'; currentPreset = 'all'; currentSearchQuery = ''; DOM.searchInput.value = '';
             DOM.presetSelect.value = 'all'; DOM.eraSelect.value = 'all'; DOM.sortSelect.value = 'year-desc';
-
-            document.querySelectorAll('.cat-tab').forEach(t => {
-                t.classList.remove('bg-purple-600', 'text-white');
-                t.classList.add('text-slate-400', 'bg-slate-900');
-            });
-            document.querySelector('.cat-tab[data-cat="all"]').classList.add('bg-purple-600', 'text-white');
-            renderList();
+            document.querySelectorAll('.cat-tab').forEach(t => { t.classList.remove('bg-purple-600', 'text-white'); t.classList.add('text-slate-400', 'bg-slate-900'); });
+            document.querySelector('.cat-tab[data-cat="all"]').classList.add('bg-purple-600', 'text-white'); renderList();
         });
 
-        // --- STREAMING_CHUNK:Rendering the Dynamic List... ---
         function renderList() {
             const list = getFilteredList();
             document.getElementById('currentDisplayCount').innerText = list.length;
-
-            if (list.length === 0) {
-                DOM.songsList.innerHTML = '';
-                DOM.emptyState.classList.remove('hidden');
-                return;
-            }
+            if (list.length === 0) { DOM.songsList.innerHTML = ''; DOM.emptyState.classList.remove('hidden'); return; }
             DOM.emptyState.classList.add('hidden');
 
             const currentPlayingId = (currentPlayingIndex >= 0 && currentPlaylist[currentPlayingIndex]) ? currentPlaylist[currentPlayingIndex].id : null;
-
             let html = '';
             list.forEach((song, index) => {
                 const isFav = favorites.includes(song.id);
@@ -742,45 +1625,35 @@
 
                 html += `
                 <div class="px-2 sm:px-3 py-3 grid grid-cols-[20px_26px_160px_1fr_32px] gap-2 items-center border-b border-slate-800/80 active:bg-slate-800/60 transition-colors cursor-pointer ${isNowPlaying ? 'playing-row' : ''}" onclick="playSongById(${song.id})">
-                    
-                    <!-- 1: Number -->
                     <div class="text-center shrink-0 ${isNowPlaying ? 'text-pink-400' : 'text-slate-500 font-mono text-xs'}">
                         ${isNowPlaying && isPlaying ? '<i class="fa-solid fa-volume-high animate-pulse text-sm"></i>' : (isNowPlaying ? '<i class="fa-solid fa-play text-sm"></i>' : index + 1)}
                     </div>
-                    
-                    <!-- 2: YouTube Search Icon -->
                     <a href="${ytUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="text-slate-500 hover:text-red-500 active:text-red-500 transition-colors flex justify-center items-center">
                         <i class="fa-brands fa-youtube text-[17px]"></i>
                     </a>
-
-                    <!-- 3: Info (Title & Artist) - 完全固定幅 -->
                     <div class="w-[160px] min-w-[160px] max-w-[160px] pr-2 border-r border-slate-700/50">
                         <h4 class="text-sm font-bold text-white truncate mb-0.5 leading-tight">${song.title}</h4>
                         <p class="text-[10px] text-slate-400 truncate leading-tight">${song.artist} <span class="ml-0.5 opacity-60">(${song.year})</span></p>
                     </div>
-
-                    <!-- 4: Memo - 残りの幅を埋める (はみ出る分は省略) -->
                     <div class="min-w-0 pl-1">
                         <p class="text-[9.5px] sm:text-[10px] text-slate-400 line-clamp-2 leading-relaxed opacity-90">${song.memo}</p>
                     </div>
-
-                    <!-- 5: Favorite -->
                     <div class="flex items-center justify-end">
                         <button onclick="toggleFavorite(${song.id}, event)" class="p-2 -m-2 rounded-full active:bg-slate-800 text-slate-500 transition-colors ${isFav ? 'text-red-400' : ''}">
                             <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart text-[15px]"></i>
                         </button>
                     </div>
-                </div>
-                `;
+                </div>`;
             });
             DOM.songsList.innerHTML = html;
         }
 
-        // Init
         window.addEventListener('DOMContentLoaded', () => {
-            updateCategoryCounts();
+            document.getElementById('countAll').innerText = songsData.length;
+            document.getElementById('countFavorite').innerText = favorites.length;
             renderList();
         });
     </script>
 </body>
 </html>
+    
