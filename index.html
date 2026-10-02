@@ -715,7 +715,7 @@ main{display:block}
     const box = document.getElementById('cdStack');
     if (!box || typeof COUNTDOWN_IMAGES === 'undefined' || !COUNTDOWN_IMAGES.length) return;
     const items = COUNTDOWN_IMAGES.map(e => Array.isArray(e) ? { f: e[0], u: e[1] || '' } : { f: e, u: '' });
-    const GAP = 4, INTERVAL = 1500, FADE = 800;
+    const GAP = 4, INTERVAL = 1000, FADE = 800;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const cache = new Map();
     const load = i => {
