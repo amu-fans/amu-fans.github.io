@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OTHERS | 【非公式】勝手にあむちゃん応援ファンサイト</title>
+<title>OTHERS | 【非公式】勝手に聖奈あむ応援ファンサイト</title>
 <style>
   /* ==================================================
      ベース設定（全体版と同じカラー・フォント）
@@ -25,7 +25,7 @@
     font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
     color: var(--text-black);
     background-color: var(--bg-white);
-    max-width: 768px;
+    max-width: none;
     margin: 0 auto;
     /* ★フッターを最下部に固定配置するための設定を追加 */
     display: flex;
@@ -38,120 +38,10 @@
   }
 
   /* ==================================================
-     ヘッダー＆メニュー用CSS（共通）
-  ================================================== */
-  .header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    margin: 0 auto;
-    width: 100%;
-    max-width: 768px;
-    height: 60px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 20px;
-    z-index: 1100;
-    background-color: var(--main-pink);
-  }
-
-  .site-logo {
-    font-size: 13px;
-    font-weight: bold;
-    color: var(--bg-white);
-    text-decoration: none;
-    z-index: 1001;
-    line-height: 1.3;
-    max-width: calc(100% - 50px);
-  }
-
-  .hamburger {
-    width: 30px;
-    height: 20px;
-    position: relative;
-    cursor: pointer;
-    z-index: 1001;
-  }
-
-  .hamburger span {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background-color: var(--bg-white);
-    border-radius: 2px;
-    transition: all 0.3s ease;
-  }
-
-  .hamburger span:nth-child(1) { top: 0; }
-  .hamburger span:nth-child(2) { top: 50%; transform: translateY(-50%); }
-  .hamburger span:nth-child(3) { bottom: 0; }
-
-  .hamburger.active span:nth-child(1) {
-    top: 50%;
-    transform: translateY(-50%) rotate(45deg);
-    background-color: var(--bg-white);
-  }
-  .hamburger.active span:nth-child(2) { opacity: 0; }
-  .hamburger.active span:nth-child(3) {
-    bottom: 50%;
-    transform: translateY(50%) rotate(-45deg);
-    background-color: var(--bg-white);
-  }
-
-  .global-nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    margin: 0 auto;
-    width: 100vw;
-    max-width: 768px;
-    height: 100vh;
-    background-color: var(--bg-white);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    padding-top: 100px;
-    align-items: center;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-  }
-
-  .global-nav.active {
-    transform: translateX(0);
-  }
-
-  .nav-list {
-    list-style: none;
-    text-align: center;
-  }
-
-  .nav-list li { margin: 25px 0; }
-  .nav-list a {
-    color: var(--text-black);
-    text-decoration: none;
-    font-size: 32px;
-    font-weight: 900;
-    letter-spacing: 2px;
-    display: block;
-  }
-  .nav-list span {
-    display: block;
-    font-size: 12px;
-    font-weight: normal;
-    margin-top: 5px;
-    opacity: 0.8;
-  }
-
-  /* ==================================================
      ページコンテンツ
   ================================================== */
-  .page-wrapper {
-    padding: 100px 20px 60px; /* ヘッダー分＋少し余裕を持たせた余白 */
+  .page-wrapper { max-width: 768px; width: 100%; margin: 0 auto;
+    padding: 112px 20px 60px; /* ヘッダー分＋少し余裕を持たせた余白 */
     /* min-height: 100vh; から、flex-grow用に変更 */
     flex: 1;
     background-color: var(--bg-light);
@@ -281,6 +171,56 @@
     font-size: 16px;
     width: 90%;
   }
+
+
+:root{--main-pink:#ff2a7a;--text-black:#111111;--bg-white:#ffffff;--pk:#ff2a7a;--pk2:#ff9cc2;--k:#0c070c;--k2:#170d17;--k3:#261526;--wh:#fff6fa;--mu:#bba6b4;--ln:#4a2540;--lv:#c9a7ff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;-webkit-font-smoothing:antialiased}
+.no-scroll{overflow:hidden}
+.header{position:fixed;top:0;left:0;right:0;height:64px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;z-index:1100;background:var(--k);border-bottom:3px solid var(--pk)}
+.header:after{content:"";position:absolute;left:0;right:0;top:100%;height:9px;pointer-events:none;background:linear-gradient(135deg,var(--pk) 25%,transparent 25%) -9px 0,linear-gradient(225deg,var(--pk) 25%,transparent 25%) -9px 0;background-size:18px 9px}
+.site-logo{position:relative;padding-left:14px;font-size:13px;font-weight:900;letter-spacing:.06em;color:#fff;text-decoration:none;line-height:1.35;max-width:calc(100% - 60px);z-index:1001}
+.site-logo:before{content:"";position:absolute;left:0;top:1px;bottom:1px;width:5px;background:var(--pk);transform:skewX(-14deg)}
+.hamburger{width:30px;height:20px;position:relative;cursor:pointer;z-index:1001}
+.hamburger span{position:absolute;left:0;width:100%;height:3px;background:#fff;transition:all .3s ease}
+.hamburger span:nth-child(1){top:0}.hamburger span:nth-child(2){top:50%;transform:translateY(-50%);width:70%;background:var(--pk)}.hamburger span:nth-child(3){bottom:0}
+.hamburger.active span:nth-child(1){top:50%;transform:translateY(-50%) rotate(45deg)}
+.hamburger.active span:nth-child(2){opacity:0}
+.hamburger.active span:nth-child(3){bottom:50%;transform:translateY(50%) rotate(-45deg)}
+.global-nav{position:fixed;top:0;left:0;width:100%;height:100vh;height:100dvh;background:var(--k);z-index:1000;display:flex;flex-direction:column;align-items:center;padding-top:110px;overflow:hidden;transform:translateX(100%);transition:transform .45s cubic-bezier(.77,0,.18,1)}
+.global-nav:before{content:"";position:absolute;right:-25%;top:0;width:75%;height:100%;background:var(--pk);opacity:.14;transform:skewX(-14deg)}
+.global-nav.active{transform:translateX(0)}
+.nav-list{list-style:none;text-align:center;position:relative}
+.nav-list li{margin:20px 0;opacity:0;transform:translateY(20px);transition:opacity .3s,transform .3s}
+.global-nav.active .nav-list li{opacity:1;transform:none}
+.global-nav.active .nav-list li:nth-child(1){transition-delay:.25s}.global-nav.active .nav-list li:nth-child(2){transition-delay:.33s}.global-nav.active .nav-list li:nth-child(3){transition-delay:.41s}.global-nav.active .nav-list li:nth-child(4){transition-delay:.49s}
+.nav-list a{display:block;color:#fff;text-decoration:none;font-size:34px;font-weight:900;letter-spacing:2px;transform:skewX(-8deg)}
+.nav-list a:hover{color:var(--pk)}
+.nav-list span{display:block;font-size:12px;font-weight:700;letter-spacing:.2em;margin-top:2px;color:var(--pk)}
+.nav-note{position:absolute;bottom:0;left:0;width:100%;padding:20px 20px calc(20px + env(safe-area-inset-bottom));text-align:center;font-size:11px;line-height:1.7;color:var(--mu)}
+.site-footer{position:relative;width:100%;background:var(--k);color:var(--mu);text-align:center;font-size:11px;line-height:1.8;padding:44px 20px calc(36px + env(safe-area-inset-bottom));border-top:3px solid var(--pk)}
+.site-footer p+p{margin-top:8px}.site-footer .copy{font-size:10px;margin-top:14px;color:var(--pk2)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,2,8,.8);z-index:2000;justify-content:center;align-items:center;padding:20px}
+.modal-overlay.active{display:flex}
+.modal-content{position:relative;width:100%;max-width:400px;padding:28px 22px;background:var(--k2);color:var(--wh);border:2px solid var(--pk);box-shadow:8px 8px 0 var(--pk);clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px))}
+.modal-close-btn{position:absolute;top:8px;right:22px;font-size:28px;color:var(--pk);background:none;border:none;cursor:pointer}
+.modal-title{font-size:19px;font-weight:900;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--pk);text-align:center;color:#fff}
+.modal-info-group{margin-bottom:12px}
+.modal-label{display:block;font-size:11px;font-weight:900;color:var(--pk);margin-bottom:2px;letter-spacing:.08em}
+.modal-text{font-size:14px;font-weight:700;color:var(--wh);line-height:1.5}
+.modal-text a{color:var(--pk2);text-decoration:underline;word-break:break-all}
+.header.scrolled{box-shadow:0 6px 18px rgba(0,0,0,.6)}
+@media(min-width:900px){
+.header{height:72px;padding:0 max(28px,calc((100% - 1120px)/2))}
+.site-logo{font-size:15px;max-width:none}
+.hamburger,.nav-note,.global-nav:before{display:none}
+.global-nav{left:auto;right:max(28px,calc((100% - 1120px)/2));width:auto;height:72px;padding:0;flex-direction:row;align-items:center;background:none;overflow:visible;transform:none;transition:none;z-index:1101}
+.nav-list{display:flex;gap:34px}
+.nav-list li{margin:0;opacity:1;transform:none}
+.nav-list a{font-size:15px;letter-spacing:.14em;transform:skewX(-8deg)}
+.nav-list span{font-size:10px;letter-spacing:.12em;margin-top:0}
+.nav-list a:hover span{color:#fff}
+}
 
 </style>
 </head>
