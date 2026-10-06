@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>聖奈あむ スケジュール</title>
+<title>あむちゃんスケジュール</title>
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-
 :root{--main-pink:#ff2a7a;--text-black:#111111;--bg-white:#ffffff;--pk:#ff2a7a;--pk2:#ff9cc2;--k:#0c070c;--k2:#170d17;--k3:#261526;--wh:#fff6fa;--mu:#bba6b4;--ln:#4a2540;--lv:#c9a7ff}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;-webkit-font-smoothing:antialiased}
@@ -56,41 +55,54 @@ body{font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sa
 .nav-list span{font-size:10px;letter-spacing:.12em;margin-top:0}
 .nav-list a:hover span{color:#fff}
 }
-.page-title{display:inline-block;position:relative;left:50%;transform:translateX(-50%) skewX(-12deg);padding:2px 26px 2px 20px;margin-bottom:10px;font-size:clamp(30px,6vw,44px);font-weight:900;letter-spacing:.06em;color:#fff;background:var(--pk);box-shadow:6px 6px 0 var(--k3)}
-.page-subtitle{display:block;text-align:center;font-size:12px;font-weight:900;letter-spacing:.2em;color:var(--pk2);margin:10px 0 24px}
+/* ===== 桜色テーマ上書き ===== */
+:root{--main-pink:#e5186a;--pk:#e5186a;--pk2:#ff7aa8;--sk:#fff3f6;--sk2:#ffe1ea;--line:#f5d3e0;--ink:#2b2833;--mute:#8c8798}
+body{color:var(--ink);background:var(--sk);font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic UI','Yu Gothic',Meiryo,sans-serif}
+.header:after{top:calc(100% + 3px)}
+.site-footer{position:relative;background:var(--k);color:#fff;border-top:3px solid var(--pk)}
+.site-footer:before{content:"";position:absolute;left:0;right:0;bottom:calc(100% + 3px);height:9px;pointer-events:none;background:linear-gradient(45deg,var(--pk) 25%,transparent 25%) -9px 0,linear-gradient(315deg,var(--pk) 25%,transparent 25%) -9px 0;background-size:18px 9px}
+.site-footer .copy{color:var(--pk2)}
+.modal-overlay{background:rgba(12,7,12,.6)}
+.modal-content{background:#fff;color:var(--ink);border:0;border-top:6px solid var(--pk);box-shadow:8px 8px 0 var(--k);clip-path:none}
+.modal-close-btn{color:var(--ink)}
+.modal-title{color:var(--ink);border-bottom:2px solid var(--pk)}
+.modal-label{color:var(--pk)}
+.modal-text{color:var(--ink)}
+.modal-text a{color:var(--pk)}
 html,body{height:100%;overflow:hidden}
-body{background:var(--k);color:var(--wh)}
-.page-wrapper{display:flex;flex-direction:column;height:100vh;height:100dvh;padding-top:72px;max-width:960px;margin:0 auto}
-.sticky-top-area{flex-shrink:0;padding:16px 10px 0;z-index:100;text-align:center}
-.month-nav{display:flex;justify-content:center;align-items:center;gap:18px;margin:6px 0 10px;position:relative}
-.month-nav button{background:none;border:none;font-size:25px;color:var(--pk);cursor:pointer;font-weight:900;padding:0 14px}
-.month-nav button:hover{color:#fff}
-.month-nav h2{font-size:28px;font-weight:900;letter-spacing:.08em;min-width:140px;text-align:center;color:#fff}
-.month-nav .calendar-today-btn{position:absolute;right:0;background:none;color:#fff;border:2px solid var(--pk);padding:4px 12px;font-size:11px;font-weight:900;cursor:pointer}
-.month-nav .calendar-today-btn:hover,.month-nav .calendar-today-btn:active{background:var(--pk)}
-.schedule-wrapper{flex-grow:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0}
-.schedule-table{width:100%;border-collapse:collapse;font-size:15px;table-layout:fixed}
-.schedule-table th,.schedule-table td{padding:12px 5px;border-bottom:1px solid var(--ln);vertical-align:middle}
-.schedule-table th{font-weight:900;color:#fff;background:var(--pk);padding:6px 0;text-align:center;letter-spacing:.2em}
+.page-wrapper{display:flex;flex-direction:column;height:100vh;height:100dvh;padding-top:84px;max-width:960px;margin:0 auto}
+.sticky-top-area{flex-shrink:0;padding:14px 0 0;z-index:100}
+.page-title{display:block;margin:0 12px 14px;padding-bottom:8px;border-bottom:3px solid var(--pk);text-align:left;font-family:"Arial Black","Helvetica Neue",Arial,sans-serif;font-style:italic;font-weight:900;font-size:34px;letter-spacing:.01em;line-height:1.2;color:var(--ink)}
+.month-nav{display:flex;justify-content:center;align-items:center;gap:18px;margin:6px 12px 12px;position:relative}
+.month-nav button{background:none;border:none;font-size:24px;color:var(--pk);cursor:pointer;font-weight:900;padding:0 14px}
+.month-nav button:hover{color:var(--ink)}
+.month-nav h2{font-size:26px;font-weight:800;letter-spacing:.06em;min-width:140px;text-align:center;color:var(--ink)}
+.month-nav .calendar-today-btn{position:absolute;right:0;background:#fff;color:var(--ink);border:2px solid var(--ink);border-radius:999px;padding:3px 14px;font-size:11px;font-weight:800;cursor:pointer}
+.month-nav .calendar-today-btn:hover,.month-nav .calendar-today-btn:active{background:var(--pk);color:#fff;border-color:var(--pk)}
+.schedule-wrapper{flex-grow:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 12px;background:transparent;border:0;display:flex;flex-direction:column}
+.schedule-wrapper>*{flex-shrink:0}
+.schedule-wrapper>#footer-container{margin-top:auto}
+.schedule-table{width:100%;border-collapse:collapse;font-size:15px;table-layout:fixed;color:var(--ink);background:#fff;border:1px solid var(--line)}
+.schedule-table th,.schedule-table td{padding:12px 5px;border-bottom:1px solid var(--line);vertical-align:middle}
+.schedule-table th{font-weight:500;font-size:12px;color:var(--mute);background:#fff;padding:9px 0;text-align:center;letter-spacing:.12em}
 .col-date{width:16%}.col-time{width:18%}.col-venue{width:66%}
 .schedule-table td:nth-child(1),.schedule-table td:nth-child(2){text-align:center;white-space:nowrap}
 .schedule-table td:nth-child(3){text-align:left;padding-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.schedule-table tbody tr{cursor:pointer;background:var(--k2);color:var(--wh)}
-.schedule-table tbody tr:nth-child(even){background:var(--k3)}
-.schedule-table tbody tr:hover,.schedule-table tbody tr:active{background:#3a1a30}
-.schedule-table tr.tiktok{background:#221a33 !important}
-.schedule-table tr.tiktok td{padding:4px 5px !important;font-size:13px !important;font-weight:400 !important;color:var(--lv) !important}
-.schedule-table tr.anniv{background:#4a1330 !important}
+.schedule-table tbody tr{cursor:pointer;background:#fff;color:var(--ink)}
+.schedule-table tbody tr:hover,.schedule-table tbody tr:active{background:var(--sk)}
+.schedule-table tr.tiktok{background:#f6f2fd !important}
+.schedule-table tr.tiktok td{padding:4px 5px !important;font-size:13px !important;font-weight:400 !important;color:var(--mute) !important}
+.schedule-table tr.anniv{background:var(--sk2) !important}
 .schedule-table tr.monday-line td{border-top:1px solid var(--pk) !important}
 .schedule-table tr.before-monday-line td{border-bottom:none !important}
-.schedule-table tr.saturday td:first-child{color:#9db8ff}
-.schedule-table tr.sunday td:first-child{color:var(--pk2)}
+.schedule-table tr.saturday td:first-child{color:#7b8fd8}
+.schedule-table tr.sunday td:first-child{color:var(--pk)}
 .schedule-table tr.row-next td:first-child{position:relative}
 .schedule-table tr.row-next td:first-child::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--pk)}
-.empty-msg{padding:40px !important;text-align:center !important;font-weight:900;background:var(--k2)}
+.empty-msg{padding:40px !important;text-align:center !important;font-weight:800;background:#fff}
 .image-modal-box{position:relative;max-width:90%;max-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .image-modal-close-btn{position:absolute;top:-45px;right:0;font-size:38px;color:#fff;background:none;border:none;cursor:pointer}
-@media(min-width:900px){.page-wrapper{padding-top:80px}.schedule-table{font-size:16px}}
+@media(min-width:900px){.page-wrapper{padding-top:92px}.schedule-table{font-size:16px}}
 
 </style>
 </head>
@@ -139,7 +151,7 @@ body{background:var(--k);color:var(--wh)}
         </tbody>
       </table>
 
-      <div style="text-align: left; font-size: 12px; color: #e4cfda; padding: 10px 15px 0; font-weight: bold; line-height: 1.4;">
+      <div style="text-align: left; font-size: 12px; color: #2b2833; padding: 10px 15px 0; font-weight: bold; line-height: 1.4;">
         ※月曜木曜TikTok個人配信（時間はSNSで告知）
       </div>
 
@@ -390,7 +402,7 @@ body{background:var(--k);color:var(--wh)}
         
         tr.innerHTML = `
           <td style="font-weight: bold;">${dateStr}</td>
-          <td style="font-weight: bold; color: #e4cfda;">${displayTime}</td>
+          <td style="font-weight: bold; color: #2b2833;">${displayTime}</td>
           <td style="font-weight: bold;">${combinedText}</td>
         `;
         tbody.appendChild(tr);
@@ -815,7 +827,7 @@ body{background:var(--k);color:var(--wh)}
       copyDiv.style.color = '#fff';
       copyDiv.style.fontWeight = 'bold';
       copyDiv.style.textShadow = blackShadow; 
-      copyDiv.innerText = '【非公式】勝手に聖奈あむ応援ファンサイト';
+      copyDiv.innerText = '【非公式】勝手にあむちゃん応援ファンサイト';
       footerArea.appendChild(copyDiv);
 
       captureContainer.appendChild(footerArea);

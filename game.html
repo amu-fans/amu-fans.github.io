@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GAME | 【非公式】勝手に聖奈あむ応援ファンサイト</title>
+<title>GAME | 【非公式】勝手にあむちゃん応援ファンサイト</title>
 <style>
-
 :root{--main-pink:#ff2a7a;--text-black:#111111;--bg-white:#ffffff;--pk:#ff2a7a;--pk2:#ff9cc2;--k:#0c070c;--k2:#170d17;--k3:#261526;--wh:#fff6fa;--mu:#bba6b4;--ln:#4a2540;--lv:#c9a7ff}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;-webkit-font-smoothing:antialiased}
@@ -54,16 +53,30 @@ body{font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sa
 .nav-list span{font-size:10px;letter-spacing:.12em;margin-top:0}
 .nav-list a:hover span{color:#fff}
 }
-.page-title{display:inline-block;position:relative;left:50%;transform:translateX(-50%) skewX(-12deg);padding:2px 26px 2px 20px;margin-bottom:10px;font-size:clamp(30px,6vw,44px);font-weight:900;letter-spacing:.06em;color:#fff;background:var(--pk);box-shadow:6px 6px 0 var(--k3)}
-.page-subtitle{display:block;text-align:center;font-size:12px;font-weight:900;letter-spacing:.2em;color:var(--pk2);margin:10px 0 24px}
-body{background:var(--k);color:var(--wh);display:flex;flex-direction:column;min-height:100vh}
-.page-wrapper{flex:1;width:100%;max-width:960px;margin:0 auto;padding:112px 20px 64px}
-.game-list{list-style:none;display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
-.game-card{display:block;height:100%;padding:24px 22px;background:var(--k2);border-left:6px solid var(--pk);color:inherit;text-decoration:none;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%);transition:background .2s,transform .2s}
-.game-card:hover{background:var(--k3);transform:translateX(4px)}
-.game-card h2{font-size:20px;font-weight:900;margin-bottom:8px;color:#fff}
-.game-card p{font-size:13px;line-height:1.7;color:var(--mu)}
-.game-card .go{display:block;margin-top:14px;font-size:12px;font-weight:900;letter-spacing:.2em;color:var(--pk)}
+/* ===== 桜色テーマ上書き ===== */
+:root{--main-pink:#e5186a;--pk:#e5186a;--pk2:#ff7aa8;--sk:#fff3f6;--sk2:#ffe1ea;--line:#f5d3e0;--ink:#2b2833;--mute:#8c8798}
+body{color:var(--ink);background:var(--sk);font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic UI','Yu Gothic',Meiryo,sans-serif}
+.header:after{top:calc(100% + 3px)}
+.site-footer{position:relative;background:var(--k);color:#fff;border-top:3px solid var(--pk)}
+.site-footer:before{content:"";position:absolute;left:0;right:0;bottom:calc(100% + 3px);height:9px;pointer-events:none;background:linear-gradient(45deg,var(--pk) 25%,transparent 25%) -9px 0,linear-gradient(315deg,var(--pk) 25%,transparent 25%) -9px 0;background-size:18px 9px}
+.site-footer .copy{color:var(--pk2)}
+.modal-overlay{background:rgba(12,7,12,.6)}
+.modal-content{background:#fff;color:var(--ink);border:0;border-top:6px solid var(--pk);box-shadow:8px 8px 0 var(--k);clip-path:none}
+.modal-close-btn{color:var(--ink)}
+.modal-title{color:var(--ink);border-bottom:2px solid var(--pk)}
+.modal-label{color:var(--pk)}
+.modal-text{color:var(--ink)}
+.modal-text a{color:var(--pk)}
+body{display:flex;flex-direction:column;min-height:100vh}
+.page-wrapper{flex:1;width:100%;max-width:960px;margin:0 auto;padding:120px 20px 72px}
+.page-title{display:block;margin:0 0 28px;padding-bottom:8px;border-bottom:3px solid var(--pk);font-family:"Arial Black","Helvetica Neue",Arial,sans-serif;font-style:italic;font-weight:900;font-size:34px;letter-spacing:.01em;line-height:1.2;color:var(--ink)}
+.page-subtitle{display:none}
+.game-list{list-style:none;display:grid;gap:20px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.game-card{display:block;height:100%;padding:24px 22px;background:#fff;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-left:6px solid var(--pk);transition:transform .2s,box-shadow .2s}
+.game-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(229,24,106,.15)}
+.game-card h2{font-size:20px;font-weight:800;margin-bottom:8px}
+.game-card p{font-size:13px;line-height:1.7;color:var(--mute)}
+.game-card .go{display:inline-block;margin-top:14px;font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--pk)}
 
 </style>
 </head>

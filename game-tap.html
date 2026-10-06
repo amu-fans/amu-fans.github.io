@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>動員ゲーム | 【非公式】勝手に聖奈あむ応援ファンサイト</title>
+<title>動員ゲーム | 【非公式】勝手にあむちゃん応援ファンサイト</title>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <style>
-
 :root{--main-pink:#ff2a7a;--text-black:#111111;--bg-white:#ffffff;--pk:#ff2a7a;--pk2:#ff9cc2;--k:#0c070c;--k2:#170d17;--k3:#261526;--wh:#fff6fa;--mu:#bba6b4;--ln:#4a2540;--lv:#c9a7ff}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sans',Meiryo,sans-serif;-webkit-font-smoothing:antialiased}
@@ -57,13 +56,27 @@ body{font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sa
 .nav-list span{font-size:10px;letter-spacing:.12em;margin-top:0}
 .nav-list a:hover span{color:#fff}
 }
+/* ===== 桜色テーマ上書き ===== */
+:root{--main-pink:#e5186a;--pk:#e5186a;--pk2:#ff7aa8;--sk:#fff3f6;--sk2:#ffe1ea;--line:#f5d3e0;--ink:#2b2833;--mute:#8c8798}
+body{color:var(--ink);background:var(--sk);font-family:'Helvetica Neue',Arial,'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic UI','Yu Gothic',Meiryo,sans-serif}
+.header:after{top:calc(100% + 3px)}
+.site-footer{position:relative;background:var(--k);color:#fff;border-top:3px solid var(--pk)}
+.site-footer:before{content:"";position:absolute;left:0;right:0;bottom:calc(100% + 3px);height:9px;pointer-events:none;background:linear-gradient(45deg,var(--pk) 25%,transparent 25%) -9px 0,linear-gradient(315deg,var(--pk) 25%,transparent 25%) -9px 0;background-size:18px 9px}
+.site-footer .copy{color:var(--pk2)}
+.modal-overlay{background:rgba(12,7,12,.6)}
+.modal-content{background:#fff;color:var(--ink);border:0;border-top:6px solid var(--pk);box-shadow:8px 8px 0 var(--k);clip-path:none}
+.modal-close-btn{color:var(--ink)}
+.modal-title{color:var(--ink);border-bottom:2px solid var(--pk)}
+.modal-label{color:var(--pk)}
+.modal-text{color:var(--ink)}
+.modal-text a{color:var(--pk)}
 
-body{background:var(--k);color:var(--wh);display:flex;flex-direction:column;min-height:100vh}
+body{display:flex;flex-direction:column;min-height:100vh}
 .game-main{flex:1;width:100%;max-width:560px;margin:0 auto;padding-top:80px}
-.back-link{display:inline-block;margin:14px 16px;color:var(--pk2);font-size:13px;font-weight:900;text-decoration:none}
-.back-link:hover{color:#fff}
+.back-link{display:inline-block;margin:14px 16px;color:var(--ink);font-size:13px;font-weight:800;text-decoration:none}
+.back-link:hover{color:var(--pk)}
 /* ==================================================
-     ヒーローエリア（聖奈あむくりっかー統合）
+     ヒーローエリア（あむちゃんくりっかー統合）
   ================================================== */
   .hero {
     width: 100%;
@@ -648,7 +661,7 @@ async function loadCommonHeader() {
 
     const phrases_1_30 = ["ありがとう！", "うれしい！", "ニヤリ！", "いいねありがとう！", "周年ライブきて！", "ハートありがと！"];
     const phrases_10_30 = ["ハイスピ10周年ライブ", "11/17！渋谷！", "WWWXであります！", "絶対に来てください！", "今すぐメモ！"];
-    const phrases_31_plus = ["11/17！11/17！", "2026年11月17日！", "聖奈あむのリアバ1か月前！", "渋谷WWWX", "周年！WWWX", "ハイスピ10周年ライブ", "もちろん来るよね？"];
+    const phrases_31_plus = ["11/17！11/17！", "2026年11月17日！", "あむちゃんリアバ1か月前！", "渋谷WWWX", "周年！WWWX", "ハイスピ10周年ライブ", "もちろん来るよね？"];
     const phrases_50_plus = ["いちいちいちなな！", "今すぐ予定をあけろ！", "周年もリアバも予定あける！", "来なかったら××！", "絶対来るよなオマエら！？", "わかった？わわかってるよな？"];
 
     function getVenue(clicks) {
