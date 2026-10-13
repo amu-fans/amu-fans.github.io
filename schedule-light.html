@@ -104,6 +104,13 @@ html,body{height:100%;overflow:hidden}
 .image-modal-close-btn{position:absolute;top:-45px;right:0;font-size:38px;color:#fff;background:none;border:none;cursor:pointer}
 @media(min-width:900px){.page-wrapper{padding-top:92px}.schedule-table{font-size:16px}}
 
+.modal-content{max-height:86vh;overflow-y:auto}
+#groupSetlist{margin-top:16px;padding-top:14px;border-top:2px dotted var(--pk)}
+.modal-setlist{list-style:none;counter-reset:sl;margin:4px 0 0;padding:0;font-size:14px;font-weight:700;line-height:1.7;color:var(--ink)}
+.modal-setlist li{position:relative;padding-left:2em}
+.modal-setlist li:not(.nonum){counter-increment:sl}
+.modal-setlist li:not(.nonum)::before{content:counter(sl) '.';position:absolute;left:0;width:1.5em;text-align:right;color:var(--pk);font-weight:800}
+.modal-setlist li.nonum{font-weight:600;color:#6b6580}
 </style>
 </head>
 <body>
@@ -196,6 +203,10 @@ html,body{height:100%;overflow:hidden}
         <span class="modal-label" id="ticketLabel">チケットURL</span>
         <div id="modalTicketArea" class="modal-text">-</div>
       </div>
+      <div class="modal-info-group" id="groupSetlist" style="display:none">
+        <span class="modal-label">セットリスト</span>
+        <ol id="modalSetlist" class="modal-setlist"></ol>
+      </div>
     </div>
   </div>
 
@@ -251,13 +262,40 @@ html,body{height:100%;overflow:hidden}
       scrollToTodayEvent();
     }
 
-    function parseCSV(text) {
-      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-      if (lines.length <= 1) return [];
-      
-      return lines.slice(1).map(line => {
-        const cols = line.split(',').map(c => c.trim());
-        while (cols.length < 12) cols.push('');
+    function parseCSVRows(text) {
+    // ダブルクォート囲みのセル内のカンマ・改行・"" に対応（Excelの「CSV UTF-8」保存、Alt+Enterの改行もOK）
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) {
+        if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+        else cell += ch;
+      } else if (ch === '"' && cell === '') q = true;
+      else if (ch === ',') { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += ch;
+    }
+    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  // セットリスト：改行 または / ／ 区切りで1曲ずつ並べる。空なら欄ごと非表示
+  function setSetlist(raw) {
+    const g = document.getElementById('groupSetlist'), ol = document.getElementById('modalSetlist');
+    if (!g || !ol) return;
+    ol.innerHTML = '';
+    const items = String(raw || '').split(/\r?\n|[\/／]/).map(x => x.trim()).filter(Boolean);
+    items.forEach(t => { const li = document.createElement('li'); li.textContent = t; if (/^(SE|MC|ME|M\.C\.?)\s*[0-9０-９①-⑳]*$/i.test(t)) li.className = 'nonum'; ol.appendChild(li); });   // SE・MCなどは番号を付けず、曲だけ連番
+    g.style.display = items.length ? 'block' : 'none';
+  }
+
+  function parseCSV(text) {
+      const rows = parseCSVRows(text).filter(r => r.some(c => c.trim() !== ''));
+    if (rows.length <= 1) return [];
+
+    return rows.slice(1).map(r => {
+      const cols = r.map(c => c.trim());
+      while (cols.length < 13) cols.push('');   // 13列目＝セトリ
 
         const d = cols[0], imp = cols[1], t = cols[2], v = cols[3];
         const o = cols[4], s = cols[5];
@@ -288,8 +326,9 @@ html,body{height:100%;overflow:hidden}
           live: live, 
           tokuten: tokuten, 
           nyujoTokuten: nyu, 
-          link: link 
-        };
+          link: link,
+        setlist: cols[12]
+      };
       }).filter(item => item.date !== '');
     }
 
@@ -493,6 +532,7 @@ html,body{height:100%;overflow:hidden}
       groupBonus.style.display = 'block';
       groupTicket.style.display = 'block';
       ticketLabel.textContent = "チケットURL";
+      setSetlist('');
 
       if (isBirthday) {
         titleEl.innerHTML = `<span style="color: var(--main-pink); font-size: 16px; display: block; margin-bottom: 5px;">🎂 Happy Birthday 🎂<br>お誕生日おめでとう🎉</span>`;
@@ -519,6 +559,7 @@ html,body{height:100%;overflow:hidden}
         document.getElementById('modalLive').textContent = ev.live || '-';
         document.getElementById('modalTokuten').textContent = ev.tokuten || '-';
         document.getElementById('modalBonus').textContent = ev.nyujoTokuten || '-';
+      setSetlist(ev.setlist);
 
         const ticketArea = document.getElementById('modalTicketArea');
         const hasLink = ev.link && ev.link.trim() !== '' && ev.link.trim() !== '#' && ev.link.trim() !== 'undefined';

@@ -109,15 +109,18 @@ main{display:block}
 .calendar-container{width:100%;border-collapse:collapse;table-layout:fixed;text-align:center;background:#fff;border:1px solid var(--line)}
 .calendar-container th{padding:10px 0;font-size:12px;font-weight:500;color:var(--mute);border-bottom:1px solid var(--line)}
 .calendar-container th.sa{color:#7b8fd8}.calendar-container th.su{color:var(--pk)}
-.calendar-container td{height:88px;vertical-align:top;padding:5px;font-size:12px;border-bottom:1px solid var(--line);color:var(--ink)}
+.calendar-container td{height:88px;vertical-align:top;padding:5px;font-size:12px;border-bottom:1px solid #f3dbe6;border-right:1px solid #f8e6ee;color:var(--ink);background:#fffafb}
+.calendar-container td:last-child{border-right:0}
+.calendar-container td:nth-child(6){background:#f8f6ff}
+.calendar-container td:nth-child(7){background:#fff3f7}
 .calendar-container td.today{background:var(--sk2)}
 .date-num{text-align:left;font-weight:700;margin-bottom:2px}
 .calendar-container td:nth-child(6) .date-num{color:#7b8fd8}
 .calendar-container td:nth-child(7) .date-num{color:var(--pk)}
-.event-item{display:block;margin-top:3px;font-size:10px;padding:1px 8px;border-radius:99px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;cursor:pointer;text-decoration:none}
+.event-item{display:block;margin-top:3px;font-size:10px;font-weight:500;padding:2px 6px;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;cursor:pointer;text-decoration:none}
 .event-item:active{transform:scale(.96)}
-.event-item.cat-live{background:var(--pk);color:#fff}
-.event-item.cat-tiktok{background:#e6dcfa;color:var(--ink)}
+.event-item.cat-live{background:#ffe0ec;color:#2b2833;border-left:3px solid var(--pk)}
+.event-item.cat-tiktok{background:#f0ebfa;color:#6b6580;border-left:3px solid #cbbcf0}
 .event-item.cat-anniv{background:#fff;color:var(--pk);border:1.5px solid var(--pk)}
 .sns-group{margin-bottom:30px}
 .sns-group-title{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:14px;padding-left:10px;border-left:4px solid var(--pk);line-height:1.1}
@@ -128,6 +131,13 @@ main{display:block}
 @media(min-width:900px){.calendar-container td{height:112px;padding:6px 8px;font-size:13px}.event-item{font-size:11px;padding:2px 8px}.calendar-container th{font-size:13px}}
 @media(prefers-reduced-motion:reduce){#loading{transition:none}.loading-logo{animation:none}}
 
+.modal-content{max-height:86vh;overflow-y:auto}
+#groupSetlist{margin-top:16px;padding-top:14px;border-top:2px dotted var(--pk)}
+.modal-setlist{list-style:none;counter-reset:sl;margin:4px 0 0;padding:0;font-size:14px;font-weight:700;line-height:1.7;color:var(--ink)}
+.modal-setlist li{position:relative;padding-left:2em}
+.modal-setlist li:not(.nonum){counter-increment:sl}
+.modal-setlist li:not(.nonum)::before{content:counter(sl) '.';position:absolute;left:0;width:1.5em;text-align:right;color:var(--pk);font-weight:800}
+.modal-setlist li.nonum{font-weight:600;color:#6b6580}
 </style>
 </head>
 <body class="no-scroll">
@@ -266,6 +276,10 @@ main{display:block}
         <span class="modal-label" id="ticketLabel">チケットURL</span>
         <div id="modalTicketArea" class="modal-text">-</div>
       </div>
+      <div class="modal-info-group" id="groupSetlist" style="display:none">
+        <span class="modal-label">セットリスト</span>
+        <ol id="modalSetlist" class="modal-setlist"></ol>
+      </div>
     </div>
   </div>
 
@@ -361,14 +375,40 @@ main{display:block}
   }
 
   // ★ 修正：12列分（重要フラグ対応）を確保しつつ列を正しく割り当てる（装飾等は一切なし）
+  function parseCSVRows(text) {
+    // ダブルクォート囲みのセル内のカンマ・改行・"" に対応（Excelの「CSV UTF-8」保存、Alt+Enterの改行もOK）
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) {
+        if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+        else cell += ch;
+      } else if (ch === '"' && cell === '') q = true;
+      else if (ch === ',') { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += ch;
+    }
+    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  // セットリスト：改行 または / ／ 区切りで1曲ずつ並べる。空なら欄ごと非表示
+  function setSetlist(raw) {
+    const g = document.getElementById('groupSetlist'), ol = document.getElementById('modalSetlist');
+    if (!g || !ol) return;
+    ol.innerHTML = '';
+    const items = String(raw || '').split(/\r?\n|[\/／]/).map(x => x.trim()).filter(Boolean);
+    items.forEach(t => { const li = document.createElement('li'); li.textContent = t; if (/^(SE|MC|ME|M\.C\.?)\s*[0-9０-９①-⑳]*$/i.test(t)) li.className = 'nonum'; ol.appendChild(li); });   // SE・MCなどは番号を付けず、曲だけ連番
+    g.style.display = items.length ? 'block' : 'none';
+  }
+
   function parseCSV(text) {
-    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-    if (lines.length <= 1) return [];
-    
-    return lines.slice(1).map(line => {
-      const cols = line.split(',').map(c => c.trim());
-      // 新しいCSVフォーマットに合わせて12列分を確保
-      while (cols.length < 12) cols.push('');
+    const rows = parseCSVRows(text).filter(r => r.some(c => c.trim() !== ''));
+    if (rows.length <= 1) return [];
+
+    return rows.slice(1).map(r => {
+      const cols = r.map(c => c.trim());
+      while (cols.length < 13) cols.push('');   // 13列目＝セトリ
 
       // 列を1つずつずらして正しく割り当て
       const d = cols[0], imp = cols[1], t = cols[2], v = cols[3];
@@ -401,7 +441,8 @@ main{display:block}
         live: live, 
         tokuten: tokuten, 
         nyujoTokuten: nyu, 
-        link: link 
+        link: link,
+        setlist: cols[12]
       };
     }).filter(item => item.date !== '');
   }
@@ -548,6 +589,7 @@ main{display:block}
     groupBonus.style.display = 'block';
     groupTicket.style.display = 'block';
     ticketLabel.textContent = "チケットURL";
+      setSetlist('');
 
     if (isBirthday) {
       titleEl.innerHTML = `<span style="color: var(--main-pink); font-size: 16px; display: block; margin-bottom: 5px;">🎂 Happy Birthday 🎂<br>お誕生日おめでとう🎉</span>`;
@@ -576,6 +618,7 @@ main{display:block}
       document.getElementById('modalLive').textContent = ev.live || '-';
       document.getElementById('modalTokuten').textContent = ev.tokuten || '-';
       document.getElementById('modalBonus').textContent = ev.nyujoTokuten || '-';
+      setSetlist(ev.setlist);
 
       const ticketArea = document.getElementById('modalTicketArea');
       const hasLink = ev.link && ev.link.trim() !== '' && ev.link.trim() !== '#' && ev.link.trim() !== 'undefined';
