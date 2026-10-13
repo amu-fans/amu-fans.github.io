@@ -1,5 +1,8 @@
 // カウントダウン画像の一覧。1行＝["画像ファイル名", "Xの投稿URL"]。順番は不問（表示はランダム）。
 // URLが空 "" の画像は、タップしても何も起きません。
+// 「HIGHSPIRITS 10周年ライブまで あと○日」をタップしたときに開くXの投稿URL
+const COUNTDOWN_LINK = "https://x.com/HiSp_info/status/2101989818586542549";
+
 const COUNTDOWN_IMAGES = [
   ["97.jpg", "https://x.com/HiSp_info/status/2087429581888499752"],
   ["96.jpg", "https://x.com/HiSp_info/status/2087727926632669643"],
@@ -49,4 +52,13 @@ const COUNTDOWN_IMAGES = [
   ["49.jpg", "https://x.com/HiSp_info/status/2104838065399488941"],
   ["48.jpg", "https://x.com/HiSp_info/status/2105245217591050743"],
   ["47.jpg", "https://x.com/HiSp_info/status/2105578513755787386"],
+  ["46.jpg", "https://x.com/HiSp_info/status/2105931065168929002"],
+  ["45.jpg", "https://x.com/HiSp_info/status/2106253921530548319"],
+  ["44.jpg", "https://x.com/HiSp_info/status/2106637425565163807"],
+  ["43.jpg", "https://x.com/HiSp_info/status/2107032249472594404"],
+  ["42.jpg", "https://x.com/HiSp_info/status/2107399793006027133"],
+  ["41.jpg", "https://x.com/HiSp_info/status/2107757022976598235"],
+  ["38.jpg", "https://x.com/HiSp_info/status/2108821564812853552"],
+  ["37.jpg", "https://x.com/HiSp_info/status/2109177155376828750"],
+  ["36.jpg", "https://x.com/HiSp_info/status/2109521428303466902"],
 ];
